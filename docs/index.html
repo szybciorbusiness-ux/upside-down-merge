@@ -1304,19 +1304,13 @@ function label(b, alpha) {
   ctx.fillStyle = 'rgba(0,0,0,0.3)';   // Figma: 30% black over the blob's colour, the same when grabbed or on the merge flash
   ctx.globalAlpha = alpha;
   ctx.font = '900 ' + b.fs.toFixed(1) + 'px ' + FONT;
-  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillText(b.label, 0, b.fs * 0.04 + 1); ctx.restore();   // text-shadow 0 1px white 5%
   ctx.fillText(b.label, 0, b.fs * 0.04);
   ctx.restore();
 }
-// Blobs are flat (the user's circles reference): one colour, and a soft dark disc of the same outline offset
-// down-left behind it, like a paper cut-out lifted off the field.
-const SH_X = -0.2, SH_Y = 0.26;     // shadow offset, in radii
+// Blobs are flat: one colour, nothing else (user: no shadows, no shading, just the shape and the number).
 function drawBlob(b, outline) {
-  const c = colorFor(b.level), rs = b.r * b.scale;
+  const c = colorFor(b.level);
   const sk = SKIN && !b.fresh, X = sk ? b.RX : b.x, Y = sk ? b.RY : b.y;
-  ctx.save(); ctx.translate(SH_X * rs, SH_Y * rs);
-  ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fill();
-  ctx.restore();
   ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = c.hex; ctx.fill();
   if (b.flash > 0) {                // merge flash: a white veil over the same inside, fading away
     ctx.fillStyle = `rgba(255,255,255,${(b.flash * b.flash).toFixed(3)})`; ctx.fill();
