@@ -227,7 +227,7 @@ let sel = null, hover = null, armed = false;   // shelf blob being aimed / hover
 let aiming = false, aim = 0, aimPtr = -1, ptrX = LX, ptrY = 0, ptrMouse = false, ptrIn = false;
 let pressX = 0, pressY = 0, power = 1, selX = LX, pullX = 0, pullY = 0;
 const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
-let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0;
+let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // peak: highest tier made this run
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 let time = 0, acc = 0, shake = 0, shakeT = 0;
 let muted = false;
@@ -759,6 +759,7 @@ function finishMerge(a, b) {
   if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
   const p = popups[popI]; popI = (popI + 1) % popups.length;
   p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, x)); p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.v = pts; p.c = onShelf ? 0 : combo;   // beside the new blob, never over its number
+  if (nb.level > peak) peak = nb.level;
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
   const gl = Math.min(1, 0.22 + nb.level * 0.09 + (combo >= 2 ? 0.1 : 0));   // how hard the field lights up
@@ -942,20 +943,29 @@ function layout() {
 
 const trayScale = b => Math.min(1, TRAY_R / b.r);
 function boardHas(level) { for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level === level) return true; return false; }
+// The shelf climbs with the run. `floorL` is the lowest tier still fed normally: 1 until the run makes 64, then it
+// rises half a tier per tier of peak, so 2s thin out at 128 and are gone at 256, 4s at 1024, 8s at 4096... A tier
+// below the floor that is still on the board keeps a trickle so stragglers can always be paired off (never blocked).
+const spawnFloor = () => Math.max(1, 1 + (peak - 6) / 2);
 function pickLevel() {
   let maxL = 4;
   for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level > maxL) maxL = blobs[i].level;
-  const top = Math.max(3, Math.min(5, maxL - 2));
+  const f = spawnFloor(), lo = Math.floor(f);
+  const top = Math.max(lo + 2, Math.min(lo + 4, maxL - 2));
   let total = 0; const w = [];
-  for (let l = 1; l <= top; l++) { let v = Math.pow(0.62, l - 1); if (boardHas(l)) v *= 1.5; w.push(v); total += v; }
+  for (let l = 1; l <= top; l++) {
+    let v = l < lo ? 0 : Math.pow(0.62, l - lo) * Math.min(1, l - f + 1);
+    if (boardHas(l)) v = Math.max(v * 1.5, 0.28);   // on the board: a bit likelier; below the floor: the trickle
+    w.push(v); total += v;
+  }
   let r = Math.random() * total;
   for (let l = 1; l <= top; l++) { r -= w[l - 1]; if (r <= 0) return l; }
-  return 1;
+  return lo;
 }
 
 function reset() {
   blobs.length = 0;
-  score = shown = 0; combo = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
+  score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   fanfare.t = 9; fanfare.b = null; glow.a = 0; for (const m of motes) m.t = 9;
@@ -1510,7 +1520,7 @@ window.__udm = { blobs, tick, draw, reset,
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
   fx: () => ({ hitStop, scoreBump, shake, glow: glow.a, motes: motes.filter(m => m.t < m.life).length, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
-  info: () => ({ n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
+  pickLevel, setPeak: v => { peak = v; }, info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
 </body>
