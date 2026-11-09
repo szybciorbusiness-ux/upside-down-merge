@@ -231,6 +231,9 @@ const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
 let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // peak: highest tier made this run
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 let time = 0, acc = 0, shake = 0, shakeT = 0;
+// screen tilt: a hard hit off to one side rocks the whole screen that way (degrees), a damped spring brings it back
+let tilt = 0, tiltV = 0;
+const TILT_W = 13, TILT_Z = 0.42, TILT_KICK = 0.12, TILT_MAX_V = 60, TILT_MIN = 140;
 let muted = false;
 const popups = [];
 for (let i = 0; i < 14; i++) popups.push({ t: 9, x: 0, y: 0, v: 0, c: 0 });
@@ -950,7 +953,7 @@ function pickLevel() {
 function reset() {
   blobs.length = 0;
   score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
-  shake = 0; for (const p of popups) p.t = 9;
+  shake = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   fanfare.t = 9; fanfare.b = null; glow.a = 0;
   aiming = false; armed = false; sel = hover = null;
@@ -1054,21 +1057,36 @@ function frameFx(dt) {
   shown = Math.abs(d) < 0.6 ? score : shown + d * (1 - Math.exp(-dt * 9));
   for (const p of popups) if (p.t < 9) p.t += dt;
   if (shake > 0) { shakeT += dt; if (shakeT > 0.45) shake = 0; }
+  if (tilt !== 0 || tiltV !== 0) {   // damped spring back to level
+    tiltV += (-TILT_W * TILT_W * tilt - 2 * TILT_Z * TILT_W * tiltV) * dt; tilt += tiltV * dt;
+    if (Math.abs(tilt) < 0.004 && Math.abs(tiltV) < 0.05) tilt = tiltV = 0;
+  }
 }
 
 // Impacts are measured over a fixed 1/60 s of physics, whatever the display rate, so dents and
 // landing thumps come out the same at 60, 144 or 240 Hz.
 const IMP_SUB = 4; let impN = 0;
 function impulses() {
-  const h = IMP_SUB * DT; let hit = 0;
+  const h = IMP_SUB * DT; let hit = 0, torque = 0;
+  const midX = (WALL_L + WALL_R) / 2, halfW = (WALL_R - WALL_L) / 2;
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i], dvx = b.vcx - b.pvx, dvy = b.vcy - b.pvy + G * h;
     b.pvx = b.vcx; b.pvy = b.vcy;
     const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
     if (dv > hit) hit = dv;
+    if (!b.tray && b.young <= 0) {
+      // sideways: the blob was flying toward the side it hit, so the screen leans that way (-dvx);
+      // a landing off-centre leans toward where the weight came down
+      const tq = (-dvx + Math.abs(dvy) * 0.55 * (b.cx - midX) / halfW) * Math.min(1.6, 0.6 + b.r / 50);
+      if (Math.abs(tq) > Math.abs(torque)) torque = tq;
+    }
     if (SKIN) skinKnock(b, dvx, dvy);
   }
   if (hit > 150) sfxThump(Math.min(1, hit / 1100));
+  if (!REDUCED && Math.abs(torque) > TILT_MIN) {
+    const kick = Math.max(-TILT_MAX_V, Math.min(TILT_MAX_V, (torque - Math.sign(torque) * TILT_MIN) * TILT_KICK));
+    if (Math.sign(kick) !== Math.sign(tiltV) || Math.abs(kick) > Math.abs(tiltV)) tiltV = kick; else tiltV += kick * 0.3;
+  }
 }
 function tick(dt) {
   time += dt;
@@ -1318,7 +1336,7 @@ function draw() {
   // the shake moves the whole screen (DOM transform), so the wordmark and menu rock with the field
   let shx = 0, shy = 0;
   if (shake > 0) { const k = shake * Math.exp(-shakeT * 9); shx = Math.sin(shakeT * 95) * k; shy = Math.cos(shakeT * 83) * k; }
-  const st = shake > 0 ? `translate(${(shx * S).toFixed(2)}px,${(shy * S).toFixed(2)}px)` : '';
+  const st = (shake > 0 || tilt !== 0) ? `translate(${(shx * S).toFixed(2)}px,${(shy * S).toFixed(2)}px) rotate(${tilt.toFixed(3)}deg)` : '';
   if (st !== shakeCss) { shakeCss = st; screenEl.style.transform = st; }
   ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1503,7 +1521,7 @@ window.__udm = { blobs, tick, draw, reset,
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
-  fx: () => ({ hitStop, scoreBump, shake, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
+  fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   pickLevel, setPeak: v => { peak = v; }, info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
