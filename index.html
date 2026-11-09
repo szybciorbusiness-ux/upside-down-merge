@@ -139,7 +139,7 @@ const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 const RIPPLE_MIN = 240, RIPPLE_R = 480, RIPPLE_K = 0.5, RIPPLE_MAX = 200;
 const SHAKE_MIN = 380, SHAKE_MAX = 1.1;   // landing speed that starts to rock the screen, and the most it ever rocks
 const V_DOWN_MAX = 200;
-const WALL_DOUBLE_V = 560;        // a fresh shot hitting a side or back wall faster than this doubles (a full-power shot qualifies)
+const WALL_DOUBLE_V = 560, DOUBLE_BOOST = 1.12;   // ...and leaves the wall at this share of its approach speed        // a fresh shot hitting a side or back wall faster than this doubles (a full-power shot qualifies)
 const doubleQ = [];           // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
 const ECHO = [[0.14, 0.4], [0.3, 0.2]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
@@ -857,14 +857,12 @@ function ripple(b, j0) {
 function wallDouble(b) {
   if (b.dead) return;
   b.dead = true;
-  const nb = makeBlob(b.level + 1), rs = b.r * b.scale, k = rs / nb.r, off = nb.r * 0.72 - rs + 2;
-  let vx = b.vcx, vy = b.vcy; const vn = vx * b.wnx + vy * b.wny, want = 0.85 * b.wIn;
-  if (vn < want) { vx += b.wnx * (want - vn); vy += b.wny * (want - vn); }   // it leaves the wall at a proper bounce
-  // reborn flattened against the wall (squashed along the normal, spread along it), at the old size: it springs out into the new one
-  const na = Math.atan2(b.wny, b.wnx);
-  placeBlob(nb, b.cx + b.wnx * off, b.cy + b.wny * off, b.pa, k, na, 0.68, 1.28, vx, vy);
-  nb.scaleT = 1; nb.anim = true; nb.animT = 0; nb.flash = 1; nb.flashDur = 1.1;
-  nb.noMerge = 0.15; nb.young = YOUNG; nb.touched = true; nb.sinceTouch = 1; nb.freeT = 1;
+  const nb = makeBlob(b.level + 1), rs = b.r * b.scale, k = rs / nb.r, off = nb.r - rs + 2;
+  let vx = b.vcx, vy = b.vcy; const vn = vx * b.wnx + vy * b.wny, want = DOUBLE_BOOST * b.wIn;
+  if (vn < want) { vx += b.wnx * (want - vn); vy += b.wny * (want - vn); }   // it leaves the wall faster than it came: momentum
+  placeBlob(nb, b.cx + b.wnx * off, b.cy + b.wny * off, b.pa, k, 0, 1, 1, vx, vy);   // born at the old size, pops up to the new
+  nb.scaleT = 1; nb.anim = true; nb.animT = 0; nb.flash = 1; nb.flashDur = 0.7;
+  nb.noMerge = 0.15; nb.young = 0;   // (no newborn speed cap: it keeps its momentum) nb.touched = true; nb.sinceTouch = 1; nb.freeT = 1;
   blobs.push(nb);
   score += nb.value; if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
   const ci = cidx(nb.level), hx = b.cx - b.wnx * rs, hy = b.cy - b.wny * rs;   // the point on the wall it hit
@@ -874,25 +872,17 @@ function wallDouble(b) {
   sfxMerge(nb.level, 0); setTimeout(() => sfxCombo(nb.level, 3), 70); setTimeout(() => sfxCombo(nb.level, 5), 150);   // chime, then two rising pings
   if (0.45 >= glow.a * 0.7) { glow.c = ci; glow.a = Math.max(glow.a, 0.7); }   // the screen takes the new colour
   if (REDUCED) return;
-  hitStop = Math.max(hitStop, 0.1);                                           // a freeze frame on the wall
-  tiltV += -b.wnx * 38;                                                       // the screen leans with the hit
-  const fl = flares[flareI]; flareI = (flareI + 1) % flares.length;           // light blooms on the wall
-  fl.t = 0; fl.life = 0.5; fl.x = hx; fl.y = hy; fl.c = ci;
+  tiltV += -b.wnx * 24;                                                       // the screen leans a little with the hit
+  const fl = flares[flareI]; flareI = (flareI + 1) % flares.length;           // a quick flash of light on the wall
+  fl.t = 0; fl.life = 0.28; fl.x = hx; fl.y = hy; fl.c = ci;
   const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;                // a ring of the new colour leaves the wall
-  rg.t = 0; rg.life = 0.42; rg.x = hx; rg.y = hy; rg.r0 = rs * 0.5; rg.r1 = nb.r * 2.6; rg.c = ci;
+  rg.t = 0; rg.life = 0.3; rg.x = hx; rg.y = hy; rg.r0 = rs * 0.6; rg.r1 = nb.r * 2.2; rg.c = ci;
   const tx = -b.wny, ty = b.wnx;                                              // along the wall
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 8; i++) {
     const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
     const dir = i & 1 ? 1 : -1, v = 180 + Math.random() * 260;
     sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
     sp.x = hx + b.wnx * 4; sp.y = hy + b.wny * 4; sp.vx = tx * dir * v + b.wnx * Math.random() * 120; sp.vy = ty * dir * v + b.wny * Math.random() * 120;
-  }
-  for (let i = 0; i < 10; i++) {                                              // confetti bits skid off along the wall
-    const bt = bits[bitI]; bitI = (bitI + 1) % bits.length;
-    const dir = i & 1 ? 1 : -1, v = 200 + Math.random() * 260, th = Math.atan2(ty * dir, tx * dir) + (Math.random() - 0.5) * 0.9;
-    bt.t = 0; bt.tt = 0; bt.life = 0.6 + Math.random() * 0.4; bt.x = hx + b.wnx * 6; bt.y = hy + b.wny * 6; bt.vx = Math.cos(th) * v + b.wnx * 60; bt.vy = Math.sin(th) * v + b.wny * 60;
-    bt.r = 2.6 + Math.random() * 3.4; bt.c = ci; bt.a = Math.random() * 6.283; bt.spin = (Math.random() - 0.5) * 14;
-    for (let q = 0; q < TRAIL; q++) { bt.tx[q] = bt.x; bt.ty[q] = bt.y; }
   }
 }
 function popBlob(b) {
@@ -1024,7 +1014,7 @@ function drawJuice() {
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < flares.length; i++) {
     const f = flares[i]; if (f.t >= f.life) continue;
-    const k = f.t / f.life, R = 60 + 150 * (1 - Math.pow(1 - k, 3)), c = COLORS[f.c];
+    const k = f.t / f.life, R = 50 + 110 * (1 - Math.pow(1 - k, 3)), c = COLORS[f.c];
     const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, R);
     g.addColorStop(0, c.hex + 'cc'); g.addColorStop(0.45, c.hex + '55'); g.addColorStop(1, c.hex + '00');
     ctx.globalAlpha = 1 - k * k; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, R, 0, 6.2832); ctx.fill();
@@ -1425,6 +1415,7 @@ let shakeCss = '', dangerCss = '';
 let scoreShown = '', scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
+const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
 const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z');   // 16x32 laurel branch from the Figma frame (Squish 19:114)
 
 // The phone scales as one piece: --u is one design pixel. On a narrow or touch screen the shell drops away.
@@ -1520,13 +1511,13 @@ function draw() {
   if (best > 0) {
     // multiply (the nearest canvas has to "plus darker"): an ink of 145,145,160 over the panel's 53,53,67 lands on the screen's 30,30,42
     const ink = mixHex(145, 145, 160, gc, 0.3 * ga), txt = best.toLocaleString(), by = H - 48;
-    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = BEST_ALPHA;
     ctx.font = '900 32px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const tw = ctx.measureText(txt).width;
     ctx.fillStyle = ink; ctx.fillText(txt, LX, by + 1);
     ctx.save(); ctx.translate(LX - tw / 2 - 28, by - 16); ctx.fill(LAUREL); ctx.restore();
     ctx.save(); ctx.translate(LX + tw / 2 + 28, by - 16); ctx.scale(-1, 1); ctx.fill(LAUREL); ctx.restore();
-    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
