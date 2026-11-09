@@ -40,7 +40,7 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
-#best{position:absolute;left:calc(21*var(--u));top:calc(50*var(--u));margin:0;font:900 calc(13*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:calc(.4*var(--u));white-space:nowrap;font-variant-numeric:tabular-nums}
+#best{position:absolute;right:calc(66*var(--u));top:calc(21*var(--u));margin:0;text-align:right;font:900 calc(14*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:calc(.4*var(--u));white-space:nowrap;font-variant-numeric:tabular-nums}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--hud,var(--brand));mix-blend-mode:plus-lighter}
 #gear svg{width:100%;height:100%}
@@ -130,14 +130,16 @@ let TRAY_Y = 574, DANGER_Y = 474, FLOOR_Y = 614;
 const TRAY_MAX = 3, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 3 shapes, fed from a gate on each side
 const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
 
-const G = 540;                 // gravity, pulling UP (-y); light, so shapes float up and bounce rather than slam
-const E_WALL = 0.5, E_BLOB = 0.5, E_CAP = 9;
+const G = 150;                 // gravity, pulling UP (-y); barely there: in Sobosuba shapes drift at near-constant speed, and a shot off the back wall comes back to the shelf
+const E_WALL = 1.0, E_BLOB = 0.9, E_CAP = 14;
+const E_BODY = 0.62, E_BODY_MIN = 60;   // whole-body rebound off the field: when a blob leaves a wall slower than this share of its approach, it gets the rest back
+const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger ones for this long is squeezed until it pops   // measured: blob-blob rebound ~0.68 in the original
 // percolation: a settled blob wedged by bigger neighbours gets lighter (LIGHT per unit of "how much bigger"),
 // is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
-const RIPPLE_MIN = 180, RIPPLE_R = 300, RIPPLE_K = 0.42, RIPPLE_MAX = 420;   // restitution against the field and against other blobs (capped per substep)
-const SHOT = 820;              // launch speed
+const RIPPLE_MIN = 320, RIPPLE_R = 420, RIPPLE_K = 1.1, RIPPLE_MAX = 800;   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
+const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
 const PEN_MAX = 10;
@@ -147,15 +149,15 @@ const NOTCH = 0.4;            // how far one point may sit inside the chord of i
 const YOUNG = 0.22, PEN_YOUNG = 1.2, V_YOUNG = 260;   // a newborn inflates against its neighbours over a few frames instead of launching them
 const WALL_W = 0.12;           // how light a wall-held point counts in a blob-to-blob contact
 const CONTACT_PASSES = 2;      // contact solves per substep; one pass lets squeezed blobs sink into each other
-const MU = 0.22, MU_WALL = 0.14;   // slippery: the pile flows and slides rather than locking up
+const MU = 0.12, MU_WALL = 0.1;   // slippery: the pile flows and slides rather than locking up
 const K0 = 0.011, K1 = 1.5, KMAX = 0.6;   // shape stiffness: very soft (jelly), stiffening hard only near collapse
 const STRAIN = 0.85;           // how far a point may leave its rest place, in radii
 const KB = 0.06;               // outline smoothness: local bending, so it wobbles in big lazy lumps, not wrinkles
 const KA = 0.6;                // area (pressure) stiffness
 const KD = 0.006;              // deformation damping: about four visible wobbles, then rest
 const LIN_DAMP = 0.9993, ANG_DAMP = 0.9995;   // in free flight
-const LIN_TOUCH = 0.9994, ANG_TOUCH = 0.992;    // while touching something, so piles still come to rest
-const V_SLEEP2 = 2.2 * 2.2;    // rest threshold (acts like static friction)
+const LIN_TOUCH = 0.9997, ANG_TOUCH = 0.994;    // while touching something, so piles still come to rest
+const V_SLEEP2 = 1.0 * 1.0;    // rest threshold (acts like static friction)
 const MERGE_TIME = 0.2, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
 const V_MAX = 1500;
 const MAX_AIM = 1.16;          // ±66° from straight up
@@ -280,7 +282,7 @@ function makeBlob(level) {
     scale: 1, scaleV: 0, scaleT: 1, anim: false, animT: 0,
     tray: false, sq: 0, sqV: 0, sqT: 0,     // sq: how flattened it sits on the shelf
     w: n / Math.pow(r, 1.25), area0: Math.PI * r * r,   // inverse mass for contacts: big blobs are heavier, but not by area, so a small shot still moves them
-    touched: false, sinceTouch: 0, flash: 0,
+    touched: false, sinceTouch: 0, flash: 0, buried: false, buriedT: 0, popping: 0, wasWall: 0, wallHit: 0, wIn: 0, wnx: 0, wny: -1, freeT: 1, landV: 0, landX: 0, landY: 0,
     state: 0, partner: null, mergeT: 0, noMerge: 0, young: 0,
     vcx: 0, vcy: 0, pvx: 0, pvy: 0, dead: false, la: 0, pa: 0,
     label: String(Math.pow(2, level)), fs: 0
@@ -386,7 +388,7 @@ function solveShape(b) {
     const tx = x[i1] - x[i0], ty = y[i1] - y[i0], l = Math.sqrt(tx * tx + ty * ty) || 1;
     tmpX[i] = ty / l; tmpY[i] = -tx / l; per += l * 0.5;
   }
-  let d = KA * (b.area0 * sxm * sym - A * 0.5) / per;
+  let d = KA * (b.buried ? 0.18 : 1) * (b.area0 * sxm * sym - A * 0.5) / per;   // buried: soft enough to be squeezed through
   if (d > 1.2) d = 1.2; else if (d < -1.2) d = -1.2;
   let br2 = 0, maxY = -1e9;
   for (let i = 0; i < n; i++) {
@@ -482,7 +484,7 @@ function limitNotch(b) {
 }
 function collideWalls(b) {
   const n = b.n, x = b.x, y = b.y, px = b.px, py = b.py;
-  b.wl.fill(0);
+  b.wl.fill(0);   // (wallHit is counted across both contact passes and cleared in the velocity pass)
   for (let p = 0; p < planes.length; p++) {
     const pl = planes[p], nx = pl[0], ny = pl[1], dd = pl[2];
     if (nx * b.cx + ny * b.cy - dd > b.br + 3) continue;
@@ -491,7 +493,7 @@ function collideWalls(b) {
       if (dist < 0) {
         b.ct[i] = 1; b.wl[i] = 1; b.hit = true;
         const dn = (x[i] - px[i]) * nx + (y[i] - py[i]) * ny;   // approach this substep (negative = into the wall)
-        x[i] -= nx * dist; y[i] -= ny * dist;
+        x[i] -= nx * dist; y[i] -= ny * dist; b.wnx = nx; b.wny = ny; b.wallHit++;
         if (dn < 0 && b.young <= 0) { const e = Math.max(-E_CAP, E_WALL * dn); px[i] += nx * e; py[i] += ny * e; }
         const tn = (x[i] - px[i]) * -ny + (y[i] - py[i]) * nx, at = tn < 0 ? -tn : tn;
         if (at > 1e-6) { let f = MU_WALL * -dist / at; if (f > 1) f = 1; x[i] -= -ny * tn * f; y[i] -= nx * tn * f; }
@@ -544,6 +546,7 @@ function substep(h) {
       }
     } else {
       let gf = 1, sqx = 0, sqy = 0, held = 0;
+      b.buried = false;
       if (b.touched && b.state === 0 && b.young <= 0) {
         const ra = b.r * b.scale;
         for (let q = 0; q < nb; q++) {
@@ -556,10 +559,13 @@ function substep(h) {
         let buried = false;
         if (held >= 2) for (let q = 0; q < nb; q++) {   // something bigger below it, between it and the player?
           const o = blobs[q]; if (o === b || o.tray || o.dead || o.level <= b.level) continue;
-          if (o.cy > b.cy + ra * 0.5 && Math.abs(o.cx - b.cx) < o.r * o.scale + ra * 0.6) { buried = true; break; }
+          const ro = o.r * o.scale;
+          if (o.cy - b.cy > -ra * 0.5 && o.cy + ro > b.cy + ra * 1.2 && Math.abs(o.cx - b.cx) < ro + ra * 0.3) { buried = true; break; }
         }
         if (!buried) { gf = 1; sqx = sqy = 0; held = 0; }   // resting in a crevice on the face is fine: leave it be
         else if (gf < 0.3) gf = 0.3;
+        b.buried = buried;   // a buried blob goes soft (solveShape): it can be squeezed thin and slip out through a gap
+        if (buried) b.buriedT += h; else b.buriedT = Math.max(0, b.buriedT - h * 2);
         if (sqy < 0) sqy = 0;                         // never squeeze toward the ceiling, only sideways or out toward the face
       }
       const gh = G * gf * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
@@ -625,7 +631,7 @@ function substep(h) {
     for (let i = 0; i < n; i++) { const rx = x[i] - cx, ry = y[i] - cy; L += rx * (vy[i] - sy) - ry * (vx[i] - sx); I += rx * rx + ry * ry; }
     // centre motion, spin and deformation are damped separately
     const om0 = I > 0 ? L / I : 0, om = om0 * (b.hit ? ANG_TOUCH : ANG_DAMP);
-    let lin = b.hit ? LIN_TOUCH : LIN_DAMP;
+    const touching = b.hit; let lin = touching ? LIN_TOUCH : LIN_DAMP;
     if (b.young > 0) { const sp = Math.sqrt(sx * sx + sy * sy); if (sp > V_YOUNG) lin *= V_YOUNG / sp; }
     const lx = sx * lin, ly = sy * lin, kd = 1 - KD;
     b.hit = false;
@@ -638,8 +644,18 @@ function substep(h) {
       if (v2 > V_MAX * V_MAX) { const f = V_MAX / Math.sqrt(v2); vx[i] *= f; vy[i] *= f; v2 = V_MAX * V_MAX; }
       if (v2 > m2) m2 = v2;
     }
+    // whole-body rebound off the field: on first wall contact remember the approach speed; when the blob lets go
+    // of the wall slower than E_BODY of that, give it the difference (the squash absorbed it)
+    if (touching) { if (b.freeT > 0.1 && !b.tray) { b.landV = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy); b.landX = b.cx; b.landY = b.cy; } b.freeT = 0; } else b.freeT += h;
+    const onWall = b.wallHit | 0; b.wallHit = 0;
+    if (onWall && !b.wasWall) b.wIn = -(b.vcx * b.wnx + b.vcy * b.wny);
+    else if (!onWall && b.wasWall && !b.tray && b.state === 0 && b.wIn > E_BODY_MIN) {
+      const vOut = sx * b.wnx + sy * b.wny, add = E_BODY * b.wIn - vOut;
+      if (add > 0) { for (let i = 0; i < n; i++) { vx[i] += b.wnx * add; vy[i] += b.wny * add; } sx += b.wnx * add; sy += b.wny * add; }
+    }
+    b.wasWall = onWall;
     b.vcx = sx; b.vcy = sy;
-    if (m2 < V_SLEEP2 && !b.anim && b.state === 0 && b !== sel) {
+    if (touching && m2 < V_SLEEP2 && !b.anim && b.state === 0 && b !== sel) {
       for (let i = 0; i < n; i++) { x[i] = px[i]; y[i] = py[i]; vx[i] = 0; vy[i] = 0; }
       b.vcx = b.vcy = 0;
     }
@@ -806,6 +822,23 @@ function finishMerge(a, b) {
   if (kick > shake) { shake = kick; shakeT = 0; }
 }
 
+// A small blob sealed in under bigger ones gets squeezed until it pops: it scores like a merge and its colour sparkles out.
+function popBlob(b) {
+  b.dead = true;
+  const x = b.cx, y = b.cy, ci = cidx(b.level);
+  score += b.value; if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
+  const p = popups[popI]; popI = (popI + 1) % popups.length;
+  p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, x)); p.y = y; p.v = b.value; p.c = 0;
+  scoreBump = Math.max(scoreBump, 0.5); sfxPick();
+  if (REDUCED) return;
+  for (let i = 0; i < 14; i++) {
+    const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
+    const th = Math.random() * 6.283, v = 120 + Math.random() * 200;
+    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
+    sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
+  }
+  if (shake < 1.5) { shake = 1.5; shakeT = 0; }
+}
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
   if (REDUCED) return;
@@ -1047,6 +1080,8 @@ function frameLogic(dt) {
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i];
     if (b.flash > 0) b.flash -= dt / b.flashDur;
+    if (!b.popping && b.buriedT > POP_AFTER && b.level <= 4 && !over) { b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; }
+    else if (b.popping) { b.popping += dt; if (b.popping > POP_TIME) popBlob(b); }
     if (SKIN) skinStep(b, dt);
     // numbers tumble with the blob, then right themselves so they stay readable
     const ang = Math.atan2(b.sn, b.cs); let da = ang - b.pa; b.pa = ang;
@@ -1100,13 +1135,16 @@ function impulses() {
     b.pvx = b.vcx; b.pvy = b.vcy;
     const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
     if (dv > hit) hit = dv;
-    if (!b.tray && b.young <= 0 && dv > RIPPLE_MIN && b.state === 0) {
-      // the knock travels: neighbours are shoved away from the impact, less the further they sit
-      const j0 = Math.min(RIPPLE_MAX, (dv - RIPPLE_MIN) * RIPPLE_K);
+    if (b.landV > RIPPLE_MIN && !b.tray) {
+      // the knock travels: once per landing, neighbours are shoved away from the impact, less the further they sit
+      const j0 = Math.min(RIPPLE_MAX, (b.landV - RIPPLE_MIN) * RIPPLE_K); b.landV = 0;
       for (let q = 0; q < blobs.length; q++) {
         const o = blobs[q]; if (o === b || o.tray || o.dead || o.state === 1) continue;
-        const dx = o.cx - b.cx, dy = o.cy - b.cy, d = Math.sqrt(dx * dx + dy * dy); if (d > RIPPLE_R || d < 1e-3) continue;
-        const fall = 1 - d / RIPPLE_R, j = j0 * fall * fall * Math.max(0.65, Math.min(1, b.r / o.r)), jx = dx / d * j, jy = dy / d * j;
+        const dx = o.cx - b.landX, dy = o.cy - b.landY, d = Math.sqrt(dx * dx + dy * dy); if (d > RIPPLE_R || d < 1e-3) continue;
+        const fall = 1 - d / RIPPLE_R, j = j0 * fall * fall * Math.max(0.65, Math.min(1, b.r / o.r));
+        // mostly sideways (the pile sits against the ceiling, so "away" would just press it harder), a little radial
+        const side = dx === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(dx);
+        const jx = (dx / d * 0.5 + side * 0.7) * j, jy = dy / d * 0.45 * j;
         for (let k = 0; k < o.n; k++) { o.vx[k] += jx; o.vy[k] += jy; }
         o.hit = true;
       }
@@ -1186,23 +1224,23 @@ const audible = () => actx && !muted && actx.state === 'running';
 function sfxPick() {             // grabbing a shape: a tiny falling "pok"
   if (!audible()) return; const t = actx.currentTime, j = 0.85 + Math.random() * 0.4;
   const o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.setValueAtTime(1250 * j, t); o.frequency.exponentialRampToValueAtTime(440 * j, t + 0.009);
-  o.frequency.exponentialRampToValueAtTime(395 * j, t + 0.045);
-  env(g, t, [[0.004, 0.3], [0.016, 0.3], [0.046, 0]]);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.07);
+  o.frequency.setValueAtTime(1250 * j, t); o.frequency.exponentialRampToValueAtTime(440 * j, t + 0.016);
+  o.frequency.exponentialRampToValueAtTime(380 * j, t + 0.075);
+  env(g, t, [[0.006, 0.3], [0.028, 0.3], [0.078, 0]]);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.11);
 }
 function sfxShoot() {            // letting go: a rising "bwip", about 1.6 octaves in 80 ms
   if (!audible()) return; const t = actx.currentTime, f = 225 * (0.88 + Math.random() * 0.24);
   const o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 3.05, t + 0.078);
-  env(g, t, [[0.014, 0.27], [0.026, 0.27], [0.048, 0.03], [0.062, 0.07], [0.086, 0]]);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.11);
+  o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 3.05, t + 0.13);
+  env(g, t, [[0.022, 0.27], [0.045, 0.27], [0.08, 0.03], [0.1, 0.07], [0.14, 0]]);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.18);
 }
 function sfxThump(v) {           // landing: barely there, a little body for heavy hits
   if (!audible()) return; const t = actx.currentTime;
   if (t - lastThump < 0.07) return; lastThump = t;
-  tone(540 - v * 120, 380 - v * 90, t, 0.04, 0.02 + v * 0.045, 'sine');
-  if (v > 0.4) tone(165, 92, t, 0.09, 0.06 * v, 'sine');
+  tone(540 - v * 120, 380 - v * 90, t, 0.07, 0.02 + v * 0.045, 'sine');
+  if (v > 0.4) tone(165, 92, t, 0.15, 0.06 * v, 'sine');
 }
 // Merge: one rising three-note chime of pure tones. Like a pitched sample, it plays lower AND slower
 // the bigger the new blob; the top note rings on and wavers.
@@ -1232,7 +1270,7 @@ function chimeNote(f, t0, vol, u, last) {
 function sfxMerge(level, combo) {
   if (!audible()) return; const t = actx.currentTime;
   const root = ROOTS[Math.max(0, Math.min(ROOTS.length - 1, level - 2))];
-  const u = Math.min(3, 883 / root), gap = 0.039 * u, vol = Math.min(0.34, 0.25 + combo * 0.02);
+  const u = Math.min(3.6, 1.3 * 883 / root), gap = 0.039 * u, vol = Math.min(0.34, 0.25 + combo * 0.02);
   chimeNote(root, t, vol, u, false);
   chimeNote(root * 1.245, t + gap, vol, u, false);
   chimeNote(root * 1.482, t + gap * 2, vol * 1.1, u, true);
@@ -1564,6 +1602,6 @@ window.__udm = { blobs, tick, draw, reset,
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
-  pickLevel, setPeak: v => { peak = v; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
+  pickLevel, popBlob, setPeak: v => { peak = v; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
