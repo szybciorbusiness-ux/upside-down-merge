@@ -162,7 +162,7 @@ const LIN_TOUCH = 0.9997, ANG_TOUCH = 0.994;    // while touching something, so 
 const V_SLEEP2 = 1.0 * 1.0;    // rest threshold (acts like static friction)
 const MERGE_TIME = 0.2, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
 const V_MAX = 1500;
-const MAX_AIM = 1.16;          // ±66° from straight up
+const MAX_AIM = Math.PI;       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
 const DANGER_HOLD = 2.8;       // how long the pile may sit past the line; long enough for the red build-up to read
 const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing at all
 const MAXN = 52;
@@ -284,7 +284,7 @@ function makeBlob(level) {
     scale: 1, scaleV: 0, scaleT: 1, anim: false, animT: 0,
     tray: false, sq: 0, sqV: 0, sqT: 0,     // sq: how flattened it sits on the shelf
     w: n / Math.pow(r, 1.25), area0: Math.PI * r * r,   // inverse mass for contacts: big blobs are heavier, but not by area, so a small shot still moves them
-    touched: false, sinceTouch: 0, flash: 0, buried: false, buriedT: 0, popping: 0, wasWall: 0, wallHit: 0, wIn: 0, wnx: 0, wny: -1, freeT: 1, landV: 0, landX: 0, landY: 0,
+    touched: false, sinceTouch: 0, flash: 0, buried: false, buriedT: 0, popping: 0, wasWall: 0, wallHit: 0, launched: false, wIn: 0, wnx: 0, wny: -1, freeT: 1, landV: 0, landX: 0, landY: 0,
     state: 0, partner: null, mergeT: 0, noMerge: 0, young: 0,
     vcx: 0, vcy: 0, pvx: 0, pvy: 0, dead: false, la: 0, pa: 0,
     label: String(Math.pow(2, level)), fs: 0
@@ -595,7 +595,7 @@ function substep(h) {
       if (A.state === 1 && A.partner === B) continue;
       if (A.tray !== B.tray) {   // shelf vs field: only a shot on its way back down, near the shelf, touches the shelf
         const f = A.tray ? B : A;
-        if (f.vcy < 40 || f.cy < TRAY_Y - 150 || f.state === 1) continue;
+        if (f.launched || f.vcy < 40 || f.cy < TRAY_Y - 150 || f.state === 1) continue;   // a fresh shot passes its shelf neighbours
       }
       const dx = B.cx - A.cx, dy = B.cy - A.cy, rr = A.br + B.br + MARGIN;
       const d2 = dx * dx + dy * dy;
@@ -648,7 +648,7 @@ function substep(h) {
     }
     // whole-body rebound off the field: on first wall contact remember the approach speed; when the blob lets go
     // of the wall slower than E_BODY of that, give it the difference (the squash absorbed it)
-    if (touching) { if (b.freeT > 0.1 && !b.tray) { b.landV = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy); b.landX = b.cx; b.landY = b.cy; } b.freeT = 0; } else b.freeT += h;
+    if (touching) { b.launched = false; if (b.freeT > 0.1 && !b.tray) { b.landV = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy); b.landX = b.cx; b.landY = b.cy; } b.freeT = 0; } else b.freeT += h;
     const onWall = b.wallHit | 0; b.wallHit = 0;
     if (onWall && !b.wasWall) b.wIn = -(b.vcx * b.wnx + b.vcy * b.wny);
     else if (!onWall && b.wasWall && !b.tray && b.state === 0 && b.wIn > E_BODY_MIN) {
@@ -1059,7 +1059,7 @@ function fire(b) {
   initAudio();
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
-  b.tray = false; b.scaleT = 1; b.sqT = 0; b.anim = true; b.animT = 0;   // springs back to full size: the launch stretch
+  b.tray = false; b.launched = true; b.scaleT = 1; b.sqT = 0; b.anim = true; b.animT = 0;   // springs back to full size: the launch stretch
   b.vcx = b.pvx = dx; b.vcy = b.pvy = dy; b.touched = false; b.sinceTouch = 0; b.noMerge = 0;
   combo = 0;
   // on touch it is this release that wakes the audio, a moment later: still play the launch then
@@ -1471,7 +1471,7 @@ function draw() {
   if (showAim) {
     const ux = Math.sin(aim), uy = -Math.cos(aim), rs = sel.r * sel.scale;
     const sx = sel.cx, sy = sel.cy;
-    let tEnd = uy < -1e-6 ? (CEIL + rs - sy) / uy : 1e9;                     // ceiling (the blob's top edge stops at y = CEIL + r)
+    let tEnd = uy < -1e-6 ? (CEIL + rs - sy) / uy : uy > 1e-6 ? (FLOOR_Y - rs - sy) / uy : 1e9;   // ceiling, or the back wall behind the shelf
     if (ux > 1e-6) tEnd = Math.min(tEnd, (WALL_R - rs - sx) / ux);           // walls
     else if (ux < -1e-6) tEnd = Math.min(tEnd, (WALL_L + rs - sx) / ux);
     for (let i = 0; i < blobs.length; i++) {                                 // first blob the moving circle would touch
@@ -1526,7 +1526,7 @@ function draw() {
 function setPull(dx, dy) {
   // Slingshot: drag back from where you pressed; the shot goes the opposite way, harder the further you pull.
   const len = Math.hypot(dx, dy);
-  armed = len > PULL_MIN && dy > 4;
+  armed = len > PULL_MIN;
   if (!armed) { pullX = pullY = 0; return; }
   aim = Math.max(-MAX_AIM, Math.min(MAX_AIM, Math.atan2(-dx, dy)));
   const k = Math.min(1, (len - PULL_MIN) / (PULL_FULL - PULL_MIN));
