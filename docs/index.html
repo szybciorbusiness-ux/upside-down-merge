@@ -151,11 +151,21 @@ let time = 0, acc = 0, shake = 0, shakeT = 0;
 let muted = false;
 const banner = { t: 9, x: 0, y: 0, n: 0 };
 const popups = [];
-for (let i = 0; i < 14; i++) popups.push({ t: 9, x: 0, y: 0, v: 0 });
+for (let i = 0; i < 14; i++) popups.push({ t: 9, x: 0, y: 0, v: 0, c: 0 });
 let popI = 0;
 const traj = new Float32Array(2 * 48); let trajN = 0, trajEndX = 0, trajEndY = 0, trajHit = false;
 const tmpX = new Float32Array(MAXN), tmpY = new Float32Array(MAXN);
 const drawOrder = [];
+// Combo juice: sparkles on every merge; from the second merge of a chain, confetti bits with comet
+// trails, a "Combo N" card, a praise word, a short hit-stop and a score bump.
+const PRAISE = ['', '', 'Good!', 'Great!', 'Excellent!', 'Amazing!', 'Unbelievable!'];
+const TRAIL = 7;
+const bits = []; for (let i = 0; i < 72; i++) bits.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 4, c: 0, a: 0, spin: 0, tx: new Float32Array(TRAIL), ty: new Float32Array(TRAIL) });
+let bitI = 0;
+const sparks = []; for (let i = 0; i < 64; i++) sparks.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, s: 2 });
+let sparkI = 0;
+const praise = { t: 9, n: 0, x: LX, y: 0 };
+let hitStop = 0, scoreBump = 0;
 
 try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; } catch (e) {}
 
@@ -429,6 +439,7 @@ function substep(h) {
         const fa = push * mb / (ma + mb) / d, fb = push * ma / (ma + mb) / d;
         for (let k = 0; k < A.n; k++) { A.x[k] -= dx * fa; A.y[k] -= dy * fa; }
         for (let k = 0; k < B.n; k++) { B.x[k] += dx * fb; B.y[k] += dy * fb; }
+        A.cx -= dx * fa; A.cy -= dy * fa; B.cx += dx * fb; B.cy += dy * fb;   // so the next pass sees them apart
       }
     }
   }
@@ -508,16 +519,20 @@ function skinBump(b, bi, J) {
   const n = b.n, R = Math.ceil(b.sigI * 2.5), s2 = b.sigI * b.sigI;
   for (let k = -R; k <= R; k++) { const i = ((bi + k) % n + n) % n; b.hv[i] -= J * Math.exp(-k * k / s2); }
 }
-// Once per frame: knocks dent the side that took them, the dent travels round as a damped wave,
-// and points in contact are never pushed outward (so the skin cannot cross a seam).
-function skinStep(b, dt, dvx, dvy) {
+// A knock dents the side that took it. Called on the fixed 1/60 s physics cadence, never per display frame.
+function skinKnock(b, dvx, dvy) {
+  if (b.tray || b.fresh) return;
+  const dv = Math.sqrt(dvx * dvx + dvy * dvy);
+  if (dv <= SK_DV0) return;
+  const n = b.n, x = b.x, y = b.y, cx = b.cx, cy = b.cy;
+  let bi = 0, bd = -1e9;
+  for (let i = 0; i < n; i++) { const d = -(x[i] - cx) * dvx - (y[i] - cy) * dvy; if (d > bd) { bd = d; bi = i; } }
+  skinBump(b, bi, Math.min(1, (dv - SK_DV0) / SK_DV1) * SK_J);
+}
+// Once per frame: the dents travel round as a damped wave, and points in contact are never pushed
+// outward (so the skin cannot cross a seam).
+function skinStep(b, dt) {
   const n = b.n, h = b.h, hv = b.hv, x = b.x, y = b.y, cx = b.cx, cy = b.cy;
-  const dv = b.tray || b.fresh ? 0 : Math.sqrt(dvx * dvx + dvy * dvy);
-  if (dv > SK_DV0) {
-    let bi = 0, bd = -1e9;
-    for (let i = 0; i < n; i++) { const d = -(x[i] - cx) * dvx - (y[i] - cy) * dvy; if (d > bd) { bd = d; bi = i; } }
-    skinBump(b, bi, Math.min(1, (dv - SK_DV0) / SK_DV1) * SK_J);
-  }
   const inv = 1 / (b.scale || 1), fresh = b.fresh;
   for (let i = 0; i < n; i++) {
     const rx = x[i] - cx, ry = y[i] - cy, rho = Math.sqrt(rx * rx + ry * ry) * inv / b.rl[i] - 1;
@@ -601,12 +616,107 @@ function finishMerge(a, b) {
   score += pts;
   if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
   const p = popups[popI]; popI = (popI + 1) % popups.length;
-  p.t = 0; p.x = x; p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.v = pts;   // beside the new blob, never over its number
+  p.t = 0; p.x = x; p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.v = pts; p.c = onShelf ? 0 : combo;   // beside the new blob, never over its number
   if (onShelf) { sfxMerge(nb.level, 1); return; }
-  if (combo >= 2) { banner.t = 0; banner.n = combo; banner.x = Math.max(70, Math.min(W - 70, x)); banner.y = Math.min(DANGER_Y - 26, y + nb.r + 30); }
+  if (combo >= 2) { banner.t = 0; banner.n = combo; banner.x = Math.max(WALL_L + 70, Math.min(WALL_R - 40, x)); banner.y = Math.min(DANGER_Y - 26, y + nb.r + 58); }
+  juiceMerge(x, y, nb, combo);
   const kick = combo >= 3 && !REDUCED ? Math.min(3.2, 1.2 + (combo - 3) * 0.6) : 0;   // the original never shakes; only long chains do here
   if (kick > shake) { shake = kick; shakeT = 0; }
   sfxMerge(nb.level, combo);
+  if (combo >= 2) sfxCombo(nb.level, combo);
+}
+
+function juiceMerge(x, y, nb, c) {
+  if (REDUCED) return;
+  const ns = 6 + Math.min(10, nb.level * 2);
+  for (let i = 0; i < ns; i++) {                    // white sparkles leave the seam
+    const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
+    const a = Math.random() * 6.283, v = 50 + Math.random() * 150 * (1 + 0.12 * c);
+    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5;
+    sp.x = x + Math.cos(a) * nb.r * 0.55; sp.y = y + Math.sin(a) * nb.r * 0.55; sp.vx = Math.cos(a) * v; sp.vy = Math.sin(a) * v;
+  }
+  if (c < 2) return;
+  const nbits = Math.min(30, 4 + c * 5);
+  for (let i = 0; i < nbits; i++) {                 // confetti bits with trails, more and faster the longer the chain
+    const b = bits[bitI]; bitI = (bitI + 1) % bits.length;
+    const a = Math.random() * 6.283, v = 160 + Math.random() * 280 + c * 25;
+    b.t = 0; b.life = 0.65 + Math.random() * 0.5; b.x = x; b.y = y; b.vx = Math.cos(a) * v; b.vy = Math.sin(a) * v;
+    b.r = 2.6 + Math.random() * 3.6; b.c = Math.floor(Math.random() * 7); b.a = Math.random() * 6.283; b.spin = (Math.random() - 0.5) * 14;
+    for (let k = 0; k < TRAIL; k++) { b.tx[k] = x; b.ty[k] = y; }
+  }
+  praise.t = -0.22; praise.n = Math.min(PRAISE.length - 1, c); praise.x = LX;   // the word lands a beat after the combo card
+  praise.y = Math.max(CEIL + 150, Math.min(DANGER_Y - 90, y + nb.r + 112));
+  if (c >= 3) hitStop = Math.max(hitStop, 0.05 + Math.min(0.06, (c - 3) * 0.02));
+  scoreBump = 1;
+}
+let juiceLive = 0;
+function juiceStep(dt) {
+  juiceLive = 0;
+  const k = Math.exp(-dt * 2.4), ks = Math.exp(-dt * 4);
+  for (let i = 0; i < bits.length; i++) {
+    const b = bits[i]; if (b.t >= b.life) continue;
+    juiceLive++; b.t += dt;
+    for (let q = TRAIL - 1; q > 0; q--) { b.tx[q] = b.tx[q - 1]; b.ty[q] = b.ty[q - 1]; }
+    b.tx[0] = b.x; b.ty[0] = b.y;
+    b.vx *= k; b.vy = b.vy * k - 90 * dt;          // slow down, then drift up with the world's gravity
+    b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.spin * dt;
+  }
+  for (let i = 0; i < sparks.length; i++) {
+    const sp = sparks[i]; if (sp.t >= sp.life) continue;
+    juiceLive++; sp.t += dt; sp.vx *= ks; sp.vy *= ks; sp.x += sp.vx * dt; sp.y += sp.vy * dt;
+  }
+  if (praise.t < 9) praise.t += dt;
+  if (scoreBump > 0) scoreBump = Math.max(0, scoreBump - dt * 3.2);
+}
+const praiseGrad = [];
+function drawJuice() {
+  const word = praise.t >= 0 && praise.t < 1.1 && praise.n >= 2;
+  if (!juiceLive && !word) return;
+  ctx.save();   // everything stays inside the container
+  ctx.beginPath();
+  ctx.moveTo(WALL_L, FLOOR_Y); ctx.lineTo(WALL_L, CEIL + CHAMFER); ctx.lineTo(WALL_L + CHAMFER, CEIL);
+  ctx.lineTo(WALL_R - CHAMFER, CEIL); ctx.lineTo(WALL_R, CEIL + CHAMFER); ctx.lineTo(WALL_R, FLOOR_Y); ctx.closePath(); ctx.clip();
+  // sparkles: little four-point stars
+  ctx.strokeStyle = '#ffffff'; ctx.lineCap = 'round';
+  for (let i = 0; i < sparks.length; i++) {
+    const sp = sparks[i]; if (sp.t >= sp.life) continue;
+    const k = sp.t / sp.life, l = sp.s * (1 - k) * (k < 0.2 ? k / 0.2 : 1) * 2.2;
+    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(sp.x - l, sp.y); ctx.lineTo(sp.x + l, sp.y); ctx.moveTo(sp.x, sp.y - l); ctx.lineTo(sp.x, sp.y + l); ctx.stroke();
+  }
+  // confetti bits: a comet trail (two strokes: a thick head half, a thin tail half), then a spinning square
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const half = TRAIL >> 1;
+  for (let i = 0; i < bits.length; i++) {
+    const b = bits[i]; if (b.t >= b.life) continue;
+    const k = b.t / b.life, fade = 1 - k * k, c = COLORS[b.c], tx = b.tx, ty = b.ty;
+    ctx.strokeStyle = c.hex;
+    ctx.globalAlpha = fade * 0.2; ctx.lineWidth = b.r * 0.7;
+    ctx.beginPath(); ctx.moveTo(tx[half - 1], ty[half - 1]); for (let q = half; q < TRAIL; q++) ctx.lineTo(tx[q], ty[q]); ctx.stroke();
+    ctx.globalAlpha = fade * 0.45; ctx.lineWidth = b.r * 1.3;
+    ctx.beginPath(); ctx.moveTo(b.x, b.y); for (let q = 0; q < half; q++) ctx.lineTo(tx[q], ty[q]); ctx.stroke();
+    ctx.globalAlpha = fade; ctx.fillStyle = c.hex;
+    const r = b.r * (k < 0.1 ? 0.6 + 4 * k : 1), ca = Math.cos(b.a) * r, sa = Math.sin(b.a) * r;
+    ctx.beginPath(); ctx.moveTo(b.x + ca - sa, b.y + sa + ca); ctx.lineTo(b.x - sa - ca, b.y + ca - sa); ctx.lineTo(b.x - ca + sa, b.y - sa - ca); ctx.lineTo(b.x + sa + ca, b.y - ca + sa); ctx.closePath(); ctx.fill();
+  }
+  // praise word: slides in from the left, holds, slides out to the right
+  if (word) {
+    const t = praise.t, text = PRAISE[praise.n];
+    let dx = 0, al = 1;
+    if (t < 0.22) { const u = 1 - t / 0.22; dx = -(W * 0.9) * u * u * u; al = Math.min(1, t / 0.08); }
+    else if (t > 0.78) { const u = (t - 0.78) / 0.32; dx = (W * 0.9) * u * u * u; al = 1 - u; }
+    const sc = t < 0.22 ? 1.25 - 0.25 * (t / 0.22) : 1;
+    ctx.save(); ctx.translate(praise.x + dx, praise.y); ctx.scale(sc, sc); ctx.transform(1, 0, -0.18, 1, 0, 0);
+    ctx.globalAlpha = al; ctx.font = `800 ${Math.min(34, 26 + praise.n * 2)}px ${FONT}`;
+    const gi = praise.n >= 5 ? 2 : praise.n >= 4 ? 1 : 0;
+    let g = praiseGrad[gi];
+    if (!g) { g = praiseGrad[gi] = ctx.createLinearGradient(0, -14, 0, 14); g.addColorStop(0, '#ffffff'); g.addColorStop(1, ['#bfe8ff', '#7fe9ff', '#ffd23f'][gi]); }
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(5,5,7,0.9)'; ctx.strokeText(text, 0, 0);
+    ctx.fillStyle = g; ctx.fillText(text, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 /* ───────────────────────── game flow ───────────────────────── */
@@ -636,6 +746,7 @@ function reset() {
   blobs.length = 0;
   score = shown = 0; combo = 0; over = false; overT = 0; dangerT = 0; warn = false;
   shake = 0; banner.t = 9; for (const p of popups) p.t = 9;
+  praise.t = 9; hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9;
   firstShot = false; hintA = 1; aiming = false; armed = false; sel = hover = null;
   gateT[0] = 0.8; gateT[1] = 0.45; gateFlash[0] = gateFlash[1] = 0; openQ = [1, 2, 3];
   // Opening board: 8 4 2 8 2 4 along the ceiling. A 2 into the left 2 chains 4 → 8 → 16.
@@ -674,7 +785,7 @@ function pickTray(x, y, maxDist) {
 }
 
 function fire(b) {
-  if (!b || !b.tray || over) return;
+  if (!b || !b.tray || b.dead || over) return;
   initAudio();
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
@@ -687,8 +798,6 @@ function fire(b) {
 }
 
 function frameLogic(dt) {
-  if (sel && (sel.dead || sel.state === 1 || !sel.tray)) { sel = null; aiming = false; armed = false; }
-  if (hover && (hover.dead || !hover.tray)) hover = null;
   if (!over) {
     let count = trayCount();
     for (let s = 0; s < 2; s++) {
@@ -700,23 +809,17 @@ function frameLogic(dt) {
   if (firstShot && hintA > 0) hintA = Math.max(0, hintA - dt * 3);
   comboIdle += dt; if (comboIdle > 1.8) combo = 0;
 
-  // impact thumps: sudden change in a blob's velocity
-  let hit = 0;
   const righting = Math.exp(-dt * 3.2);
   for (let i = 0; i < blobs.length; i++) {
-    const b = blobs[i], dvx = b.vcx - b.pvx, dvy = b.vcy - b.pvy + G * dt;
-    const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
-    if (dv > hit) hit = dv;
-    b.pvx = b.vcx; b.pvy = b.vcy;
+    const b = blobs[i];
     if (b.flash > 0) b.flash -= dt / b.flashDur;
-    if (SKIN) skinStep(b, dt, dvx, dvy);
+    if (SKIN) skinStep(b, dt);
     // numbers tumble with the blob, then right themselves so they stay readable
     const ang = Math.atan2(b.sn, b.cs); let da = ang - b.pa; b.pa = ang;
     if (da > Math.PI) da -= 6.2832; else if (da < -Math.PI) da += 6.2832;
     b.la = (b.la + da) * righting;
     if (b.la > 3.1416) b.la -= 6.2832; else if (b.la < -3.1416) b.la += 6.2832;
   }
-  if (hit > 150) sfxThump(Math.min(1, hit / 1100));
   musicTick();
 
   // danger line: the pile grows downward; lose only if it stays past the line
@@ -736,6 +839,9 @@ function frameLogic(dt) {
       overEl.hidden = false; againBtn.focus({ preventScroll: true });
     }
   }
+  juiceStep(dt); frameFx(dt);
+}
+function frameFx(dt) {
   const d = score - shown;
   shown = Math.abs(d) < 0.6 ? score : shown + d * (1 - Math.exp(-dt * 9));
   for (const p of popups) if (p.t < 9) p.t += dt;
@@ -743,10 +849,31 @@ function frameLogic(dt) {
   if (shake > 0) { shakeT += dt; if (shakeT > 0.35) shake = 0; }
 }
 
+// Impacts are measured over a fixed 1/60 s of physics, whatever the display rate, so dents and
+// landing thumps come out the same at 60, 144 or 240 Hz.
+const IMP_SUB = 4; let impN = 0;
+function impulses() {
+  const h = IMP_SUB * DT; let hit = 0;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i], dvx = b.vcx - b.pvx, dvy = b.vcy - b.pvy + G * h;
+    b.pvx = b.vcx; b.pvy = b.vcy;
+    const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
+    if (dv > hit) hit = dv;
+    if (SKIN) skinKnock(b, dvx, dvy);
+  }
+  if (hit > 150) sfxThump(Math.min(1, hit / 1100));
+}
 function tick(dt) {
-  time += dt; acc += dt;
+  time += dt;
+  if (sel && (sel.dead || sel.state === 1 || !sel.tray)) { sel = null; aiming = false; armed = false; }
+  if (hover && (hover.dead || !hover.tray)) hover = null;
+  if (hitStop > 0) { hitStop -= dt; juiceStep(dt); frameFx(dt); return; }   // a beat of stillness on a chain
+  acc += dt;
   let steps = 0;
-  while (acc >= DT && steps < 24) { substep(DT); acc -= DT; steps++; }   // real time down to 10 frames a second
+  while (acc >= DT && steps < 24) {   // real time down to 10 frames a second
+    substep(DT); acc -= DT; steps++;
+    if (++impN >= IMP_SUB) { impN = 0; impulses(); }
+  }
   if (acc > DT) acc = 0;
   frameLogic(dt);
 }
@@ -841,6 +968,32 @@ function sfxMerge(level, combo) {
   chimeNote(root, t, vol, u, false);
   chimeNote(root * 1.245, t + gap, vol, u, false);
   chimeNote(root * 1.482, t + gap * 2, vol * 1.1, u, true);
+}
+// Chain link: a bright ping that climbs with the combo, a soft whoosh for the flying bits, and from
+// the fourth link a low thump under the praise word.
+let lastCombo = -1;
+const COMBO_RATIO = [2, 2.25, 2.5, 3, 3.375, 4];   // octave, ninth, tenth, twelfth... above the chime's root
+function sfxCombo(level, c) {
+  if (!audible()) return; const t0 = actx.currentTime;
+  if (t0 - lastCombo < 0.06) return; lastCombo = t0;        // two merges in one step: one ping
+  const root = ROOTS[Math.max(0, Math.min(ROOTS.length - 1, level - 2))], u = Math.min(3, 883 / root);
+  const f = Math.min(3200, root * COMBO_RATIO[Math.min(COMBO_RATIO.length - 1, c - 2)]), t = t0 + 0.078 * u;   // reads as the chime's fourth note
+  const lv = Math.min(1, root / 883) * 0.5 + 0.5;
+  for (const [m, v, d] of [[1, 0.07, 0.22], [1.5, 0.04, 0.16], [2, 0.025, 0.1]]) {
+    const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f * m;
+    env(g, t, [[0.004, v * lv], [0.03, v * lv * 0.45], [d, 0]]); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
+  }
+  const n = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();     // whoosh, for the flying bits
+  n.buffer = noiseBuf; n.loop = true; bp.type = 'bandpass'; bp.Q.value = 1.2;
+  const tw = t0 + 0.04;
+  bp.frequency.setValueAtTime(600, tw); bp.frequency.exponentialRampToValueAtTime(3200, tw + 0.25);
+  env(ng, tw, [[0.05, 0.04 + Math.min(0.04, c * 0.008)], [0.3, 0]]);
+  n.connect(bp); bp.connect(ng); ng.connect(master); n.start(tw); n.stop(tw + 0.32);
+  if (c >= 4) {                                              // low thump under the praise word, which lands 0.22 s later
+    const tb = t0 + 0.22, o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.setValueAtTime(110, tb); o.frequency.exponentialRampToValueAtTime(62, tb + 0.12);
+    env(g, tb, [[0.01, 0.2], [0.22, 0]]); o.connect(g); g.connect(master); o.start(tb); o.stop(tb + 0.25);
+  }
 }
 // Backing track, written for this game: one soft chord and a bass note per bar, slow three-time.
 const BAR = 2.86;
@@ -1041,22 +1194,31 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
-  // score popups and combo
+  drawJuice();
+
+  // score popups: white for a lone merge, warm and bigger along a chain
   for (const p of popups) {
-    if (p.t > 0.8) continue;
-    const k = p.t / 0.8;
-    ctx.globalAlpha = k < 0.15 ? k / 0.15 : 1 - Math.pow((k - 0.15) / 0.85, 2);
-    ctx.font = `600 13px ${FONT}`; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(5,5,7,0.8)'; ctx.fillStyle = '#f4f1ea';
-    const yy = p.y + 8 + k * 22;
-    ctx.strokeText('+' + p.v, p.x, yy); ctx.fillText('+' + p.v, p.x, yy);
-  }
-  if (banner.t < 1.1) {
-    const k = banner.t / 1.1, pop = k < 0.12 ? 0.6 + 0.5 * (k / 0.12) : 1.1 - 0.1 * Math.min(1, (k - 0.12) / 0.1);
-    ctx.globalAlpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
-    ctx.save(); ctx.translate(banner.x, banner.y); ctx.scale(pop, pop);
-    ctx.font = `700 19px ${FONT}`; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(5,5,7,0.85)'; ctx.fillStyle = '#f4f1ea';
-    ctx.strokeText('COMBO x' + banner.n, 0, 0); ctx.fillText('COMBO x' + banner.n, 0, 0);
+    if (p.t > 0.9) continue;
+    const k = p.t / 0.9, big = p.c >= 2;
+    ctx.globalAlpha = k < 0.12 ? k / 0.12 : 1 - Math.pow((k - 0.12) / 0.88, 2);
+    const pop = k < 0.12 ? 1.5 - 0.5 * (k / 0.12) : 1, fs = big ? Math.min(24, 14 + p.c * 2) : 13;
+    ctx.save(); ctx.translate(p.x, p.y + 8 + k * 24); ctx.scale(pop, pop);
+    ctx.font = `${big ? 800 : 600} ${fs}px ${FONT}`; ctx.lineWidth = big ? 4 : 3; ctx.strokeStyle = 'rgba(5,5,7,0.85)'; ctx.fillStyle = big ? '#ffb347' : '#f4f1ea';
+    ctx.strokeText('+' + p.v, 0, 0); ctx.fillText('+' + p.v, 0, 0);
     ctx.restore();
+  }
+  // combo card: "Combo" with a big number that pops again on every link of the chain
+  if (banner.t < 1.2) {
+    const k = banner.t / 1.2, pop = k < 0.1 ? 1.6 - 0.6 * (k / 0.1) : 1;
+    ctx.globalAlpha = k > 0.72 ? 1 - (k - 0.72) / 0.28 : 1;
+    ctx.save(); ctx.translate(banner.x, banner.y); ctx.scale(pop, pop); ctx.transform(1, 0, -0.16, 1, 0, 0);
+    ctx.font = `700 15px ${FONT}`; ctx.textAlign = 'right'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(5,5,7,0.85)'; ctx.fillStyle = '#f4f1ea';
+    ctx.strokeText('Combo', -4, 2); ctx.fillText('Combo', -4, 2);
+    ctx.font = `800 ${Math.min(40, 26 + banner.n * 2)}px ${FONT}`; ctx.textAlign = 'left'; ctx.lineWidth = 5; ctx.fillStyle = '#ffd23f';
+    ctx.strokeText(String(banner.n), 2, 0); ctx.fillText(String(banner.n), 2, 0);
+    // sparkle streak under the card
+    if (k < 0.5) { ctx.globalAlpha *= 1 - k / 0.5; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.beginPath(); const L = 30 + 90 * k; ctx.moveTo(-L, 14); ctx.lineTo(L, 14); ctx.stroke(); }
+    ctx.restore(); ctx.textAlign = 'center';
   }
   ctx.globalAlpha = 1;
 
@@ -1067,8 +1229,11 @@ function draw() {
   }
 
   // score band
-  ctx.fillStyle = '#f4f1ea'; ctx.font = `600 30px ${FONT}`;
-  ctx.fillText(Math.round(shown).toLocaleString(), LX, 34);
+  ctx.save(); ctx.translate(LX, 34);
+  if (scoreBump > 0) { const b = Math.sin(scoreBump * Math.PI) * 0.16; ctx.scale(1 + b, 1 + b); }
+  ctx.fillStyle = scoreBump > 0.4 ? '#ffd23f' : '#f4f1ea'; ctx.font = `600 30px ${FONT}`;
+  ctx.fillText(Math.round(shown).toLocaleString(), 0, 0);
+  ctx.restore();
   ctx.fillStyle = '#8b8b96'; ctx.font = `500 10.5px ${FONT}`;
   ctx.fillText('B E S T  ' + best.toLocaleString(), LX, 58);
 }
@@ -1128,7 +1293,8 @@ againBtn.addEventListener('click', () => { initAudio(); reset(); });
 /* ───────────────────────── boot ───────────────────────── */
 let last = 0;
 function step(t) {
-  const dt = Math.max(0, Math.min(0.1, (t - last) / 1000 || 0)); last = t;
+  const now = Math.max(t, last);   // a frame timestamp can predate the last timer step; never rewind the clock
+  const dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
   tick(dt); draw();
 }
 function frame(t) { step(t); requestAnimationFrame(frame); }
@@ -1148,6 +1314,8 @@ window.__udm = { blobs, tick, draw, reset,
   shoot(a, i, pw) { const t = this.tray(); if (!t.length) return false; aim = a; power = pw || 1; fire(t[(i || 0) % t.length]); return true; },
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
+  spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
+  fx: () => ({ praise: praise.t, banner: banner.t, hitStop, scoreBump, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length }),
   info: () => ({ n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
