@@ -272,6 +272,8 @@ const rings = []; for (let i = 0; i < 8; i++) rings.push({ t: 9, life: 1, x: 0, 
 let ringI = 0;
 const flares = []; for (let i = 0; i < 6; i++) flares.push({ t: 9, life: 1, x: 0, y: 0, c: 0 });
 let flareI = 0;
+const dents = []; for (let i = 0; i < 6; i++) dents.push({ t: 9, life: 1, x: 0, y: 0, nx: 0, ny: 0, r: 30, c: 0 });
+let dentI = 0;
 let sparkI = 0;
 let hitStop = 0, scoreBump = 0;
 // Fanfare for a big tier (1024 and up): the field freezes for a beat and dims, rays in the new colour spin out
@@ -883,17 +885,8 @@ function wallDouble(b) {
   if (0.45 >= glow.a * 0.7) { glow.c = ci; glow.a = Math.max(glow.a, 0.7); }   // the screen takes the new colour
   if (REDUCED) return;
   tiltV += -b.wnx * 24;                                                       // the screen leans a little with the hit
-  const fl = flares[flareI]; flareI = (flareI + 1) % flares.length;           // a quick flash of light on the wall
-  fl.t = 0; fl.life = 0.28; fl.x = hx; fl.y = hy; fl.c = ci;
-  const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;                // a ring of the new colour leaves the wall
-  rg.t = 0; rg.life = 0.3; rg.x = hx; rg.y = hy; rg.r0 = rs * 0.6; rg.r1 = nb.r * 2.2; rg.c = ci;
-  const tx = -b.wny, ty = b.wnx;                                              // along the wall
-  for (let i = 0; i < 8; i++) {
-    const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
-    const dir = i & 1 ? 1 : -1, v = 180 + Math.random() * 260;
-    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
-    sp.x = hx + b.wnx * 4; sp.y = hy + b.wny * 4; sp.vx = tx * dir * v + b.wnx * Math.random() * 120; sp.vy = ty * dir * v + b.wny * Math.random() * 120;
-  }
+  const dn = dents[dentI]; dentI = (dentI + 1) % dents.length;              // the wall gives where it was struck
+  dn.t = 0; dn.life = 0.6; dn.x = hx; dn.y = hy; dn.nx = b.wnx; dn.ny = b.wny; dn.r = nb.r; dn.c = ci;
 }
 function popBlob(b) {
   b.dead = true;
@@ -958,6 +951,7 @@ function juiceStep(dt) {
   }
   for (let i = 0; i < rings.length; i++) { const rg = rings[i]; if (rg.t < rg.life) { juiceLive++; rg.t += dt; } }
   for (let i = 0; i < flares.length; i++) { const f = flares[i]; if (f.t < f.life) { juiceLive++; f.t += dt; } }
+  for (let i = 0; i < dents.length; i++) { const d = dents[i]; if (d.t < d.life) d.t += dt; }
   if (scoreBump > 0) scoreBump = Math.max(0, scoreBump - dt * 3.2);
   if (glow.a > 0) glow.a = Math.max(0, glow.a - dt * (glow.a > 0.5 ? 1.1 : 0.7));
   if (fanfare.t < fanfare.life) {
@@ -1528,6 +1522,24 @@ function draw() {
     ctx.save(); ctx.translate(LX - tw / 2 - 28, by - 16); ctx.fill(LAUREL); ctx.restore();
     ctx.save(); ctx.translate(LX + tw / 2 + 28, by - 16); ctx.scale(-1, 1); ctx.fill(LAUREL); ctx.restore();
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  }
+  // soft wall: where a doubling shot struck, the wall dents inward and springs back, the blob's colour along its edge
+  for (let i = 0; i < dents.length; i++) {
+    const d = dents[i]; if (d.t >= d.life) continue;
+    const amp = d.r * 0.95 * Math.exp(-d.t * 4.2) * Math.sin(d.t * 14);   // in, back, a smaller echo
+    if (amp <= 0.3) continue;
+    const w = d.r * 3, tx = -d.ny, ty = d.nx, N = 18;
+    ctx.beginPath(); ctx.moveTo(d.x - tx * w - d.nx * 2, d.y - ty * w - d.ny * 2);
+    for (let q = 0; q <= N; q++) {
+      const u = q / N, sgn = (u * 2 - 1), dep = amp * (0.5 + 0.5 * Math.cos(Math.PI * sgn));
+      ctx.lineTo(d.x + tx * sgn * w + d.nx * dep, d.y + ty * sgn * w + d.ny * dep);
+    }
+    ctx.lineTo(d.x + tx * w - d.nx * 2, d.y + ty * w - d.ny * 2); ctx.closePath();
+    // the screen colour shows through, darker toward the deep edge (an inner shadow), the blob colour rims it
+    const shade = ctx.createLinearGradient(d.x, d.y, d.x + d.nx * amp, d.y + d.ny * amp);
+    shade.addColorStop(0, mixHex(30, 30, 42, gc, 0.06 * ga)); shade.addColorStop(1, '#15151f');
+    ctx.fillStyle = shade; ctx.fill();
+    ctx.globalAlpha = Math.min(1, amp / (d.r * 0.2)); ctx.lineWidth = 4; ctx.strokeStyle = COLORS[d.c].hex; ctx.lineJoin = 'round'; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
