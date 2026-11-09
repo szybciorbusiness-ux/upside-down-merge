@@ -207,7 +207,7 @@ const COLORS = PALETTE.map(hex0 => {
   sat = Math.min(1, sat + SAT_BOOST * (1 - sat) + 0.1);
   const [r, g, b] = hsl2rgb(h, sat, l), hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
   // the gradient ends: darker and lighter at full saturation (Figma: #9E37E0 → #C56AF5 around purple)
-  const lo = hsl2rgb(h, Math.min(1, sat + 0.05), Math.max(0, l - 0.12)), hi = hsl2rgb(h, sat, Math.min(0.9, l + 0.1));
+  const lo = hsl2rgb(h, Math.min(1, sat + 0.05), Math.max(0, l - 0.12)), hi = hsl2rgb(h, sat, Math.min(0.7, l + 0.055));
   return { hex, r, g, b, hi: `rgb(${hi[0]},${hi[1]},${hi[2]})`, lo: `rgb(${lo[0]},${lo[1]},${lo[2]})`, ink: `rgb(${Math.round(r * 0.3)},${Math.round(g * 0.3)},${Math.round(b * 0.3)})` };
 
 });
@@ -1260,41 +1260,30 @@ function label(b, alpha) {
   ctx.save(); ctx.translate(b.cx, b.cy);
   ctx.transform(v11 * ca + v12 * sa, v21 * ca + v22 * sa, -v11 * sa + v12 * ca, -v21 * sa + v22 * ca, 0, 0);
   const c = colorFor(b.level);
-  if (b === sel) ctx.fillStyle = '#16161b';
-  else if (b.flash > 0) {         // near-black on the white flash, easing back to the tier's own ink
-    const f = b.flash * b.flash, q = 0.3 * (1 - f);
-    ctx.fillStyle = `rgb(${Math.round(c.r * q + 22 * f)},${Math.round(c.g * q + 22 * f)},${Math.round(c.b * q + 26 * f)})`;
-  } else ctx.fillStyle = 'rgba(0,0,0,0.3)';   // Figma: 30% black over the blob's colour
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';   // Figma: 30% black over the blob's colour, the same when grabbed or on the merge flash
   ctx.globalAlpha = alpha;
   ctx.font = '900 ' + b.fs.toFixed(1) + 'px ' + FONT;
-  if (b !== sel) { ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillText(b.label, 0, b.fs * 0.04 + 1); ctx.restore(); }   // text-shadow 0 1px white 5%
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillText(b.label, 0, b.fs * 0.04 + 1); ctx.restore();   // text-shadow 0 1px white 5%
   ctx.fillText(b.label, 0, b.fs * 0.04);
   ctx.restore();
 }
 function drawBlob(b, outline) {
   const c = colorFor(b.level), rs = b.r * b.scale;
-  if (b.flash > 0) {
-    const f = b.flash * b.flash;    // pure white on the merge frame, easing back to the colour
-    ctx.fillStyle = `rgb(${Math.round(c.r + (255 - c.r) * f)},${Math.round(c.g + (255 - c.g) * f)},${Math.round(c.b + (255 - c.b) * f)})`;
-  } else {                          // Figma: diagonal gradient, dark top-left to light bottom-right
+  {                                 // Figma: diagonal gradient, dark top-left to light bottom-right
     const g = ctx.createLinearGradient(b.cx - rs * 0.5, b.cy - rs * 0.76, b.cx + rs * 0.45, b.cy + rs * 0.93);
     g.addColorStop(0, c.lo); g.addColorStop(1, c.hi);
     ctx.fillStyle = g;
   }
   const sk = SKIN && !b.fresh;
   ctx.beginPath(); pathPts(sk ? b.RX : b.x, sk ? b.RY : b.y, b.n); ctx.fill();
-  if (b.flash <= 0.5 && rs > 14) {
+  if (b.flash > 0) {                // merge flash: a white veil over the same inside, fading away
+    ctx.fillStyle = `rgba(255,255,255,${(b.flash * b.flash).toFixed(3)})`; ctx.fill();
+  }
+  if (rs > 14) {
     // inner rim: the outer 9/97 of the radius, 10% darker (Figma's stroke with plus-darker black); clipped to the
     // outline so only the inside half of the stroke shows
     ctx.save(); ctx.clip();
     ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = rs * 0.186; ctx.lineJoin = 'round'; ctx.stroke();
-    // highlight: a soft white ellipse up and to the left, fading to the right, added on top
-    const hx = b.cx - rs * 0.41, hy = b.cy - rs * 0.57, rx = rs * 0.4, ry = rs * 0.113;
-    ctx.translate(hx, hy); ctx.rotate(-0.391);
-    const hg = ctx.createLinearGradient(-rx, 0, rx, 0);
-    hg.addColorStop(0, 'rgba(255,255,255,0.28)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = hg;
-    ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 6.2832); ctx.fill();
     ctx.restore();
     ctx.beginPath(); pathPts(sk ? b.RX : b.x, sk ? b.RY : b.y, b.n);   // the path again, for the outline stroke below
   }
@@ -1340,11 +1329,7 @@ function draw() {
   for (let i = 0; i < drawOrder.length; i++) { const b = drawOrder[i]; drawBlob(b, b === sel || (b === hover && !aiming)); }
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i];
-    if (b === sel) {              // the grabbed shape gets a white patch behind its number
-      ctx.fillStyle = '#f4f1ea'; ctx.beginPath();
-      ctx.arc(b.cx, b.cy, b.scale * Math.max(b.fs * 0.62, b.fs * 0.31 * b.label.length + 2), 0, 6.2832); ctx.fill();
-    }
-    label(b, 1);
+    label(b, 1);   // (the grabbed shape only gets the outline; no patch, no black number)
   }
   ctx.restore();   // end of the panel clip
 
