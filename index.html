@@ -142,7 +142,8 @@ const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger o
 // is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
-const RIPPLE_MIN = 240, RIPPLE_R = 520, RIPPLE_K = 1.5, RIPPLE_MAX = 1000;
+const RIPPLE_MIN = 240, RIPPLE_R = 520, RIPPLE_K = 1.2, RIPPLE_MAX = 460;
+const V_DOWN_MAX = 300;           // a knocked (not shot) blob never heads toward the shelf faster than this: ~300 units of travel
 const ECHO = [[0.13, 0.55], [0.3, 0.3]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
 const DT = 1 / 240;            // physics substep
@@ -241,7 +242,9 @@ let pressX = 0, pressY = 0, power = 1, selX = LX, pullX = 0, pullY = 0;
 const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
 let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // peak: highest tier made this run
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
-let time = 0, acc = 0, shake = 0, shakeT = 0;
+let time = 0, acc = 0, shake = 0, shakeT = 0, shakeHeat = 0;
+// every shake heats up; while hot, new shakes land softer (spamming shots cannot keep the screen rattling)
+function kickShake(k) { k /= 1 + shakeHeat; shakeHeat = Math.min(3, shakeHeat + 0.7); if (k > shake) { shake = k; shakeT = 0; } }
 // screen tilt: a hard hit off to one side rocks the whole screen that way (degrees), a damped spring brings it back
 let tilt = 0, tiltV = 0;
 const TILT_W = 13, TILT_Z = 0.42, TILT_KICK = 0.12, TILT_MAX_V = 60, TILT_MIN = 140;
@@ -662,6 +665,7 @@ function substep(h) {
       if (add > 0) { for (let i = 0; i < n; i++) { vx[i] += b.wnx * add; vy[i] += b.wny * add; } sx += b.wnx * add; sy += b.wny * add; }
     }
     b.wasWall = onWall;
+    if (sy > V_DOWN_MAX && !b.launched && !b.tray && b.state === 0) { const d = sy - V_DOWN_MAX; for (let i = 0; i < n; i++) vy[i] -= d; sy = V_DOWN_MAX; }
     b.vcx = sx; b.vcy = sy;
     if (touching && m2 < V_SLEEP2 && !b.anim && b.state === 0 && b !== sel) {
       for (let i = 0; i < n; i++) { x[i] = px[i]; y[i] = py[i]; vx[i] = 0; vy[i] = 0; }
@@ -827,7 +831,7 @@ function finishMerge(a, b) {
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
   }
-  if (kick > shake) { shake = kick; shakeT = 0; }
+  if (kick > 0) kickShake(kick);
 }
 
 // A small blob sealed in under bigger ones gets squeezed until it pops: it scores like a merge and its colour sparkles out.
@@ -857,7 +861,7 @@ function popBlob(b) {
     sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
     sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
   }
-  if (shake < 1.5) { shake = 1.5; shakeT = 0; }
+  kickShake(1.5);
 }
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
@@ -1032,7 +1036,7 @@ function pickLevel() {
 function reset() {
   blobs.length = 0; shuffleRun();
   score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
-  shake = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
+  shake = 0; shakeHeat = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   fanfare.t = 9; fanfare.b = null; glow.a = 0;
   aiming = false; armed = false; sel = hover = null;
@@ -1118,7 +1122,7 @@ function frameLogic(dt) {
       const b = blobs[i];
       // only a settled blob counts: in the pile for a while, not merging, and nearly at rest (something flying
       // through the line is not danger)
-      if (!b.tray && b.touched && b.sinceTouch > 0.7 && b.state === 0 && b.maxY > DANGER_Y && b.vcx * b.vcx + b.vcy * b.vcy < 50 * 50) { past = true; break; }
+      if (!b.tray && b.touched && b.sinceTouch > 0.7 && b.freeT < 0.05 && b.state === 0 && b.maxY > DANGER_Y && b.vcx * b.vcx + b.vcy * b.vcy < 50 * 50) { past = true; break; }
     }
     dangerT = past ? dangerT + dt : Math.max(0, dangerT - dt * 3);
     warn = dangerT > 0.12;
@@ -1138,6 +1142,7 @@ function frameFx(dt) {
   shown = Math.abs(d) < 0.6 ? score : shown + d * (1 - Math.exp(-dt * 9));
   for (const p of popups) if (p.t < 9) p.t += dt;
   if (shake > 0) { shakeT += dt; if (shakeT > 0.45) shake = 0; }
+  if (shakeHeat > 0) shakeHeat = Math.max(0, shakeHeat - dt * 1.4);
   if (tilt !== 0 || tiltV !== 0) {   // damped spring back to level
     tiltV += (-TILT_W * TILT_W * tilt - 2 * TILT_Z * TILT_W * tiltV) * dt; tilt += tiltV * dt;
     if (Math.abs(tilt) < 0.004 && Math.abs(tiltV) < 0.05) tilt = tiltV = 0;
@@ -1175,7 +1180,7 @@ function impulses() {
   }
   if (hit > 150) sfxThump(Math.min(1, hit / 1100));
   if (!REDUCED && hit > RIPPLE_MIN) {
-    const k = Math.min(5, (hit - RIPPLE_MIN) / 170); if (k > shake) { shake = k; shakeT = 0; }   // a hit rocks the screen a little
+    kickShake(Math.min(5, (hit - RIPPLE_MIN) / 170));   // a hit rocks the screen a little
   }
   if (!REDUCED && Math.abs(torque) > TILT_MIN) {
     const kick = Math.max(-TILT_MAX_V, Math.min(TILT_MAX_V, (torque - Math.sign(torque) * TILT_MIN) * TILT_KICK));
