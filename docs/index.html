@@ -150,22 +150,22 @@ let over = false, overT = 0, dangerT = 0, warn = false;
 let hintA = 1, firstShot = false;
 let time = 0, acc = 0, shake = 0, shakeT = 0;
 let muted = false;
-const banner = { t: 9, x: 0, y: 0, n: 0 };
 const popups = [];
 for (let i = 0; i < 14; i++) popups.push({ t: 9, x: 0, y: 0, v: 0, c: 0 });
 let popI = 0;
 const traj = new Float32Array(2 * 48); let trajN = 0, trajEndX = 0, trajEndY = 0, trajHit = false;
 const tmpX = new Float32Array(MAXN), tmpY = new Float32Array(MAXN);
 const drawOrder = [];
-// Combo juice: sparkles on every merge; from the second merge of a chain, confetti bits with comet
-// trails, a "Combo N" card, a praise word, a short hit-stop and a score bump.
-const PRAISE = ['', '', 'Good!', 'Great!', 'Excellent!', 'Amazing!', 'Unbelievable!'];
+// Merge juice, all in the new blob's colour: sparkles along the seam, a ring that bursts outward,
+// confetti bits with comet trails, a screen shake, a score bump; along a chain, more of everything
+// and a short hit-stop.
 const TRAIL = 7;
 const bits = []; for (let i = 0; i < 128; i++) bits.push({ t: 9, tt: 0, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 4, c: 0, a: 0, spin: 0, tx: new Float32Array(TRAIL), ty: new Float32Array(TRAIL) });
 let bitI = 0;
-const sparks = []; for (let i = 0; i < 96; i++) sparks.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, s: 2 });
+const sparks = []; for (let i = 0; i < 96; i++) sparks.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, s: 2, c: -1 });
+const rings = []; for (let i = 0; i < 8; i++) rings.push({ t: 9, life: 1, x: 0, y: 0, r0: 0, r1: 0, c: 0 });
+let ringI = 0;
 let sparkI = 0;
-const praise = { t: 9, n: 0, x: LX, y: 0, pop: 0 };
 let hitStop = 0, scoreBump = 0;
 
 try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; } catch (e) {}
@@ -623,40 +623,35 @@ function finishMerge(a, b) {
   const p = popups[popI]; popI = (popI + 1) % popups.length;
   p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, x)); p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.v = pts; p.c = onShelf ? 0 : combo;   // beside the new blob, never over its number
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
-  const cardY = Math.min(DANGER_Y - 96, y + nb.r + 58);
-  if (combo >= 2) { banner.t = 0; banner.n = combo; banner.x = Math.max(WALL_L + 82, Math.min(WALL_R - 86, x)); banner.y = cardY; }
-  juiceMerge(x, y, nb, combo, a, b, cardY);
-  const kick = combo >= 3 && !REDUCED ? Math.min(3.2, 1.2 + (combo - 3) * 0.6) : 0;   // the original never shakes; only long chains do here
+  juiceMerge(x, y, nb, combo, a, b);
+  const kick = REDUCED ? 0 : Math.min(6, 0.6 + nb.level * 0.18 + (combo >= 2 ? 1 + (combo - 2) * 0.8 : 0));   // every merge rocks the screen a little, chains a lot
   if (kick > shake) { shake = kick; shakeT = 0; }
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
 }
 
-function juiceMerge(x, y, nb, c, a, b, cardY) {
+function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
-  if (c >= 2) {
-    // the word upgrades in place while it is still showing; otherwise it slides in a beat after the card
-    if (praise.t >= 0 && praise.t < 0.78) { praise.t = 0.22; praise.pop = 1; } else { praise.t = -0.22; praise.pop = 0; }
-    praise.n = Math.min(PRAISE.length - 1, c); praise.x = LX; praise.y = cardY + 56;
-  }
   if (REDUCED) return;
+  const ci = (nb.level - 1) % COLORS.length, pi = (a.level - 1) % COLORS.length;   // the new colour, with a little of the old
+  const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;                      // a ring of the new colour bursts out of the seam
+  rg.t = 0; rg.life = 0.32 + 0.04 * Math.min(4, c); rg.x = x; rg.y = y; rg.r0 = nb.r * 0.8; rg.r1 = nb.r * 1.8 + 14 * Math.min(5, c); rg.c = ci;
   // sparkles leave the seam between the two parents, both ways along it
   const sx = b.cx - a.cx, sy = b.cy - a.cy, L = Math.hypot(sx, sy) || 1, ux = sx / L, uy = sy / L, px = -uy, py = ux;
   const ns = 8 + Math.min(10, nb.level * 2), half = Math.min(a.r, b.r) * 0.9;
   for (let i = 0; i < ns; i++) {
     const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
     const o = (Math.random() - 0.5) * 2 * half, dir = Math.random() < 0.5 ? 1 : -1, v = 160 + Math.random() * 220 * (1 + 0.1 * c);
-    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5;
+    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = Math.random() < 0.45 ? -1 : ci;
     sp.x = x + px * o; sp.y = y + py * o;
     sp.vx = ux * dir * v + px * (Math.random() - 0.5) * 60; sp.vy = uy * dir * v + py * (Math.random() - 0.5) * 60;
   }
-  if (c < 2) return;
-  const nbits = Math.min(30, 4 + c * 5);
+  const nbits = c >= 2 ? Math.min(30, 4 + c * 5) : 3 + Math.min(7, nb.level);
   for (let i = 0; i < nbits; i++) {                 // confetti bits with trails, more and faster the longer the chain
     const b = bits[bitI]; bitI = (bitI + 1) % bits.length;
     const th = Math.random() * 6.283, v = 160 + Math.random() * 280 + c * 25;
     b.t = 0; b.tt = 0; b.life = 0.65 + Math.random() * 0.5; b.x = x; b.y = y; b.vx = Math.cos(th) * v; b.vy = Math.sin(th) * v;
-    b.r = 2.6 + Math.random() * 3.6; b.c = Math.floor(Math.random() * 7); b.a = Math.random() * 6.283; b.spin = (Math.random() - 0.5) * 14;
+    b.r = 2.6 + Math.random() * 3.6; b.c = Math.random() < 0.7 ? ci : pi; b.a = Math.random() * 6.283; b.spin = (Math.random() - 0.5) * 14;
     for (let k = 0; k < TRAIL; k++) { b.tx[k] = x; b.ty[k] = y; }
   }
   if (c >= 3) hitStop = Math.max(hitStop, 0.05 + Math.min(0.06, (c - 3) * 0.02));
@@ -680,24 +675,28 @@ function juiceStep(dt) {
     const sp = sparks[i]; if (sp.t >= sp.life) continue;
     juiceLive++; sp.t += dt; sp.vx *= ks; sp.vy *= ks; sp.x += sp.vx * dt; sp.y += sp.vy * dt;
   }
-  if (praise.t < 9) praise.t += dt;
-  if (praise.pop > 0) praise.pop = Math.max(0, praise.pop - dt * 6);
+  for (let i = 0; i < rings.length; i++) { const rg = rings[i]; if (rg.t < rg.life) { juiceLive++; rg.t += dt; } }
   if (scoreBump > 0) scoreBump = Math.max(0, scoreBump - dt * 3.2);
 }
-const praiseGrad = [];
 function drawJuice() {
-  const word = praise.t >= 0 && praise.t < 1.1 && praise.n >= 2;
-  if (!juiceLive && !word) return;
+  if (!juiceLive) return;
   ctx.save();   // everything stays inside the container
   ctx.beginPath();
   ctx.moveTo(WALL_L, FLOOR_Y); ctx.lineTo(WALL_L, CEIL + CHAMFER); ctx.lineTo(WALL_L + CHAMFER, CEIL);
   ctx.lineTo(WALL_R - CHAMFER, CEIL); ctx.lineTo(WALL_R, CEIL + CHAMFER); ctx.lineTo(WALL_R, FLOOR_Y); ctx.closePath(); ctx.clip();
-  // sparkles: little four-point stars
-  ctx.strokeStyle = '#ffffff'; ctx.lineCap = 'round';
+  // rings: a thinning hoop of the new colour, out and gone
+  ctx.lineCap = 'round';
+  for (let i = 0; i < rings.length; i++) {
+    const rg = rings[i]; if (rg.t >= rg.life) continue;
+    const k = rg.t / rg.life, e = 1 - (1 - k) * (1 - k), r = rg.r0 + (rg.r1 - rg.r0) * e;
+    ctx.globalAlpha = (1 - k) * 0.9; ctx.lineWidth = 4 * (1 - k) + 0.6; ctx.strokeStyle = COLORS[rg.c].hex;
+    ctx.beginPath(); ctx.arc(rg.x, rg.y, r, 0, 6.2832); ctx.stroke();
+  }
+  // sparkles: little four-point stars, white or in the new colour
   for (let i = 0; i < sparks.length; i++) {
     const sp = sparks[i]; if (sp.t >= sp.life) continue;
     const k = sp.t / sp.life, l = sp.s * (1 - k) * (k < 0.2 ? k / 0.2 : 1) * 2.2;
-    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4;
+    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4; ctx.strokeStyle = sp.c < 0 ? '#ffffff' : COLORS[sp.c].hex;
     ctx.beginPath(); ctx.moveTo(sp.x - l, sp.y); ctx.lineTo(sp.x + l, sp.y); ctx.moveTo(sp.x, sp.y - l); ctx.lineTo(sp.x, sp.y + l); ctx.stroke();
   }
   // confetti bits: a comet trail (two strokes: a thick head half, a thin tail half), then a spinning square
@@ -714,25 +713,6 @@ function drawJuice() {
     ctx.globalAlpha = fade; ctx.fillStyle = c.hex;
     const r = b.r * (k < 0.1 ? 0.6 + 4 * k : 1), ca = Math.cos(b.a) * r, sa = Math.sin(b.a) * r;
     ctx.beginPath(); ctx.moveTo(b.x + ca - sa, b.y + sa + ca); ctx.lineTo(b.x - sa - ca, b.y + ca - sa); ctx.lineTo(b.x - ca + sa, b.y - sa - ca); ctx.lineTo(b.x + sa + ca, b.y - ca + sa); ctx.closePath(); ctx.fill();
-  }
-  // praise word: slides in from the left, holds, slides out to the right
-  if (word) {
-    const t = praise.t, text = PRAISE[praise.n];
-    let dx = 0, al = 1, sc = 1;
-    if (t < 0.22) {   // ease-out-back: lands a touch past centre, then settles
-      const p = t / 0.22, q = p - 1, e = 1 + 2.3 * q * q * q + 1.3 * q * q;
-      dx = -(W * 0.6) * (1 - e); al = Math.min(1, t / 0.08); sc = 1.25 - 0.25 * p;
-    } else if (t > 0.78) { const u = (t - 0.78) / 0.32; dx = (W * 0.9) * u * u * u; al = 1 - u; }
-    if (REDUCED) dx = 0;
-    sc *= 1 + 0.18 * praise.pop;
-    ctx.save(); ctx.translate(praise.x + dx, praise.y); ctx.scale(sc, sc); ctx.transform(1, 0, -0.18, 1, 0, 0);
-    ctx.globalAlpha = al; ctx.font = `700 ${Math.min(34, 26 + praise.n * 2)}px ${FONT}`;
-    const gi = praise.n >= 5 ? 2 : praise.n >= 4 ? 1 : 0;
-    let g = praiseGrad[gi];
-    if (!g) { g = praiseGrad[gi] = ctx.createLinearGradient(0, -14, 0, 14); g.addColorStop(0, '#ffffff'); g.addColorStop(1, ['#bfe8ff', '#7fe9ff', '#ffd23f'][gi]); }
-    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(5,5,7,0.9)'; ctx.strokeText(text, 0, 0);
-    ctx.fillStyle = g; ctx.fillText(text, 0, 0);
-    ctx.restore();
   }
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -764,8 +744,8 @@ function pickLevel() {
 function reset() {
   blobs.length = 0;
   score = shown = 0; combo = 0; over = false; overT = 0; dangerT = 0; warn = false;
-  shake = 0; banner.t = 9; for (const p of popups) p.t = 9;
-  praise.t = 9; praise.pop = 0; hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9;
+  shake = 0; for (const p of popups) p.t = 9;
+  hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   firstShot = false; hintA = 1; aiming = false; armed = false; sel = hover = null;
   gateT[0] = 0.8; gateT[1] = 0.45; gateFlash[0] = gateFlash[1] = 0; openQ = [1, 2, 3];
   // Opening board: 8 4 2 8 2 4 along the ceiling. A 2 into the left 2 chains 4 → 8 → 16.
@@ -864,7 +844,6 @@ function frameFx(dt) {
   const d = score - shown;
   shown = Math.abs(d) < 0.6 ? score : shown + d * (1 - Math.exp(-dt * 9));
   for (const p of popups) if (p.t < 9) p.t += dt;
-  if (banner.t < 9) banner.t += dt;
   if (shake > 0) { shakeT += dt; if (shakeT > 0.35) shake = 0; }
 }
 
@@ -992,7 +971,7 @@ function sfxMerge(level, combo) {
   chimeNote(root * 1.482, t + gap * 2, vol * 1.1, u, true);
 }
 // Chain link: a bright ping that climbs with the combo, a soft whoosh for the flying bits, and from
-// the fourth link a low thump under the praise word.
+// the third link a low thump under the shake.
 let lastCombo = -1;
 const COMBO_RATIO = [2, 2.25, 2.5, 3, 3.375, 4];   // octave, ninth, tenth, twelfth... above the chime's root
 function sfxCombo(level, c) {
@@ -1011,8 +990,8 @@ function sfxCombo(level, c) {
   bp.frequency.setValueAtTime(600, tw); bp.frequency.exponentialRampToValueAtTime(3200, tw + 0.25);
   env(ng, tw, [[0.05, 0.04 + Math.min(0.04, c * 0.008)], [0.3, 0]]);
   n.connect(bp); bp.connect(ng); ng.connect(master); n.start(tw); n.stop(tw + 0.32);
-  if (c >= 4) {                                              // low thump under the praise word, which lands 0.22 s later
-    const tb = t0 + 0.22, o = actx.createOscillator(), g = actx.createGain();
+  if (c >= 3) {                                              // low thump under the shake
+    const tb = t0 + 0.05, o = actx.createOscillator(), g = actx.createGain();
     o.frequency.setValueAtTime(110, tb); o.frequency.exponentialRampToValueAtTime(62, tb + 0.12);
     env(g, tb, [[0.01, 0.2], [0.22, 0]]); o.connect(g); g.connect(master); o.start(tb); o.stop(tb + 0.25);
     const o2 = actx.createOscillator(), g2 = actx.createGain(); o2.type = 'triangle';   // audible body for small speakers
@@ -1232,19 +1211,6 @@ function draw() {
     ctx.strokeText('+' + p.v, 0, 0); ctx.fillText('+' + p.v, 0, 0);
     ctx.restore();
   }
-  // combo card: "Combo" with a big number that pops again on every link of the chain
-  if (banner.t < 1.2) {
-    const k = banner.t / 1.2, q = Math.min(1, banner.t / 0.26), pop = 1 + 0.55 * Math.exp(-6 * q) * Math.cos(8 * q);
-    ctx.globalAlpha = k > 0.72 ? 1 - (k - 0.72) / 0.28 : 1;
-    ctx.save(); ctx.translate(banner.x, banner.y); ctx.scale(pop, pop); ctx.transform(1, 0, -0.16, 1, 0, 0);
-    ctx.font = `700 15px ${FONT}`; ctx.textAlign = 'right'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(5,5,7,0.85)'; ctx.fillStyle = '#f4f1ea';
-    ctx.strokeText('Combo', -4, 2); ctx.fillText('Combo', -4, 2);
-    ctx.font = `700 ${Math.min(40, 26 + banner.n * 2)}px ${FONT}`; ctx.textAlign = 'left'; ctx.lineWidth = 5; ctx.fillStyle = '#ffd23f';
-    ctx.strokeText(String(banner.n), 2, 0); ctx.fillText(String(banner.n), 2, 0);
-    // sparkle streak under the card
-    if (k < 0.5) { ctx.globalAlpha *= 1 - k / 0.5; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.beginPath(); const L = 24 + 60 * k; ctx.moveTo(-L, 14); ctx.lineTo(L, 14); ctx.stroke(); }
-    ctx.restore(); ctx.textAlign = 'center';
-  }
   ctx.globalAlpha = 1;
 
   // pointer ball (mouse only), like the reference's cursor
@@ -1342,7 +1308,7 @@ window.__udm = { blobs, tick, draw, reset,
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
-  fx: () => ({ praise: praise.t, praiseN: praise.n, pop: praise.pop, banner: banner.t, hitStop, scoreBump, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length }),
+  fx: () => ({ hitStop, scoreBump, shake, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   info: () => ({ n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
