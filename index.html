@@ -41,7 +41,7 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
 #best{position:absolute;left:0;right:0;bottom:calc(8*var(--u));margin:0;display:flex;flex-direction:column;align-items:center;gap:calc(1*var(--u));pointer-events:none;z-index:2;
-  color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1}
+  color:var(--hud-lo,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1}
 #best-lbl{font:900 calc(9*var(--u))/1 var(--font-brand);letter-spacing:calc(2.2*var(--u));text-indent:calc(2.2*var(--u));opacity:.75}
 #best-val{font:900 calc(22*var(--u))/1 var(--font-brand);letter-spacing:0}
 body.bare #best{bottom:calc(11*var(--u) + env(safe-area-inset-bottom,0px))}
@@ -143,7 +143,7 @@ const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger o
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
 const RIPPLE_MIN = 240, RIPPLE_R = 500, RIPPLE_K = 0.9, RIPPLE_MAX = 360;
-const SHAKE_MIN = 340, SHAKE_MAX = 2.2;   // landing speed that starts to rock the screen, and the most it ever rocks
+const SHAKE_MIN = 380, SHAKE_MAX = 1.1;   // landing speed that starts to rock the screen, and the most it ever rocks
 const V_DOWN_MAX = 300;           // a knocked (not shot) blob never heads toward the shelf faster than this: ~300 units of travel
 const ECHO = [[0.13, 0.45], [0.3, 0.22]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
@@ -823,13 +823,13 @@ function finishMerge(a, b) {
   juiceMerge(x, y, nb, combo, a, b);
   const gl = Math.min(1, 0.22 + nb.level * 0.09 + (combo >= 2 ? 0.1 : 0));   // how hard the field lights up
   if (gl >= glow.a * 0.7) { glow.c = cidx(nb.level); glow.a = Math.max(glow.a, gl); }
-  let kick = REDUCED ? 0 : Math.min(3, 0.3 + nb.level * 0.1 + (combo >= 2 ? 0.8 + (combo - 2) * 0.4 : 0));   // every merge rocks the screen a little, chains a lot
+  let kick = REDUCED ? 0 : Math.min(1.5, 0.15 + nb.level * 0.06 + (combo >= 2 ? 0.45 + (combo - 2) * 0.2 : 0));   // every merge rocks the screen a little, chains a lot
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
     fanfare.c = cidx(nb.level); fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
-    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 4; glow.a = 1; }
+    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 2.2; glow.a = 1; }
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
   }
@@ -863,7 +863,7 @@ function popBlob(b) {
     sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
     sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
   }
-  kickShake(1);
+  kickShake(0.6);
 }
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
@@ -1166,7 +1166,7 @@ function impulses() {
       // the knock travels: once per landing, neighbours are shoved away from the impact, less the further they sit,
       // and the wave comes back twice more, fainter (user: "more echo, more liquid")
       b.echoJ = Math.min(RIPPLE_MAX, (b.landV - RIPPLE_MIN) * RIPPLE_K); b.echoI = 0; b.echoT = 0;
-      if (!REDUCED && b.landV > SHAKE_MIN) kickShake(Math.min(SHAKE_MAX, (b.landV - SHAKE_MIN) / 230));   // only a real landing rocks the screen
+      if (!REDUCED && b.landV > SHAKE_MIN) kickShake(Math.min(SHAKE_MAX, (b.landV - SHAKE_MIN) / 300));   // only a real landing rocks the screen
       b.landV = 0;
       ripple(b, b.echoJ);
     }
@@ -1435,7 +1435,7 @@ function draw() {
   ctx.clearRect(0, 0, CW, CH);   // the screen's purple gradient shows through around the field
   // the shake moves the whole screen (DOM transform), so the wordmark and menu rock with the field
   let shx = 0, shy = 0;
-  if (shake > 0) { const k = shake * Math.exp(-shakeT * 9); shx = Math.sin(shakeT * 95) * k; shy = Math.cos(shakeT * 83) * k; }
+  if (shake > 0) { const k = shake * Math.exp(-shakeT * 12); shx = Math.sin(shakeT * 95) * k; shy = Math.cos(shakeT * 83) * k; }
   const st = (shake > 0 || tilt !== 0) ? `translate(${(shx * S).toFixed(2)}px,${(shy * S).toFixed(2)}px) rotate(${tilt.toFixed(3)}deg)` : '';
   if (st !== shakeCss) { shakeCss = st; screenEl.style.transform = st; }
   ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY);
@@ -1453,8 +1453,8 @@ function draw() {
   const sc = `linear-gradient(${mixHex(...mixRgb(30, 30, 42, tc, 0.06), gc, 0.32 * ga)},${mixHex(30, 30, 42, gc, 0.06 * ga)} 60%)`;
   if (sc !== fieldCss) { fieldCss = sc; screenEl.style.background = sc; }
   // the score and the gear sit on the screen in plus-lighter: they take the glow colour and brighten with it
-  const hc = mixHex(...mixRgb(166, 166, 188, tc, 0.42), gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3);
-  if (hc !== hudCss) { hudCss = hc; const [col, a] = hc.split('|'); screenEl.style.setProperty('--hud', col); screenEl.style.setProperty('--hud-a', a); screenEl.style.setProperty('--hud-g', (+a - 0.05).toFixed(3)); }
+  const hc = mixHex(...mixRgb(166, 166, 188, tc, 0.42), gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3) + '|' + mixHex(...mixRgb(166, 166, 188, tc, 0.1), gc, 0.3 * ga);
+  if (hc !== hudCss) { hudCss = hc; const [col, a, lo] = hc.split('|'); screenEl.style.setProperty('--hud', col); screenEl.style.setProperty('--hud-a', a); screenEl.style.setProperty('--hud-g', (+a - 0.05).toFixed(3)); screenEl.style.setProperty('--hud-lo', lo); }
   ctx.save(); panelPath(); ctx.clip();
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
