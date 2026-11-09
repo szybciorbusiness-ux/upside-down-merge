@@ -50,6 +50,7 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
+#best{position:absolute;left:calc(21*var(--u));top:calc(50*var(--u));margin:0;font:900 calc(13*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:calc(.4*var(--u));white-space:nowrap;font-variant-numeric:tabular-nums}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--hud,var(--brand));mix-blend-mode:plus-lighter}
 #gear svg{width:100%;height:100%}
@@ -100,6 +101,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     </div>
     <header id="hud">
       <h1 id="brand" aria-label="Score">0</h1>
+      <p id="best" aria-label="Best score" hidden></p>
       <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1" style="opacity:var(--hud-g,.25)"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
     <div id="menu" role="menu" hidden>
@@ -287,7 +289,7 @@ function makeBlob(level) {
     cx: 0, cy: 0, cs: 1, sn: 0, br: r * 1.2, maxY: 0,
     scale: 1, scaleV: 0, scaleT: 1, anim: false, animT: 0,
     tray: false, sq: 0, sqV: 0, sqT: 0,     // sq: how flattened it sits on the shelf
-    w: n / (r * r), area0: Math.PI * r * r,
+    w: n / Math.pow(r, 1.25), area0: Math.PI * r * r,   // inverse mass for contacts: big blobs are heavier, but not by area, so a small shot still moves them
     touched: false, sinceTouch: 0, flash: 0,
     state: 0, partner: null, mergeT: 0, noMerge: 0, young: 0,
     vcx: 0, vcy: 0, pvx: 0, pvy: 0, dead: false, la: 0, pa: 0,
@@ -1114,7 +1116,7 @@ function impulses() {
       for (let q = 0; q < blobs.length; q++) {
         const o = blobs[q]; if (o === b || o.tray || o.dead || o.state === 1) continue;
         const dx = o.cx - b.cx, dy = o.cy - b.cy, d = Math.sqrt(dx * dx + dy * dy); if (d > RIPPLE_R || d < 1e-3) continue;
-        const fall = 1 - d / RIPPLE_R, j = j0 * fall * fall * Math.min(1, (b.r * b.r) / (o.r * o.r)), jx = dx / d * j, jy = dy / d * j;
+        const fall = 1 - d / RIPPLE_R, j = j0 * fall * fall * Math.max(0.65, Math.min(1, b.r / o.r)), jx = dx / d * j, jy = dy / d * j;
         for (let k = 0; k < o.n; k++) { o.vx[k] += jx; o.vy[k] += jy; }
         o.hit = true;
       }
@@ -1311,8 +1313,8 @@ const stage = document.getElementById('stage');
 const overEl = document.getElementById('over'), oScore = document.getElementById('o-score'), oBest = document.getElementById('o-best');
 const againBtn = document.getElementById('again'), restartBtn = document.getElementById('restart'), soundBtn = document.getElementById('sound');
 const gearBtn = document.getElementById('gear'), menuEl = document.getElementById('menu'), soundState = document.getElementById('sound-state');
-const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), screenEl = document.getElementById('screen'), dangerEl = document.getElementById('danger');
-let shakeCss = '', dangerCss = '';
+const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), bestEl = document.getElementById('best'), screenEl = document.getElementById('screen'), dangerEl = document.getElementById('danger');
+let shakeCss = '', dangerCss = '', bestShown = null;
 let scoreShown = '', scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
@@ -1484,6 +1486,8 @@ function draw() {
   // the wordmark is the score: it rolls up and bumps with a merge
   const scoreText = String(Math.round(shown));
   if (scoreText !== scoreShown) { scoreShown = scoreText; brandEl.textContent = scoreText; }
+  const bestText = best > 0 ? 'Best ' + best.toLocaleString() : '';
+  if (bestText !== bestShown) { bestShown = bestText; bestEl.textContent = bestText; bestEl.hidden = !bestText; }
   const sb = scoreBump > 0 ? 1 + 0.12 * scoreBump * scoreBump : 1;
   if (sb !== scoreScale) { scoreScale = sb; brandEl.style.transform = sb === 1 ? '' : `scale(${sb.toFixed(3)})`; }
 }
