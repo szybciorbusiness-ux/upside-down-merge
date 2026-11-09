@@ -139,19 +139,19 @@ const TRAY_MAX = 2, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 2 shapes, fed f
 const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
 
 const G = 150;                 // gravity, pulling UP (-y); barely there: in Sobosuba shapes drift at near-constant speed, and a shot off the back wall comes back to the shelf
-const E_WALL = 1.0, E_BLOB = 0.9, E_CAP = 14;
+const E_WALL = 1.0, E_BLOB = 0.7, E_CAP = 10;
 const E_BODY = 0.5, E_BODY_MIN = 60;   // whole-body rebound off the field: when a blob leaves a wall slower than this share of its approach, it gets the rest back
 const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger ones for this long is squeezed until it pops   // measured: blob-blob rebound ~0.68 in the original
 // percolation: a settled blob wedged by bigger neighbours gets lighter (LIGHT per unit of "how much bigger"),
 // is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
-const RIPPLE_MIN = 240, RIPPLE_R = 500, RIPPLE_K = 0.75, RIPPLE_MAX = 300;
+const RIPPLE_MIN = 240, RIPPLE_R = 480, RIPPLE_K = 0.5, RIPPLE_MAX = 200;
 const SHAKE_MIN = 380, SHAKE_MAX = 1.1;   // landing speed that starts to rock the screen, and the most it ever rocks
-const V_DOWN_MAX = 230;
+const V_DOWN_MAX = 200;
 const WALL_DOUBLE_V = 560;        // a fresh shot hitting a side or back wall faster than this doubles (a full-power shot qualifies)
 const doubleQ = [];           // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
-const ECHO = [[0.13, 0.45], [0.3, 0.22]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
+const ECHO = [[0.14, 0.4], [0.3, 0.2]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
@@ -166,8 +166,8 @@ const MU = 0.12, MU_WALL = 0.1;   // slippery: the pile flows and slides rather 
 const K0 = 0.011, K1 = 1.5, KMAX = 0.6;   // shape stiffness: very soft (jelly), stiffening hard only near collapse
 const STRAIN = 0.85;           // how far a point may leave its rest place, in radii
 const KB = 0.06;               // outline smoothness: local bending, so it wobbles in big lazy lumps, not wrinkles
-const KA = 0.5;                // area (pressure) stiffness (softer: more liquid)
-const KD = 0.005;              // deformation damping: about four visible wobbles, then rest
+const KA = 0.42;               // area (pressure) stiffness (softer: more liquid)
+const KD = 0.0045;            // deformation damping: about four visible wobbles, then rest
 const LIN_DAMP = 0.9993, ANG_DAMP = 0.9995;   // in free flight
 const LIN_TOUCH = 0.9997, ANG_TOUCH = 0.994;    // while touching something, so piles still come to rest
 const V_SLEEP2 = 1.0 * 1.0;    // rest threshold (acts like static friction)
