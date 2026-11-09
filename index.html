@@ -129,7 +129,9 @@ const SHOT = 820;              // launch speed
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
 const PEN_MAX = 10;
-const NOTCH = 0.4;             // how far one point may sit inside the chord of its neighbours, in rest edge lengths
+const DEEP_FRAC = 0.3;         // a point further inside another blob than this fraction of its radius is "swallowed"
+const CORE_OUT = 0.34;         // last-resort centre separation: smaller radius fraction the small centre must be outside the big one
+const NOTCH = 0.4;            // how far one point may sit inside the chord of its neighbours, in rest edge lengths
 const YOUNG = 0.22, PEN_YOUNG = 1.2, V_YOUNG = 260;   // a newborn inflates against its neighbours over a few frames instead of launching them
 const WALL_W = 0.12;           // how light a wall-held point counts in a blob-to-blob contact
 const CONTACT_PASSES = 2;      // contact solves per substep; one pass lets squeezed blobs sink into each other
@@ -154,27 +156,27 @@ const SK_K = 150, SK_C = 160, SK_D = 3, SK_D2 = 0.4, SK_J = 8, SK_GC = 0.6, SK_M
 const MUSIC = true;
 
 const PALETTE = [
-  '#ff2d78', // 2 hot pink
-  '#ffb900', // 4 amber
-  '#00cf7f', // 8 emerald
-  '#1f66ff', // 16 blue
-  '#8a2cff', // 32 violet
-  '#ff5a00', // 64 orange
-  '#e8102e', // 128 red
-  '#84d400', // 256 lime
-  '#00b8f0', // 512 cyan
-  '#d80fc0', // 1024 magenta
-  '#ffa000', // 2048 gold
+  '#ff6fa8', // 2 pink
+  '#ffd23f', // 4 yellow
+  '#4fe3b1', // 8 mint
+  '#3f8cff', // 16 blue
+  '#9b5cff', // 32 purple
+  '#ff8a2b', // 64 orange
+  '#f2364a', // 128 red
+  '#a8e625', // 256 lime
+  '#25d8f0', // 512 cyan
+  '#f03fd0', // 1024 magenta
+  '#f5b400', // 2048 gold
   '#f4f1ea', // 4096
-  '#4a5bff', // 8192
-  '#ff6a3d'  // 16384
+  '#7c8cff', // 8192
+  '#ff9c7a'  // 16384
 ];
 const COLORS = PALETTE.map(hex => {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
   return { hex, r, g, b, ink: `rgb(${Math.round(r * 0.3)},${Math.round(g * 0.3)},${Math.round(b * 0.3)})` };
 });
 const colorFor = level => COLORS[(level - 1) % COLORS.length];
-const radiusFor = level => Math.min(96, 15 + 4.6 * level + 0.18 * level * level);
+const radiusFor = level => Math.min(104, 17 + 5 * level + 0.2 * level * level);   // ~10% bigger than the first cut (user: "slightly bigger overall")
 
 /* ───────────────────────── state ───────────────────────── */
 const blobs = [];
@@ -365,7 +367,15 @@ function collide(A, B) {
     const j1 = bj, j0 = bj === 0 ? nB - 1 : bj - 1;
     let nx, ny, pen;
     if (d > 1e-4) {
-      if (inside) { nx = bqx / d; ny = bqy / d; pen = d + MARGIN; }
+      if (inside) {
+        nx = bqx / d; ny = bqy / d; pen = d + MARGIN;
+        // deep inside B (a swallowed neighbour): the nearest edge is a different one for every point, which
+        // only deforms A; push the whole of A the same way, out along the line between the two centres
+        if (d > DEEP_FRAC * B.r * B.scale) {
+          const cxd = A.cx - bcx, cyd = A.cy - bcy, cl = Math.sqrt(cxd * cxd + cyd * cyd);
+          if (cl > 1e-4) { nx = cxd / cl; ny = cyd / cl; }
+        }
+      }
       else { nx = -bqx / d; ny = -bqy / d; pen = MARGIN - d; }
     } else {
       const ex = bx[j1] - bx[j0], ey = by[j1] - by[j0], el = Math.sqrt(ex * ex + ey * ey) || 1;
@@ -497,8 +507,9 @@ function substep(h) {
           A.state = B.state = 1; A.partner = B; B.partner = A; A.mergeT = B.mergeT = MERGE_TIME;
         }
       }
-      // last-resort core separation so nothing can end up inside anything else
-      const core = 0.28 * (A.r * A.scale + B.r * B.scale);
+      // last-resort core separation so nothing can end up inside anything else: the smaller one's centre
+      // must sit at least a third of its radius outside the bigger one's circle
+      const ra = A.r * A.scale, rb = B.r * B.scale, core = (ra > rb ? ra + CORE_OUT * rb : rb + CORE_OUT * ra);
       if (d2 < core * core && d2 > 1e-6) {
         const d = Math.sqrt(d2), push = (core - d), ma = A.r * A.r, mb = B.r * B.r;
         const fa = push * mb / (ma + mb) / d, fb = push * ma / (ma + mb) / d;
