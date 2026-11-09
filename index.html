@@ -161,20 +161,20 @@ const SK_K = 150, SK_C = 160, SK_D = 3, SK_D2 = 0.4, SK_J = 8, SK_GC = 0.6, SK_M
 const MUSIC = true;
 
 const PALETTE = [
-  '#42bbe8', // 2 blue       (Block Blast, sampled from the user's screenshot)
-  '#e4bd3a', // 4 yellow
-  '#f65656', // 8 red
-  '#aa49e6', // 16 purple
-  '#5ccc5c', // 32 green
-  '#f0903c', // 64 orange
-  '#f061b4', // 128 pink
-  '#3fd9c9', // 256 teal
-  '#f2a51e', // 512 gold
-  '#6a55e6', // 1024 indigo
-  '#e03e55', // 2048 crimson
+  '#ffd21f', // 2 yellow     (the user's flat-circles reference)
+  '#ff9500', // 4 orange
+  '#f5412f', // 8 red
+  '#5a47c2', // 16 purple
+  '#3b6fe8', // 32 blue
+  '#3ec86a', // 64 green
+  '#ef5f94', // 128 pink
+  '#2fc4b2', // 256 teal
+  '#b58de6', // 512 lilac
+  '#ff6a3d', // 1024 coral
+  '#1fb6ff', // 2048 sky
   '#f4f1ea', // 4096
-  '#8ad8ff', // 8192
-  '#ffb070'  // 16384
+  '#c7f04a', // 8192
+  '#ff4fa3'  // 16384
 ];
 function rgb2hsl(r, g, b) {
   r /= 255; g /= 255; b /= 255;
@@ -191,14 +191,20 @@ function hsl2rgb(h, sat, l) {
   const q = l < 0.5 ? l * (1 + sat) : l + sat - l * sat, p = 2 * l - q;
   return [Math.round(f(p, q, h + 1 / 3) * 255), Math.round(f(p, q, h) * 255), Math.round(f(p, q, h - 1 / 3) * 255)];
 }
-const SAT_BOOST = 0.18;          // user: "colours must be more saturated"
+const SAT_BOOST = 0;             // the reference colours are used as they are
 const COLORS = PALETTE.map(hex0 => {
   let [h, sat, l] = rgb2hsl(parseInt(hex0.slice(1, 3), 16), parseInt(hex0.slice(3, 5), 16), parseInt(hex0.slice(5, 7), 16));
-  sat = Math.min(1, sat + SAT_BOOST * (1 - sat) + 0.1);
+  sat = Math.min(1, sat + SAT_BOOST * (1 - sat));
   const [r, g, b] = hsl2rgb(h, sat, l), hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
   // the gradient ends: darker and lighter at full saturation (Figma: #9E37E0 → #C56AF5 around purple)
   const lo = hsl2rgb(h, Math.min(1, sat + 0.05), Math.max(0, l - 0.12)), hi = hsl2rgb(h, sat, Math.min(0.7, l + 0.055));
-  return { hex, r, g, b, hi: `rgb(${hi[0]},${hi[1]},${hi[2]})`, lo: `rgb(${lo[0]},${lo[1]},${lo[2]})`, ink: `rgb(${Math.round(r * 0.3)},${Math.round(g * 0.3)},${Math.round(b * 0.3)})` };
+  const rgbs = a => `rgb(${a[0]},${a[1]},${a[2]})`, rgba = (a, al) => `rgba(${a[0]},${a[1]},${a[2]},${al})`;
+  const lit = hsl2rgb(h, Math.max(0, sat - 0.1), Math.min(0.82, l + 0.21));
+  const core = hsl2rgb((h - 0.07 + 1) % 1, Math.min(1, sat + 0.1), Math.max(0.08, l - 0.3));
+  const deep = hsl2rgb((h - 0.04 + 1) % 1, Math.min(1, sat + 0.06), Math.max(0.1, l - 0.18));
+  const rim = hsl2rgb((h + 0.06) % 1, sat, Math.min(0.9, l + 0.3));
+  const drift = hsl2rgb((h + 0.12) % 1, sat, l);
+  return { hex, r, g, b, hi: rgbs(hi), lo: rgbs(lo), lit: rgbs(lit), core: rgbs(core), deep: rgbs(deep), rim, rimA: al => rgba(rim, al), drift, driftA: al => rgba(drift, al), ink: `rgb(${Math.round(r * 0.3)},${Math.round(g * 0.3)},${Math.round(b * 0.3)})` };
 
 });
 const colorFor = level => COLORS[(level - 1) % COLORS.length];
@@ -234,6 +240,23 @@ let hitStop = 0, scoreBump = 0;
 // Fanfare for a big tier (1024 and up): the field freezes for a beat and dims, rays in the new colour spin out
 // of the blob, which pulses on top under a glow while sparkles pour out of it.
 const FANFARE_LEVEL = 10;
+// Hit glow: every merge lights the field and the screen behind it up in the new colour (more for a bigger
+// result), fading back over a second; the biggest blob on the board leaves a faint standing tint.
+const glow = { c: 0, a: 0 };
+let fieldCss = '';
+// glowing motes: soft additive lights that drift up out of a big merge
+const motes = []; for (let i = 0; i < 48; i++) motes.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 8, c: 0 });
+let moteI = 0;
+function spawnMotes(x, y, r0, c, n, vmul) {
+  for (let i = 0; i < n; i++) {
+    const m = motes[moteI]; moteI = (moteI + 1) % motes.length;
+    const th = Math.random() * 6.283, d = Math.random() * r0 * 0.8, v = (40 + Math.random() * 110) * (vmul || 1);
+    m.t = 0; m.life = 0.9 + Math.random() * 0.9; m.x = x + Math.cos(th) * d; m.y = y + Math.sin(th) * d;
+    m.vx = Math.cos(th) * v * 0.6; m.vy = Math.sin(th) * v * 0.6 - 30; m.r = 5 + Math.random() * 9; m.c = c;
+  }
+}
+const mixRgb = (r0, g0, b0, c, k) => [r0 + (c.r - r0) * k, g0 + (c.g - g0) * k, b0 + (c.b - b0) * k];
+const mixHex = (r0, g0, b0, c, k) => `rgb(${Math.round(r0 + (c.r - r0) * k)},${Math.round(g0 + (c.g - g0) * k)},${Math.round(b0 + (c.b - b0) * k)})`;
 const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0 };
 
 try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; } catch (e) {}
@@ -728,13 +751,16 @@ function finishMerge(a, b) {
   p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, x)); p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.v = pts; p.c = onShelf ? 0 : combo;   // beside the new blob, never over its number
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
+  const gl = Math.min(1, 0.22 + nb.level * 0.09 + (combo >= 2 ? 0.1 : 0));   // how hard the field lights up
+  if (gl >= glow.a * 0.7) { glow.c = (nb.level - 1) % COLORS.length; glow.a = Math.max(glow.a, gl); }
+  if (!REDUCED && nb.level >= 7) spawnMotes(x, y, nb.r, (nb.level - 1) % COLORS.length, Math.min(24, (nb.level - 6) * 5), 1);
   let kick = REDUCED ? 0 : Math.min(11, 1 + nb.level * 0.3 + (combo >= 2 ? 2.5 + (combo - 2) * 1.4 : 0));   // every merge rocks the screen a little, chains a lot
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
     fanfare.c = (nb.level - 1) % COLORS.length; fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
-    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 14; }
+    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 14; spawnMotes(x, y, nb.r, fanfare.c, 24, 1.8); glow.a = 1; }
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
   }
@@ -788,6 +814,12 @@ function juiceStep(dt) {
   }
   for (let i = 0; i < rings.length; i++) { const rg = rings[i]; if (rg.t < rg.life) { juiceLive++; rg.t += dt; } }
   if (scoreBump > 0) scoreBump = Math.max(0, scoreBump - dt * 3.2);
+  const km = Math.exp(-dt * 1.2);
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i]; if (m.t >= m.life) continue;
+    juiceLive++; m.t += dt; m.vx *= km; m.vy = m.vy * km - 60 * dt; m.x += m.vx * dt; m.y += m.vy * dt;
+  }
+  if (glow.a > 0) glow.a = Math.max(0, glow.a - dt * (glow.a > 0.5 ? 1.1 : 0.7));
   if (fanfare.t < fanfare.life) {
     juiceLive++; fanfare.t += dt; fanfare.rot += dt * 0.9;
     const b = fanfare.b; if (b && !b.dead) { fanfare.x = b.cx; fanfare.y = b.cy; }
@@ -878,6 +910,16 @@ function drawJuice() {
     const r = b.r * (k < 0.1 ? 0.6 + 4 * k : 1), ca = Math.cos(b.a) * r, sa = Math.sin(b.a) * r;
     ctx.beginPath(); ctx.moveTo(b.x + ca - sa, b.y + sa + ca); ctx.lineTo(b.x - sa - ca, b.y + ca - sa); ctx.lineTo(b.x - ca + sa, b.y - sa - ca); ctx.lineTo(b.x + sa + ca, b.y - ca + sa); ctx.closePath(); ctx.fill();
   }
+  // motes: soft lights with a bright core, added on top of everything
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i]; if (m.t >= m.life) continue;
+    const k = m.t / m.life, a = (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85), c = COLORS[m.c], r = m.r * (1 + 0.6 * k);
+    const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r);
+    g.addColorStop(0, `rgba(255,255,255,${(0.9 * a).toFixed(3)})`); g.addColorStop(0.25, `rgba(${c.r},${c.g},${c.b},${(0.7 * a).toFixed(3)})`); g.addColorStop(1, `rgba(${c.r},${c.g},${c.b},0)`);
+    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, 6.2832); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
   ctx.restore();
   ctx.globalAlpha = 1;
 }
@@ -906,7 +948,7 @@ function reset() {
   score = shown = 0; combo = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
-  fanfare.t = 9; fanfare.b = null;
+  fanfare.t = 9; fanfare.b = null; glow.a = 0; for (const m of motes) m.t = 9;
   aiming = false; armed = false; sel = hover = null;
   gateT[0] = 0.8; gateT[1] = 0.45; gateFlash[0] = gateFlash[1] = 0; openQ = [1, 2, 3];
   // Opening board: 8 4 2 8 2 4 along the ceiling. A 2 into the left 2 chains 4 → 8 → 16.
@@ -1201,7 +1243,6 @@ const againBtn = document.getElementById('again'), restartBtn = document.getElem
 const gearBtn = document.getElementById('gear'), menuEl = document.getElementById('menu'), soundState = document.getElementById('sound-state');
 const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), screenEl = document.getElementById('screen'), dangerEl = document.getElementById('danger');
 let shakeCss = '', dangerCss = '';
-screenEl.style.background = '';
 let scoreShown = '', scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
@@ -1257,27 +1298,20 @@ function label(b, alpha) {
   ctx.fillText(b.label, 0, b.fs * 0.04);
   ctx.restore();
 }
+// Blobs are flat (the user's circles reference): one colour, and a soft dark disc of the same outline offset
+// down-left behind it, like a paper cut-out lifted off the field.
+const SH_X = -0.2, SH_Y = 0.26;     // shadow offset, in radii
 function drawBlob(b, outline) {
   const c = colorFor(b.level), rs = b.r * b.scale;
-  {                                 // Figma: diagonal gradient, dark top-left to light bottom-right
-    const g = ctx.createLinearGradient(b.cx - rs * 0.5, b.cy - rs * 0.76, b.cx + rs * 0.45, b.cy + rs * 0.93);
-    g.addColorStop(0, c.lo); g.addColorStop(1, c.hi);
-    ctx.fillStyle = g;
-  }
-  const sk = SKIN && !b.fresh;
-  ctx.beginPath(); pathPts(sk ? b.RX : b.x, sk ? b.RY : b.y, b.n); ctx.fill();
+  const sk = SKIN && !b.fresh, X = sk ? b.RX : b.x, Y = sk ? b.RY : b.y;
+  ctx.save(); ctx.translate(SH_X * rs, SH_Y * rs);
+  ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fill();
+  ctx.restore();
+  ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = c.hex; ctx.fill();
   if (b.flash > 0) {                // merge flash: a white veil over the same inside, fading away
     ctx.fillStyle = `rgba(255,255,255,${(b.flash * b.flash).toFixed(3)})`; ctx.fill();
   }
-  if (rs > 14) {
-    // inner rim: the outer 9/97 of the radius, 10% darker (Figma's stroke with plus-darker black); clipped to the
-    // outline so only the inside half of the stroke shows
-    ctx.save(); ctx.clip();
-    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = rs * 0.186; ctx.lineJoin = 'round'; ctx.stroke();
-    ctx.restore();
-    ctx.beginPath(); pathPts(sk ? b.RX : b.x, sk ? b.RY : b.y, b.n);   // the path again, for the outline stroke below
-  }
-  if (outline) { ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.stroke(); }
+  if (outline) { ctx.beginPath(); pathPts(X, Y, b.n); ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.stroke(); }
 }
 
 function draw() {
@@ -1292,7 +1326,16 @@ function draw() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
   // the panel is the play field: the ceiling is the "floor". No gate bars: shapes just arrive from the sides.
-  panelPath(); ctx.fillStyle = '#353543'; ctx.fill();
+  // Its slate lights up in the merge colour from the top and carries a faint standing tint of the biggest blob.
+  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level > top) top = blobs[i].level;
+  const gc = COLORS[glow.c], tc = COLORS[(Math.max(1, top) - 1) % COLORS.length], ga = glow.a * glow.a * (2 - glow.a);
+  const fg = ctx.createLinearGradient(0, CEIL, 0, H);
+  fg.addColorStop(0, mixHex(...mixRgb(53, 53, 67, tc, 0.08), gc, 0.5 * ga));
+  fg.addColorStop(0.55, mixHex(...mixRgb(53, 53, 67, tc, 0.05), gc, 0.2 * ga));
+  fg.addColorStop(1, mixHex(...mixRgb(53, 53, 67, tc, 0.02), gc, 0.08 * ga));
+  panelPath(); ctx.fillStyle = fg; ctx.fill();
+  const sc = `linear-gradient(${mixHex(...mixRgb(30, 30, 42, tc, 0.06), gc, 0.32 * ga)},${mixHex(30, 30, 42, gc, 0.06 * ga)} 60%)`;
+  if (sc !== fieldCss) { fieldCss = sc; screenEl.style.background = sc; }
   ctx.save(); panelPath(); ctx.clip();
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
@@ -1459,7 +1502,7 @@ window.__udm = { blobs, tick, draw, reset,
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
-  fx: () => ({ hitStop, scoreBump, shake, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
+  fx: () => ({ hitStop, scoreBump, shake, glow: glow.a, motes: motes.filter(m => m.t < m.life).length, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   info: () => ({ n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
