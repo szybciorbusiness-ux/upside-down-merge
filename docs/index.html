@@ -152,7 +152,8 @@ const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger o
 // is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
-const RIPPLE_MIN = 320, RIPPLE_R = 420, RIPPLE_K = 1.1, RIPPLE_MAX = 800;   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
+const RIPPLE_MIN = 240, RIPPLE_R = 520, RIPPLE_K = 1.5, RIPPLE_MAX = 1000;
+const ECHO = [[0.13, 0.55], [0.3, 0.3]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
@@ -167,15 +168,16 @@ const MU = 0.12, MU_WALL = 0.1;   // slippery: the pile flows and slides rather 
 const K0 = 0.011, K1 = 1.5, KMAX = 0.6;   // shape stiffness: very soft (jelly), stiffening hard only near collapse
 const STRAIN = 0.85;           // how far a point may leave its rest place, in radii
 const KB = 0.06;               // outline smoothness: local bending, so it wobbles in big lazy lumps, not wrinkles
-const KA = 0.6;                // area (pressure) stiffness
-const KD = 0.006;              // deformation damping: about four visible wobbles, then rest
+const KA = 0.5;                // area (pressure) stiffness (softer: more liquid)
+const KD = 0.005;              // deformation damping: about four visible wobbles, then rest
 const LIN_DAMP = 0.9993, ANG_DAMP = 0.9995;   // in free flight
 const LIN_TOUCH = 0.9997, ANG_TOUCH = 0.994;    // while touching something, so piles still come to rest
 const V_SLEEP2 = 1.0 * 1.0;    // rest threshold (acts like static friction)
 const MERGE_TIME = 0.2, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
 const V_MAX = 1500;
 const MAX_AIM = Math.PI;
-const AIM_FLOW = 95;              // units/s the aim dots travel along the ray       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
+const AIM_FLOW = 95;
+const ENTER_V = 620;              // units/s a new shelf shape slides in from off-screen              // units/s the aim dots travel along the ray       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
 const DANGER_HOLD = 2.8;       // how long the pile may sit past the line; long enough for the red build-up to read
 const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing at all
 const MAXN = 52;
@@ -297,13 +299,13 @@ function makeBlob(level) {
     scale: 1, scaleV: 0, scaleT: 1, anim: false, animT: 0,
     tray: false, sq: 0, sqV: 0, sqT: 0,     // sq: how flattened it sits on the shelf
     w: n / Math.pow(r, 1.25), area0: Math.PI * r * r,   // inverse mass for contacts: big blobs are heavier, but not by area, so a small shot still moves them
-    touched: false, sinceTouch: 0, flash: 0, buried: false, buriedT: 0, popping: 0, wasWall: 0, wallHit: 0, launched: false, wIn: 0, wnx: 0, wny: -1, freeT: 1, landV: 0, landX: 0, landY: 0,
+    touched: false, sinceTouch: 0, flash: 0, buried: false, buriedT: 0, popping: 0, wasWall: 0, wallHit: 0, launched: false, wIn: 0, wnx: 0, wny: -1, freeT: 1, landV: 0, landX: 0, landY: 0, echoJ: 0, echoI: 9, echoT: 0, entering: false,
     state: 0, partner: null, mergeT: 0, noMerge: 0, young: 0,
     vcx: 0, vcy: 0, pvx: 0, pvy: 0, dead: false, la: 0, pa: 0,
     label: String(Math.pow(2, level)), fs: 0
   };
   const digits = b.label.length;
-  b.fs = Math.min(r * 0.8, r * 1.56 / digits);
+  b.fs = Math.min(r * 0.8, r * 1.56 / digits) * (r > 44 ? Math.max(0.78, 1 - (r - 44) * 0.0045) : 1);   // big ones carry their number a little smaller
   // irregular pebble outline
   const a2 = 0.045 + Math.random() * 0.05, a3 = 0.025 + Math.random() * 0.035, a4 = 0.01 + Math.random() * 0.02;
   const p2 = Math.random() * 6.283, p3 = Math.random() * 6.283, p4 = Math.random() * 6.283;
@@ -500,6 +502,7 @@ function limitNotch(b) {
 function collideWalls(b) {
   const n = b.n, x = b.x, y = b.y, px = b.px, py = b.py;
   b.wl.fill(0);   // (wallHit is counted across both contact passes and cleared in the velocity pass)
+  if (b.entering) { if (b.cx - b.br > WALL_L + 1 && b.cx + b.br < WALL_R - 1) b.entering = false; else return; }
   for (let p = 0; p < planes.length; p++) {
     const pl = planes[p], nx = pl[0], ny = pl[1], dd = pl[2];
     if (nx * b.cx + ny * b.cy - dd > b.br + 3) continue;
@@ -550,7 +553,7 @@ function substep(h) {
     if (b.tray) {
       // shelf: no gravity, drawn toward the middle of the row, heavily damped.
       // The grabbed shape follows the pull instead, so it squashes back like a slingshot.
-      let tx = LX, ty = TRAY_Y, kx = 14, lim = 800;
+      let tx = LX, ty = TRAY_Y, kx = b.entering ? 60 : 14, lim = b.entering ? 3000 : 800;
       if (b === sel && armed) { tx = selX + pullX; ty = TRAY_Y + pullY; kx = 160; lim = 5000; }
       else if (sel && armed) kx = 0;        // neighbours hold still while one is pulled back
       let ax = (tx - b.cx) * kx; if (ax > lim) ax = lim; else if (ax < -lim) ax = -lim;
@@ -838,6 +841,18 @@ function finishMerge(a, b) {
 }
 
 // A small blob sealed in under bigger ones gets squeezed until it pops: it scores like a merge and its colour sparkles out.
+function ripple(b, j0) {
+  for (let q = 0; q < blobs.length; q++) {
+    const o = blobs[q]; if (o === b || o.tray || o.dead || o.state === 1) continue;
+    const dx = o.cx - b.landX, dy = o.cy - b.landY, d = Math.sqrt(dx * dx + dy * dy); if (d > RIPPLE_R || d < 1e-3) continue;
+    const fall = 1 - d / RIPPLE_R, j = j0 * fall * fall * Math.max(0.65, Math.min(1, b.r / o.r)) * (0.85 + Math.random() * 0.3);
+    // mostly sideways (the pile sits against the ceiling, so "away" would just press it harder), a little radial
+    const side = dx === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(dx);
+    const jx = (dx / d * 0.5 + side * 0.7) * j, jy = dy / d * 0.45 * j;
+    for (let k = 0; k < o.n; k++) { o.vx[k] += jx; o.vy[k] += jy; }
+    o.hit = true;
+  }
+}
 function popBlob(b) {
   b.dead = true;
   const x = b.cx, y = b.cy, ci = cidx(b.level);
@@ -1051,9 +1066,9 @@ function trayCount() { let c = 0; for (let i = 0; i < blobs.length; i++) if (blo
 // A new shape slides onto the shelf from the left (0) or right (1) gate.
 function spawnTray(side) {
   const b = makeBlob(openQ.length ? openQ.shift() : pickLevel()), ts = trayScale(b);
-  const x = side === 0 ? WALL_L + b.r * ts * 1.25 + 2 : WALL_R - b.r * ts * 1.25 - 2;
-  placeBlob(b, x, TRAY_Y, Math.random() * 6.28, ts * 0.35, 0, 1, 1, side === 0 ? 240 : -240, 0);
-  b.tray = true; b.scale = ts * 0.35; b.scaleT = ts; b.sq = b.sqT = 1; b.anim = true; b.animT = 0; b.noMerge = 0.3;
+  const x = side === 0 ? WALL_L - b.r * ts * 1.15 : WALL_R + b.r * ts * 1.15;   // starts beyond the edge of the screen
+  placeBlob(b, x, TRAY_Y, Math.random() * 6.28, ts, 0, 1, 1, side === 0 ? ENTER_V : -ENTER_V, 0);
+  b.tray = true; b.entering = true; b.scale = b.scaleT = ts; b.sq = 1.18; b.sqT = 1; b.anim = true; b.animT = 0; b.noMerge = 0.3;
   blobs.push(b); gateFlash[side] = 1;
 }
 
@@ -1151,18 +1166,14 @@ function impulses() {
     const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
     if (dv > hit) hit = dv;
     if (b.landV > RIPPLE_MIN && !b.tray) {
-      // the knock travels: once per landing, neighbours are shoved away from the impact, less the further they sit
-      const j0 = Math.min(RIPPLE_MAX, (b.landV - RIPPLE_MIN) * RIPPLE_K); b.landV = 0;
-      for (let q = 0; q < blobs.length; q++) {
-        const o = blobs[q]; if (o === b || o.tray || o.dead || o.state === 1) continue;
-        const dx = o.cx - b.landX, dy = o.cy - b.landY, d = Math.sqrt(dx * dx + dy * dy); if (d > RIPPLE_R || d < 1e-3) continue;
-        const fall = 1 - d / RIPPLE_R, j = j0 * fall * fall * Math.max(0.65, Math.min(1, b.r / o.r));
-        // mostly sideways (the pile sits against the ceiling, so "away" would just press it harder), a little radial
-        const side = dx === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(dx);
-        const jx = (dx / d * 0.5 + side * 0.7) * j, jy = dy / d * 0.45 * j;
-        for (let k = 0; k < o.n; k++) { o.vx[k] += jx; o.vy[k] += jy; }
-        o.hit = true;
-      }
+      // the knock travels: once per landing, neighbours are shoved away from the impact, less the further they sit,
+      // and the wave comes back twice more, fainter (user: "more echo, more liquid")
+      b.echoJ = Math.min(RIPPLE_MAX, (b.landV - RIPPLE_MIN) * RIPPLE_K); b.landV = 0; b.echoI = 0; b.echoT = 0;
+      ripple(b, b.echoJ);
+    }
+    if (b.echoI < ECHO.length && b.echoJ > 0) {
+      b.echoT += h;
+      if (b.echoT >= ECHO[b.echoI][0]) { ripple(b, b.echoJ * ECHO[b.echoI][1]); b.echoI++; }
     }
     if (!b.tray && b.young <= 0) {
       // sideways: the blob was flying toward the side it hit, so the screen leans that way (-dvx);
@@ -1446,7 +1457,7 @@ function draw() {
   const sc = `linear-gradient(${mixHex(...mixRgb(30, 30, 42, tc, 0.06), gc, 0.32 * ga)},${mixHex(30, 30, 42, gc, 0.06 * ga)} 60%)`;
   if (sc !== fieldCss) { fieldCss = sc; screenEl.style.background = sc; }
   // the score and the gear sit on the screen in plus-lighter: they take the glow colour and brighten with it
-  const hc = mixHex(166, 166, 188, gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3);
+  const hc = mixHex(...mixRgb(166, 166, 188, tc, 0.42), gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3);
   if (hc !== hudCss) { hudCss = hc; const [col, a] = hc.split('|'); screenEl.style.setProperty('--hud', col); screenEl.style.setProperty('--hud-a', a); screenEl.style.setProperty('--hud-g', (+a - 0.05).toFixed(3)); }
   ctx.save(); panelPath(); ctx.clip();
 
