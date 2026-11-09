@@ -48,10 +48,10 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 #status .cell{width:calc(19.2*var(--u))}#status .wifi{width:calc(17.142*var(--u))}#status .batt{width:calc(27.328*var(--u))}
 #hud{position:absolute;left:0;right:0;top:calc(62*var(--u));height:calc(68*var(--u))}
 body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
-#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--brand);opacity:.3;letter-spacing:0;
+#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
-  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease}
+  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--hud,var(--brand));mix-blend-mode:plus-lighter}
 #gear svg{width:100%;height:100%}
 #gear svg g{transition:opacity .15s ease}
 #gear:hover svg g,#gear[aria-expanded="true"] svg g{opacity:.9}
@@ -100,7 +100,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     </div>
     <header id="hud">
       <h1 id="brand" aria-label="Score">0</h1>
-      <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1" opacity="0.25"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="#A6A6BC"/></g></svg></button>
+      <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1" style="opacity:var(--hud-g,.25)"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
     <div id="menu" role="menu" hidden>
       <button id="sound" type="button" role="menuitem" aria-pressed="false">Sound <span id="sound-state">On</span></button>
@@ -253,7 +253,7 @@ const FANFARE_LEVEL = 10;
 // Hit glow: every merge lights the field and the screen behind it up in the new colour (more for a bigger
 // result), fading back over a second; the biggest blob on the board leaves a faint standing tint.
 const glow = { c: 0, a: 0 };
-let fieldCss = '';
+let fieldCss = '', hudCss = '';
 // glowing motes: soft additive lights that drift up out of a big merge
 const motes = []; for (let i = 0; i < 48; i++) motes.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 8, c: 0 });
 let moteI = 0;
@@ -1340,6 +1340,9 @@ function draw() {
   panelPath(); ctx.fillStyle = fg; ctx.fill();
   const sc = `linear-gradient(${mixHex(...mixRgb(30, 30, 42, tc, 0.06), gc, 0.32 * ga)},${mixHex(30, 30, 42, gc, 0.06 * ga)} 60%)`;
   if (sc !== fieldCss) { fieldCss = sc; screenEl.style.background = sc; }
+  // the score and the gear sit on the screen in plus-lighter: they take the glow colour and brighten with it
+  const hc = mixHex(166, 166, 188, gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3);
+  if (hc !== hudCss) { hudCss = hc; const [col, a] = hc.split('|'); screenEl.style.setProperty('--hud', col); screenEl.style.setProperty('--hud-a', a); screenEl.style.setProperty('--hud-g', (+a - 0.05).toFixed(3)); }
   ctx.save(); panelPath(); ctx.clip();
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
