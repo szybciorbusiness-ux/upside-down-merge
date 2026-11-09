@@ -87,22 +87,32 @@ const TRAY_MAX = 3, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 3 shapes, fed f
 const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
 const TRAJ_DOTS = 7;           // aim preview: a few dots past the arrow, no landing marker
 
-const G = 1100;                // gravity, pulling UP (-y)
+const G = 760;                 // gravity, pulling UP (-y); gentle, so shapes drift up rather than slam
 const SHOT = 820;              // launch speed
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
 const PEN_MAX = 7;
+const WALL_W = 0.12;           // how light a wall-held point counts in a blob-to-blob contact
+const CONTACT_PASSES = 2;      // contact solves per substep; one pass lets squeezed blobs sink into each other
 const MU = 0.38, MU_WALL = 0.22;
-const K0 = 0.06, K1 = 3.0, KMAX = 0.7;   // shape stiffness: soft for small squish, stiff before collapse
+const K0 = 0.011, K1 = 1.5, KMAX = 0.6;   // shape stiffness: very soft (jelly), stiffening hard only near collapse
+const STRAIN = 0.85;           // how far a point may leave its rest place, in radii
+const KB = 0.06;               // outline smoothness: local bending, so it wobbles in big lazy lumps, not wrinkles
 const KA = 0.6;                // area (pressure) stiffness
-const KD = 0.035;              // deformation damping → rubber, not water balloon
-const LIN_DAMP = 0.9993, ANG_DAMP = 0.997;
+const KD = 0.008;              // deformation damping: about four visible wobbles, then rest
+const LIN_DAMP = 0.9993, ANG_DAMP = 0.9995;   // in free flight
+const LIN_TOUCH = 0.998, ANG_TOUCH = 0.99;    // while touching something, so piles stop rocking
 const V_SLEEP2 = 2.2 * 2.2;    // rest threshold (acts like static friction)
-const MERGE_TIME = 0.13, CHAIN_DELAY = 0.26, MERGE_PULL = 0.045;
+const MERGE_TIME = 0, CHAIN_DELAY = 0.26, MERGE_PULL = 0.045;
 const V_MAX = 1500;
 const MAX_AIM = 1.16;          // ±66° from straight up
 const DANGER_HOLD = 1.6;
-const MAXN = 44;
+const MAXN = 52;
+// Skin: a damped wave that runs round each outline after a knock. Drawn only, never collided with.
+const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const SKIN = !REDUCED;
+const SK_K = 150, SK_C = 160, SK_D = 3, SK_D2 = 0.4, SK_J = 8, SK_GC = 0.6, SK_MAX = 0.2, SK_SIG = 0.35, SK_DV0 = 60, SK_DV1 = 700;
+const MUSIC = true;
 
 const PALETTE = [
   '#ff6fa8', // 2 pink
@@ -145,17 +155,20 @@ for (let i = 0; i < 14; i++) popups.push({ t: 9, x: 0, y: 0, v: 0 });
 let popI = 0;
 const traj = new Float32Array(2 * 48); let trajN = 0, trajEndX = 0, trajEndY = 0, trajHit = false;
 const tmpX = new Float32Array(MAXN), tmpY = new Float32Array(MAXN);
+const drawOrder = [];
 
 try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; } catch (e) {}
 
 /* ───────────────────────── blobs ───────────────────────── */
 function makeBlob(level) {
   const r = radiusFor(level);
-  const n = Math.max(12, Math.min(MAXN, Math.round(2 * Math.PI * r / 8.5)));
+  const n = Math.max(14, Math.min(MAXN, Math.round(2 * Math.PI * r / 7.5)));
   const b = {
     level, value: Math.pow(2, level), r, n,
     x: new Float32Array(n), y: new Float32Array(n), px: new Float32Array(n), py: new Float32Array(n),
     vx: new Float32Array(n), vy: new Float32Array(n), qx: new Float32Array(n), qy: new Float32Array(n),
+    ox: new Float32Array(n), oy: new Float32Array(n), el: new Float32Array(n), sqq: 1,
+    v11: 1, v12: 0, v21: 0, v22: 1,          // current stretch of the body (world axes), drives the label
     cx: 0, cy: 0, cs: 1, sn: 0, br: r * 1.2, maxY: 0,
     scale: 1, scaleV: 0, scaleT: 1, anim: false, animT: 0,
     tray: false, sq: 0, sqV: 0, sqT: 0,     // sq: how flattened it sits on the shelf
@@ -182,6 +195,21 @@ function makeBlob(level) {
   for (let i = 0; i < n; i++) { const j = i + 1 < n ? i + 1 : 0; A += b.qx[i] * b.qy[j] - b.qx[j] * b.qy[i]; }
   const k = Math.sqrt(b.area0 / (A * 0.5));
   for (let i = 0; i < n; i++) { b.qx[i] *= k; b.qy[i] *= k; }
+  let sq = 0;
+  for (let i = 0; i < n; i++) {
+    const i0 = i === 0 ? n - 1 : i - 1, i1 = i + 1 < n ? i + 1 : 0;
+    b.ox[i] = b.qx[i] - (b.qx[i0] + b.qx[i1]) / 2; b.oy[i] = b.qy[i] - (b.qy[i0] + b.qy[i1]) / 2;
+    b.el[i] = Math.hypot(b.qx[i1] - b.qx[i], b.qy[i1] - b.qy[i]);
+    sq += b.qx[i] * b.qx[i] + b.qy[i] * b.qy[i];
+  }
+  b.sqq = sq / 2;
+  // skin wave state, in angular units so every size ripples alike
+  const g = n / 6.2832, sb = Math.sqrt(19.8 / r);
+  b.h = new Float32Array(n); b.hv = new Float32Array(n); b.rp = new Float32Array(n); b.rl = new Float32Array(n);
+  b.RX = new Float32Array(n); b.RY = new Float32Array(n); b.ct = new Uint8Array(n); b.cth = new Uint8Array(n); b.wl = new Uint8Array(n);
+  for (let i = 0; i < n; i++) b.rl[i] = Math.hypot(b.qx[i], b.qy[i]) || 1;
+  b.kS = SK_K * sb * sb; b.cS = SK_C * sb * sb * g * g; b.dS = SK_D * sb; b.d2S = SK_D2 * g * g * sb; b.sigI = SK_SIG * g;
+  b.fresh = true; b.hit = false; b.flashDur = 1;
   return b;
 }
 
@@ -205,14 +233,18 @@ function solveShape(b) {
   let cx = 0, cy = 0;
   for (let i = 0; i < n; i++) { cx += x[i]; cy += y[i]; }
   cx /= n; cy /= n;
-  let s = 0, c = 0;
+  let a11 = 0, a12 = 0, a21 = 0, a22 = 0;
   for (let i = 0; i < n; i++) {
     const dx = x[i] - cx, dy = y[i] - cy;
-    c += qx[i] * dx + qy[i] * dy; s += qx[i] * dy - qy[i] * dx;
+    a11 += dx * qx[i]; a12 += dx * qy[i]; a21 += dy * qx[i]; a22 += dy * qy[i];
   }
+  let c = a11 + a22, s = a21 - a12;
   const len = Math.hypot(s, c) || 1; c /= len; s /= len;
   b.cx = cx; b.cy = cy; b.cs = c; b.sn = s;
-  const sc = b.scale, rr = b.r * sc, inv2 = 1 / (rr * rr), lim = 0.5 * rr, lim2 = lim * lim;
+  const iq = 1 / b.sqq;      // stretch = A * R^T, in world axes
+  b.v11 = (a11 * c - a12 * s) * iq; b.v12 = (a11 * s + a12 * c) * iq; b.v21 = (a21 * c - a22 * s) * iq; b.v22 = (a21 * s + a22 * c) * iq;
+
+  const sc = b.scale, rr = b.r * sc, inv2 = 1 / (rr * rr), lim = STRAIN * rr, lim2 = lim * lim;
   const sxm = sc * (1 + 0.18 * b.sq), sym = sc * (1 - 0.24 * b.sq);
   for (let i = 0; i < n; i++) {
     const gx = cx + sxm * (c * qx[i] - s * qy[i]), gy = cy + sym * (s * qx[i] + c * qy[i]);
@@ -223,6 +255,21 @@ function solveShape(b) {
     dx = x[i] - gx; dy = y[i] - gy;
     const e2 = dx * dx + dy * dy;
     if (e2 > lim2) { const f = lim / Math.sqrt(e2); x[i] = gx + dx * f; y[i] = gy + dy * f; }
+  }
+  // local bending: each point wants its rest offset from the midpoint of its neighbours
+  const ox = b.ox, oy = b.oy, el = b.el;
+  for (let i = 0; i < n; i++) {
+    const i0 = i === 0 ? n - 1 : i - 1, i1 = i + 1 < n ? i + 1 : 0;
+    const dx = (x[i0] + x[i1]) * 0.5 + sxm * (c * ox[i] - s * oy[i]) - x[i];
+    const dy = (y[i0] + y[i1]) * 0.5 + sym * (s * ox[i] + c * oy[i]) - y[i];
+    x[i] += KB * 0.5 * dx; y[i] += KB * 0.5 * dy;
+    x[i0] -= KB * 0.25 * dx; y[i0] -= KB * 0.25 * dy; x[i1] -= KB * 0.25 * dx; y[i1] -= KB * 0.25 * dy;
+  }
+  // keep the outline from bunching up or tearing when it is flattened hard
+  for (let i = 0; i < n; i++) {
+    const j = i + 1 < n ? i + 1 : 0, ex = x[j] - x[i], ey = y[j] - y[i], l = Math.sqrt(ex * ex + ey * ey) || 1e-6, rest = el[i] * sc;
+    let want = l; if (l < 0.45 * rest) want = 0.45 * rest; else if (l > 2.3 * rest) want = 2.3 * rest;
+    if (want !== l) { const f = (want - l) / l * 0.5; x[i] -= ex * f; y[i] -= ey * f; x[j] += ex * f; y[j] += ey * f; }
   }
   // pressure: keep the area, so a squeeze bulges out sideways
   let A = 0, per = 0;
@@ -278,20 +325,23 @@ function collide(A, B) {
       nx = ey / el; ny = -ex / el; pen = MARGIN;
     }
     if (pen > PEN_MAX) pen = PEN_MAX;
+    // a point held by a wall cannot give way, so it pushes back almost like the wall itself
+    const wa = A.wl[i] ? wA * WALL_W : wA, wb = (B.wl[j0] || B.wl[j1]) ? wB * WALL_W : wB;
     const t = bt, u = 1 - t;
-    const denom = wA + wB * (u * u + t * t), lam = pen / denom;
+    const denom = wa + wb * (u * u + t * t), lam = pen / denom;
     const rdx = (X - apx[i]) - (u * (bx[j0] - bpx[j0]) + t * (bx[j1] - bpx[j1]));
     const rdy = (Y - apy[i]) - (u * (by[j0] - bpy[j0]) + t * (by[j1] - bpy[j1]));
-    ax[i] = X + nx * lam * wA; ay[i] = Y + ny * lam * wA;
-    const cb = lam * wB;
+    ax[i] = X + nx * lam * wa; ay[i] = Y + ny * lam * wa;
+    const cb = lam * wb;
     bx[j0] -= nx * cb * u; by[j0] -= ny * cb * u; bx[j1] -= nx * cb * t; by[j1] -= ny * cb * t;
     const rn = rdx * nx + rdy * ny, tx = rdx - rn * nx, ty = rdy - rn * ny, tl = Math.sqrt(tx * tx + ty * ty);
     if (tl > 1e-6) {
       let f = MU * pen / tl; if (f > 1) f = 1; f /= denom;
       const fx = tx * f, fy = ty * f;
-      ax[i] -= fx * wA; ay[i] -= fy * wA;
-      bx[j0] += fx * wB * u; by[j0] += fy * wB * u; bx[j1] += fx * wB * t; by[j1] += fy * wB * t;
+      ax[i] -= fx * wa; ay[i] -= fy * wa;
+      bx[j0] += fx * wb * u; by[j0] += fy * wb * u; bx[j1] += fx * wb * t; by[j1] += fy * wb * t;
     }
+    A.ct[i] = 1; B.ct[j0] = 1; B.ct[j1] = 1;
     hits++;
   }
   return hits;
@@ -299,12 +349,14 @@ function collide(A, B) {
 
 function collideWalls(b) {
   const n = b.n, x = b.x, y = b.y, px = b.px, py = b.py;
+  b.wl.fill(0);
   for (let p = 0; p < planes.length; p++) {
     const pl = planes[p], nx = pl[0], ny = pl[1], dd = pl[2];
     if (nx * b.cx + ny * b.cy - dd > b.br + 3) continue;
     for (let i = 0; i < n; i++) {
       const dist = nx * x[i] + ny * y[i] - dd;
       if (dist < 0) {
+        b.ct[i] = 1; b.wl[i] = 1; b.hit = true;
         x[i] -= nx * dist; y[i] -= ny * dist;
         const tn = (x[i] - px[i]) * -ny + (y[i] - py[i]) * nx, at = tn < 0 ? -tn : tn;
         if (at > 1e-6) { let f = MU_WALL * -dist / at; if (f > 1) f = 1; x[i] -= -ny * tn * f; y[i] -= nx * tn * f; }
@@ -322,7 +374,7 @@ function substep(h) {
     if (b.noMerge > 0) b.noMerge -= h;
     if (b.touched) b.sinceTouch += h;
     if (b.anim) {
-      const k = 300, c = 2 * 0.4 * Math.sqrt(k), k2 = 420, c2 = 2 * 0.36 * Math.sqrt(k2);
+      const k = 300, c = 2 * 0.3 * Math.sqrt(k), k2 = 420, c2 = 2 * 0.36 * Math.sqrt(k2);
       b.scaleV += (k * (b.scaleT - b.scale) - c * b.scaleV) * h; b.scale += b.scaleV * h;
       b.sqV += (k2 * (b.sqT - b.sq) - c2 * b.sqV) * h; b.sq += b.sqV * h; b.animT += h;
       if (b.animT > 1.2) { b.anim = false; b.scale = b.scaleT; b.sq = b.sqT; b.scaleV = b.sqV = 0; }
@@ -354,6 +406,7 @@ function substep(h) {
   }
   for (let bi = 0; bi < nb; bi++) solveShape(blobs[bi]);
 
+  for (let pass = 0; pass < CONTACT_PASSES; pass++) {
   for (let i = 0; i < nb; i++) {
     const A = blobs[i];
     for (let j = i + 1; j < nb; j++) {
@@ -364,13 +417,13 @@ function substep(h) {
       if (d2 > rr * rr) continue;
       const hits = collide(A, B) + collide(B, A);
       if (hits > 0) {
-        A.touched = B.touched = true;
+        A.touched = B.touched = true; A.hit = B.hit = true;
         if (A.level === B.level && A.state === 0 && B.state === 0 && A.noMerge <= 0 && B.noMerge <= 0 && !over) {
           A.state = B.state = 1; A.partner = B; B.partner = A; A.mergeT = B.mergeT = MERGE_TIME;
         }
       }
       // last-resort core separation so nothing can end up inside anything else
-      const core = 0.45 * (A.r * A.scale + B.r * B.scale);
+      const core = 0.28 * (A.r * A.scale + B.r * B.scale);
       if (d2 < core * core && d2 > 1e-6) {
         const d = Math.sqrt(d2), push = (core - d), ma = A.r * A.r, mb = B.r * B.r;
         const fa = push * mb / (ma + mb) / d, fb = push * ma / (ma + mb) / d;
@@ -380,6 +433,7 @@ function substep(h) {
     }
   }
   for (let bi = 0; bi < nb; bi++) collideWalls(blobs[bi]);
+  }
 
   for (let bi = 0; bi < nb; bi++) {
     const b = blobs[bi], n = b.n, x = b.x, y = b.y, px = b.px, py = b.py, vx = b.vx, vy = b.vy;
@@ -389,12 +443,15 @@ function substep(h) {
     let L = 0, I = 0;
     const cx = b.cx, cy = b.cy;
     for (let i = 0; i < n; i++) { const rx = x[i] - cx, ry = y[i] - cy; L += rx * (vy[i] - sy) - ry * (vx[i] - sx); I += rx * rx + ry * ry; }
-    const om = (I > 0 ? L / I : 0) * ANG_DAMP;
+    // centre motion, spin and deformation are damped separately
+    const om0 = I > 0 ? L / I : 0, om = om0 * (b.hit ? ANG_TOUCH : ANG_DAMP);
+    const lin = b.hit ? LIN_TOUCH : LIN_DAMP, lx = sx * lin, ly = sy * lin, kd = 1 - KD;
+    b.hit = false;
     let m2 = 0;
     for (let i = 0; i < n; i++) {
       const rx = x[i] - cx, ry = y[i] - cy;
-      vx[i] = (vx[i] + KD * (sx - om * ry - vx[i])) * LIN_DAMP;
-      vy[i] = (vy[i] + KD * (sy + om * rx - vy[i])) * LIN_DAMP;
+      vx[i] = lx - om * ry + (vx[i] - sx + om0 * ry) * kd;
+      vy[i] = ly + om * rx + (vy[i] - sy - om0 * rx) * kd;
       let v2 = vx[i] * vx[i] + vy[i] * vy[i];
       if (v2 > V_MAX * V_MAX) { const f = V_MAX / Math.sqrt(v2); vx[i] *= f; vy[i] *= f; v2 = V_MAX * V_MAX; }
       if (v2 > m2) m2 = v2;
@@ -416,27 +473,138 @@ function substep(h) {
   blobs.length = k;
 }
 
+// Farthest point where a ray from (ox, oy) leaves blob b's outline, or -1.
+function rayOut(b, ox, oy, dx, dy) {
+  const n = b.n, x = b.x, y = b.y; let best = -1, x1 = x[n - 1], y1 = y[n - 1];
+  for (let j = 0; j < n; j++) {
+    const x2 = x[j], y2 = y[j], ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex;
+    if (den > 1e-9 || den < -1e-9) {
+      const t = ((x1 - ox) * ey - (y1 - oy) * ex) / den, u = ((x1 - ox) * dy - (y1 - oy) * dx) / den;
+      if (t > best && u >= 0 && u <= 1) best = t;
+    }
+    x1 = x2; y1 = y2;
+  }
+  return best;
+}
+// Distance along a ray to where it first meets b's outline (Infinity if it never does).
+function rayIn(b, ox, oy, dx, dy) {
+  const n = b.n, x = b.x, y = b.y; let best = Infinity, x1 = x[n - 1], y1 = y[n - 1];
+  for (let j = 0; j < n; j++) {
+    const x2 = x[j], y2 = y[j], ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex;
+    if (den > 1e-9 || den < -1e-9) {
+      const t = ((x1 - ox) * ey - (y1 - oy) * ex) / den, u = ((x1 - ox) * dy - (y1 - oy) * dx) / den;
+      if (t > 0 && t < best && u >= 0 && u <= 1) best = t;
+    }
+    x1 = x2; y1 = y2;
+  }
+  return best;
+}
+function supportOf(b, ox, oy, dx, dy) {
+  let best = 0; for (let i = 0; i < b.n; i++) { const t = (b.x[i] - ox) * dx + (b.y[i] - oy) * dy; if (t > best) best = t; }
+  return best;
+}
+
+function skinBump(b, bi, J) {
+  const n = b.n, R = Math.ceil(b.sigI * 2.5), s2 = b.sigI * b.sigI;
+  for (let k = -R; k <= R; k++) { const i = ((bi + k) % n + n) % n; b.hv[i] -= J * Math.exp(-k * k / s2); }
+}
+// Once per frame: knocks dent the side that took them, the dent travels round as a damped wave,
+// and points in contact are never pushed outward (so the skin cannot cross a seam).
+function skinStep(b, dt, dvx, dvy) {
+  const n = b.n, h = b.h, hv = b.hv, x = b.x, y = b.y, cx = b.cx, cy = b.cy;
+  const dv = b.tray || b.fresh ? 0 : Math.sqrt(dvx * dvx + dvy * dvy);
+  if (dv > SK_DV0) {
+    let bi = 0, bd = -1e9;
+    for (let i = 0; i < n; i++) { const d = -(x[i] - cx) * dvx - (y[i] - cy) * dvy; if (d > bd) { bd = d; bi = i; } }
+    skinBump(b, bi, Math.min(1, (dv - SK_DV0) / SK_DV1) * SK_J);
+  }
+  const inv = 1 / (b.scale || 1), fresh = b.fresh;
+  for (let i = 0; i < n; i++) {
+    const rx = x[i] - cx, ry = y[i] - cy, rho = Math.sqrt(rx * rx + ry * ry) * inv / b.rl[i] - 1;
+    if (!fresh) hv[i] += SK_GC * (rho - b.rp[i]);
+    b.rp[i] = rho;
+    if (b.ct[i]) { b.cth[i] = 2; b.ct[i] = 0; } else if (b.cth[i]) b.cth[i]--;
+  }
+  b.fresh = false;
+  const sub = Math.max(1, Math.min(24, Math.ceil(dt * 240 - 1e-6))), sdt = dt / sub, kS = b.kS, cS = b.cS, dS = b.dS, d2 = b.d2S;
+  for (let s = 0; s < sub; s++) {
+    let hp = h[n - 1], vp = hv[n - 1]; const h0 = h[0], v0 = hv[0];
+    for (let i = 0; i < n; i++) {
+      const hn = i + 1 < n ? h[i + 1] : h0, vn = i + 1 < n ? hv[i + 1] : v0, hc = h[i], vc = hv[i];
+      hv[i] = vc + (cS * (hp + hn - 2 * hc) - kS * hc - dS * vc + d2 * (vp + vn - 2 * vc)) * sdt;
+      hp = hc; vp = vc;
+    }
+    for (let i = 0; i < n; i++) h[i] += hv[i] * sdt;
+  }
+  let m = 0; for (let i = 0; i < n; i++) m += h[i]; m /= n;   // keep the area: no net swelling
+  for (let i = 0; i < n; i++) {
+    let v = h[i] - m;
+    if (!(v === v)) { v = 0; hv[i] = 0; }
+    if (v > 0 && (b.cth[i] > 0 || b.cth[i === 0 ? n - 1 : i - 1] > 0 || b.cth[i + 1 < n ? i + 1 : 0] > 0)) { v = 0; if (hv[i] > 0) hv[i] = 0; }
+    if (v > SK_MAX) v = SK_MAX; else if (v < -SK_MAX) v = -SK_MAX;
+    h[i] = v;
+    b.RX[i] = cx + (x[i] - cx) * (1 + v); b.RY[i] = cy + (y[i] - cy) * (1 + v);
+  }
+}
+
 function finishMerge(a, b) {
   a.dead = b.dead = true;
   const x = (a.cx + b.cx) / 2, y = (a.cy + b.cy) / 2;
-  const nb = makeBlob(a.level + 1);
-  const s0 = 0.78;
-  placeBlob(nb, x, y, Math.atan2(a.sn, a.cs), s0, 0, 1, 1, (a.vcx + b.vcx) / 2, (a.vcy + b.vcy) / 2);
-  nb.scale = s0; nb.scaleV = 1.0; nb.anim = true; nb.flash = 1; nb.noMerge = CHAIN_DELAY;
-  nb.touched = true; nb.sinceTouch = 1;
-  blobs.push(nb);
+  const nb = makeBlob(a.level + 1), n = nb.n;
+  const vx = (a.vcx + b.vcx) / 2, vy = (a.vcy + b.vcy) / 2;
+  // neighbours the joined outline must not be born inside
+  const near = [], reach = Math.hypot(a.cx - b.cx, a.cy - b.cy) / 2 + Math.max(a.br, b.br);
+  for (let q = 0; q < blobs.length; q++) {
+    const o = blobs[q];
+    if (o === a || o === b || o.dead || o.tray !== a.tray) continue;
+    if (Math.hypot(o.cx - x, o.cy - y) < reach + o.br) near.push(o);
+  }
+  let maxY = -1e9, br2 = 0;
+  for (let i = 0; i < n; i++) {
+    const l = Math.hypot(nb.qx[i], nb.qy[i]) || 1, dx = nb.qx[i] / l, dy = nb.qy[i] / l;
+    let t = Math.max(rayOut(a, x, y, dx, dy), rayOut(b, x, y, dx, dy));
+    if (t <= 0) t = Math.max(supportOf(a, x, y, dx, dy), supportOf(b, x, y, dx, dy));
+    for (let q = 0; q < near.length; q++) { const ti = rayIn(near[q], x, y, dx, dy) - MARGIN; if (ti < t) t = ti; }
+    for (let p = 0; p < planes.length; p++) {
+      const pl = planes[p], dn = dx * pl[0] + dy * pl[1];
+      if (dn < -1e-6) { const tw = (pl[0] * x + pl[1] * y - pl[2]) / -dn; if (tw < t) t = tw; }
+    }
+    t = Math.max(4, t - 0.6);
+    nb.x[i] = nb.px[i] = x + dx * t; nb.y[i] = nb.py[i] = y + dy * t; nb.vx[i] = vx; nb.vy[i] = vy;
+    if (nb.y[i] > maxY) maxY = nb.y[i]; if (t * t > br2) br2 = t * t;
+  }
+  let A2 = 0;
+  for (let i = 0; i < n; i++) { const j = i + 1 < n ? i + 1 : 0; A2 += nb.x[i] * nb.y[j] - nb.x[j] * nb.y[i]; }
   const onShelf = a.tray;
-  if (onShelf) {           // two shelf shapes met: the result stays on the shelf
-    nb.tray = true; nb.scaleT = trayScale(nb); nb.scale = nb.scaleT * s0; nb.sq = nb.sqT = 1;
-  } else { combo++; comboIdle = 0; }
+  nb.scale = Math.max(0.75, Math.min(1.6, Math.sqrt(Math.abs(A2) * 0.5 / nb.area0)));
+  nb.scaleT = onShelf ? trayScale(nb) : 1; nb.anim = true; nb.animT = 0;
+  nb.cx = x; nb.cy = y; nb.cs = 1; nb.sn = 0; nb.pa = 0; nb.la = 0; nb.vcx = nb.pvx = vx; nb.vcy = nb.pvy = vy;
+  nb.maxY = maxY; nb.br = Math.sqrt(br2) + 1;
+  nb.flash = 1; nb.flashDur = Math.max(0.8, Math.min(1.5, 0.8 + 0.175 * (nb.level - 3)));   // bigger blobs stay white longer
+  nb.noMerge = CHAIN_DELAY; nb.touched = true; nb.sinceTouch = 1;
+  if (SKIN) {
+    const k2 = Math.random() * 6.283, k3 = Math.random() * 6.283;
+    for (let i = 0; i < n; i++) { const th = i / n * 6.2832; nb.hv[i] += 1.5 * (Math.cos(2 * th + k2) + 0.6 * Math.cos(3 * th + k3)); }
+    const reach = nb.r * 3;
+    for (let q = 0; q < blobs.length; q++) {
+      const o = blobs[q]; if (o.dead || o.tray !== a.tray) continue;
+      const dx = x - o.cx, dy = y - o.cy, d = Math.sqrt(dx * dx + dy * dy);
+      if (d >= reach) continue;
+      let bi = 0, bd = -1e9;
+      for (let i = 0; i < o.n; i++) { const t = (o.x[i] - o.cx) * dx + (o.y[i] - o.cy) * dy; if (t > bd) { bd = t; bi = i; } }
+      skinBump(o, bi, 0.6 * SK_J * (1 - d / reach));
+    }
+  }
+  blobs.push(nb);
+  if (onShelf) { nb.tray = true; nb.sq = nb.sqT = 1; } else { combo++; comboIdle = 0; }
   const pts = nb.value * (onShelf ? 1 : combo);
   score += pts;
   if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
   const p = popups[popI]; popI = (popI + 1) % popups.length;
-  p.t = 0; p.x = x; p.y = onShelf ? y - 62 : y; p.v = pts;
+  p.t = 0; p.x = x; p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.v = pts;   // beside the new blob, never over its number
   if (onShelf) { sfxMerge(nb.level, 1); return; }
   if (combo >= 2) { banner.t = 0; banner.n = combo; banner.x = Math.max(70, Math.min(W - 70, x)); banner.y = Math.min(DANGER_Y - 26, y + nb.r + 30); }
-  const kick = Math.min(3.2, Math.max(0, (nb.level - 5) * 0.55) + Math.max(0, combo - 2) * 0.5);
+  const kick = combo >= 3 && !REDUCED ? Math.min(3.2, 1.2 + (combo - 3) * 0.6) : 0;   // the original never shakes; only long chains do here
   if (kick > shake) { shake = kick; shakeT = 0; }
   sfxMerge(nb.level, combo);
 }
@@ -513,7 +681,9 @@ function fire(b) {
   b.tray = false; b.scaleT = 1; b.sqT = 0; b.anim = true; b.animT = 0;   // springs back to full size: the launch stretch
   b.vcx = b.pvx = dx; b.vcy = b.pvy = dy; b.touched = false; b.sinceTouch = 0; b.noMerge = 0;
   combo = 0; firstShot = true;
-  sfxShoot();
+  // on touch it is this release that wakes the audio, a moment later: still play the launch then
+  if (actx && actx.state !== 'running') { const asked = performance.now(); actx.resume().then(() => { if (performance.now() - asked < 200) sfxShoot(); }, () => {}); }
+  else sfxShoot();
 }
 
 function frameLogic(dt) {
@@ -538,7 +708,8 @@ function frameLogic(dt) {
     const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
     if (dv > hit) hit = dv;
     b.pvx = b.vcx; b.pvy = b.vcy;
-    if (b.flash > 0) b.flash -= dt * 2.8;
+    if (b.flash > 0) b.flash -= dt / b.flashDur;
+    if (SKIN) skinStep(b, dt, dvx, dvy);
     // numbers tumble with the blob, then right themselves so they stay readable
     const ang = Math.atan2(b.sn, b.cs); let da = ang - b.pa; b.pa = ang;
     if (da > Math.PI) da -= 6.2832; else if (da < -Math.PI) da += 6.2832;
@@ -546,6 +717,7 @@ function frameLogic(dt) {
     if (b.la > 3.1416) b.la -= 6.2832; else if (b.la < -3.1416) b.la += 6.2832;
   }
   if (hit > 150) sfxThump(Math.min(1, hit / 1100));
+  musicTick();
 
   // danger line: the pile grows downward; lose only if it stays past the line
   if (!over) {
@@ -574,13 +746,13 @@ function frameLogic(dt) {
 function tick(dt) {
   time += dt; acc += dt;
   let steps = 0;
-  while (acc >= DT && steps < 10) { substep(DT); acc -= DT; steps++; }
+  while (acc >= DT && steps < 24) { substep(DT); acc -= DT; steps++; }   // real time down to 10 frames a second
   if (acc > DT) acc = 0;
   frameLogic(dt);
 }
 
 /* ───────────────────────── audio (all synthesised) ───────────────────────── */
-let actx = null, master = null, lastThump = 0, noiseBuf = null;
+let actx = null, master = null, musicBus = null, lastThump = 0, noiseBuf = null;
 function initAudio() {
   if (!actx) {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -588,10 +760,11 @@ function initAudio() {
     master = actx.createGain(); master.gain.value = muted ? 0 : 0.6;
     const comp = actx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
     master.connect(comp); comp.connect(actx.destination);
+    musicBus = actx.createGain(); musicBus.gain.value = 0.55; musicBus.connect(master);
     noiseBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
-  if (actx.state === 'suspended') actx.resume();
+  if (actx.state !== 'running') { const p = actx.resume(); if (p && p.catch) p.catch(() => {}); }   // also iOS 'interrupted'
 }
 function tone(f0, f1, t0, dur, vol, type) {
   const o = actx.createOscillator(), g = actx.createGain();
@@ -607,32 +780,96 @@ function noise(t0, dur, vol, freq) {
   g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   s.connect(f); f.connect(g); g.connect(master); s.start(t0); s.stop(t0 + dur + 0.02);
 }
-function sfxShoot() {            // short rubbery pop
-  if (!actx || muted) return; const t = actx.currentTime;
-  tone(170, 430, t, 0.07, 0.34, 'sine'); tone(430, 210, t + 0.045, 0.09, 0.2, 'sine');
-  noise(t, 0.03, 0.09, 1400);
+// Gain envelope from [seconds after t0, level] pairs.
+function env(g, t0, pts) {
+  g.gain.setValueAtTime(0.0001, t0);
+  for (let i = 0; i < pts.length; i++) g.gain.linearRampToValueAtTime(Math.max(0.0001, pts[i][1]), t0 + pts[i][0]);
 }
-function sfxThump(v) {           // quiet soft thump
-  if (!actx || muted) return; const t = actx.currentTime;
+// Time stands still while the context is not running, so a sound scheduled then would wait and
+// fire on resume together with every other one: drop it instead.
+const audible = () => actx && !muted && actx.state === 'running';
+function sfxPick() {             // grabbing a shape: a tiny falling "pok"
+  if (!audible()) return; const t = actx.currentTime, j = 0.85 + Math.random() * 0.4;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.setValueAtTime(1250 * j, t); o.frequency.exponentialRampToValueAtTime(440 * j, t + 0.009);
+  o.frequency.exponentialRampToValueAtTime(395 * j, t + 0.045);
+  env(g, t, [[0.004, 0.3], [0.016, 0.3], [0.046, 0]]);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.07);
+}
+function sfxShoot() {            // letting go: a rising "bwip", about 1.6 octaves in 80 ms
+  if (!audible()) return; const t = actx.currentTime, f = 225 * (0.88 + Math.random() * 0.24);
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 3.05, t + 0.078);
+  env(g, t, [[0.014, 0.27], [0.026, 0.27], [0.048, 0.03], [0.062, 0.07], [0.086, 0]]);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.11);
+}
+function sfxThump(v) {           // landing: barely there, a little body for heavy hits
+  if (!audible()) return; const t = actx.currentTime;
   if (t - lastThump < 0.07) return; lastThump = t;
-  tone(250 - v * 40, 110, t, 0.075, 0.1 + v * 0.26, 'sine');
-  if (v > 0.35) noise(t, 0.025, 0.04 * v, 500);
+  tone(540 - v * 120, 380 - v * 90, t, 0.04, 0.02 + v * 0.045, 'sine');
+  if (v > 0.4) tone(165, 92, t, 0.09, 0.06 * v, 'sine');
 }
-// Rounded rising three-note chime; bigger blobs ring lower, combos add notes on top.
-const ROOTS = [1568, 1397, 1175, 1047, 880, 698, 587, 523, 440, 392, 349, 294, 262, 233];
-function sfxMerge(level, combo) {
-  if (!actx || muted) return; const t = actx.currentTime;
-  const root = ROOTS[Math.min(ROOTS.length - 1, level - 1)];
-  const ratios = combo >= 3 ? [1, 1.26, 1.5, 2, 2.52] : combo === 2 ? [1, 1.26, 1.5, 2] : [1, 1.26, 1.5];
-  const gap = combo >= 2 ? 0.055 : 0.064, vol = Math.min(0.3, 0.2 + combo * 0.025);
-  for (let i = 0; i < ratios.length; i++) {
-    const f = root * ratios[i], tt = t + i * gap;
-    tone(f, f, tt, 0.24, vol, 'sine'); tone(f * 2, f * 2, tt, 0.1, vol * 0.18, 'sine');
+// Merge: one rising three-note chime of pure tones. Like a pitched sample, it plays lower AND slower
+// the bigger the new blob; the top note rings on and wavers.
+const ROOTS = [1307, 1133, 883, 703, 522, 435, 343, 261, 218, 172, 130];
+function chimeNote(f, t0, vol, u, last) {
+  const o = actx.createOscillator(), g = actx.createGain(), end = t0 + 0.3 * u + 0.05;
+  o.frequency.setValueAtTime(f, t0);
+  const a = Math.min(0.008, 0.006 * u);
+  if (last) {
+    env(g, t0, [[a, vol], [0.03 * u, vol * 0.52], [0.07 * u, vol * 0.4], [0.2 * u, vol * 0.3], [0.3 * u, 0]]);
+    const l = actx.createOscillator(), lg = actx.createGain(), tg = actx.createGain(), tr = actx.createGain();
+    l.frequency.value = 11 / u; lg.gain.value = f * 0.007; l.connect(lg); lg.connect(o.frequency);   // vibrato
+    tg.gain.value = 0.28; l.connect(tg); tg.connect(tr.gain);                                        // tremolo
+    o.connect(g); g.connect(tr); tr.connect(master); l.start(t0); l.stop(end);
+  } else {
+    env(g, t0, [[a, vol], [0.022 * u, vol * 0.3], [0.04 * u, vol * 0.12], [0.3 * u, 0]]);
+    o.connect(g); g.connect(master);
   }
-  tone(root * 0.5, root * 0.25, t, 0.11, 0.2, 'sine');   // the soft "pop" body under the chime
+  o.start(t0); o.stop(end);
+  if (f < 420) {                 // small speakers lose the low chimes: a quiet octave on top keeps them audible
+    const o2 = actx.createOscillator(), g2 = actx.createGain(), k = Math.min(0.5, (420 - f) / 420 * 0.9);
+    o2.frequency.setValueAtTime(f * 2, t0);
+    env(g2, t0, [[a, vol * k], [0.04 * u, vol * k * 0.3], [(last ? 0.3 : 0.12) * u, 0]]);
+    o2.connect(g2); g2.connect(master); o2.start(t0); o2.stop(end);
+  }
+}
+function sfxMerge(level, combo) {
+  if (!audible()) return; const t = actx.currentTime;
+  const root = ROOTS[Math.max(0, Math.min(ROOTS.length - 1, level - 2))];
+  const u = Math.min(3, 883 / root), gap = 0.039 * u, vol = Math.min(0.34, 0.25 + combo * 0.02);
+  chimeNote(root, t, vol, u, false);
+  chimeNote(root * 1.245, t + gap, vol, u, false);
+  chimeNote(root * 1.482, t + gap * 2, vol * 1.1, u, true);
+}
+// Backing track, written for this game: one soft chord and a bass note per bar, slow three-time.
+const BAR = 2.86;
+const CHORDS = [
+  [110.0, 220.0, 261.6, 329.6], [87.3, 220.0, 261.6, 349.2], [130.8, 196.0, 261.6, 329.6], [98.0, 196.0, 246.9, 293.7],
+  [110.0, 220.0, 261.6, 329.6], [73.4, 220.0, 293.7, 349.2], [87.3, 174.6, 261.6, 349.2], [98.0, 196.0, 246.9, 392.0]
+];
+let nextBar = 0, barI = 0;
+function padNote(f, t0, vol, attack, dur) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(musicBus); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function musicTick() {
+  if (!MUSIC || !audible()) return;
+  const now = actx.currentTime;
+  if (nextBar < now - BAR || nextBar === 0) nextBar = now + 0.12;   // first bar, or picking up after a real pause
+  else if (nextBar < now) nextBar = now + 0.02;                     // a late frame: play the overdue bar now
+  while (nextBar < now + 1.5) {                                     // notes run on audio time, so plan well ahead of slow frames
+    const ch = CHORDS[barI % CHORDS.length], t = nextBar;
+    padNote(ch[0], t, 0.2, 0.05, BAR * 1.05);
+    for (let i = 1; i < ch.length; i++) padNote(ch[i], t + (i - 1) * 0.012, 0.055, 0.07, BAR * 0.95);
+    if (barI % 2 === 1) padNote(ch[3] * 2, t + BAR / 3, 0.03, 0.02, 1.4);   // a high answer on the second beat, every other bar
+    barI++; nextBar += BAR;
+  }
 }
 function sfxOver() {
-  if (!actx || muted) return; const t = actx.currentTime;
+  if (!audible()) return; const t = actx.currentTime;
   [392, 311, 233, 175].forEach((f, i) => tone(f, f * 0.97, t + i * 0.2, 0.42, 0.2, 'triangle'));
 }
 
@@ -664,21 +901,35 @@ function pathPts(x, y, n) {
   for (let i = 0; i < n; i++) { const j = i + 1 < n ? i + 1 : 0; ctx.quadraticCurveTo(x[i], y[i], (x[i] + x[j]) / 2, (y[i] + y[j]) / 2); }
   ctx.closePath();
 }
-function label(b, x, y, ang, scale, alpha) {
+function label(b, alpha) {
   if (alpha <= 0.02) return;
-  ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(scale, scale);
-  ctx.globalAlpha = alpha; ctx.fillStyle = colorFor(b.level).ink;
-  ctx.font = `700 ${b.fs.toFixed(1)}px ${FONT}`;
+  const u = b.scale, k = 0.35, ca = Math.cos(b.la), sa = Math.sin(b.la);
+  let v11 = u + k * (b.v11 - u), v22 = u + k * (b.v22 - u), v12 = k * b.v12, v21 = k * b.v21;
+  if (v11 < 0.45) v11 = 0.45; else if (v11 > 1.7) v11 = 1.7;
+  if (v22 < 0.45) v22 = 0.45; else if (v22 > 1.7) v22 = 1.7;
+  if (v12 < -0.6) v12 = -0.6; else if (v12 > 0.6) v12 = 0.6;
+  if (v21 < -0.6) v21 = -0.6; else if (v21 > 0.6) v21 = 0.6;
+  ctx.save(); ctx.translate(b.cx, b.cy);
+  ctx.transform(v11 * ca + v12 * sa, v21 * ca + v22 * sa, -v11 * sa + v12 * ca, -v21 * sa + v22 * ca, 0, 0);
+  const c = colorFor(b.level);
+  if (b === sel) ctx.fillStyle = '#16161b';
+  else if (b.flash > 0) {         // near-black on the white flash, easing back to the tier's own ink
+    const f = b.flash * b.flash, q = 0.3 * (1 - f);
+    ctx.fillStyle = `rgb(${Math.round(c.r * q + 22 * f)},${Math.round(c.g * q + 22 * f)},${Math.round(c.b * q + 26 * f)})`;
+  } else ctx.fillStyle = c.ink;
+  ctx.globalAlpha = alpha;
+  ctx.font = '700 ' + b.fs.toFixed(1) + 'px ' + FONT;
   ctx.fillText(b.label, 0, b.fs * 0.04);
   ctx.restore();
 }
 function drawBlob(b, outline) {
   const c = colorFor(b.level);
   if (b.flash > 0) {
-    const f = b.flash * 0.85;
+    const f = b.flash * b.flash;    // pure white on the merge frame, easing back to the colour
     ctx.fillStyle = `rgb(${Math.round(c.r + (255 - c.r) * f)},${Math.round(c.g + (255 - c.g) * f)},${Math.round(c.b + (255 - c.b) * f)})`;
   } else ctx.fillStyle = c.hex;
-  ctx.beginPath(); pathPts(b.x, b.y, b.n); ctx.fill();
+  const sk = SKIN && !b.fresh;
+  ctx.beginPath(); pathPts(sk ? b.RX : b.x, sk ? b.RY : b.y, b.n); ctx.fill();
   if (outline) { ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.stroke(); }
 }
 function computeTraj() {
@@ -762,10 +1013,16 @@ function draw() {
   }
 
   // blobs, then their numbers on top
-  for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; drawBlob(b, b === sel || (b === hover && !aiming)); }
+  drawOrder.length = 0; for (let i = 0; i < blobs.length; i++) drawOrder.push(blobs[i]);
+  drawOrder.sort((p, q) => q.r - p.r);          // big first, so a small shape is never hidden under a big one
+  for (let i = 0; i < drawOrder.length; i++) { const b = drawOrder[i]; drawBlob(b, b === sel || (b === hover && !aiming)); }
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i];
-    label(b, b.cx, b.cy, b.la, b.scale, b.state === 1 ? Math.max(0, b.mergeT / MERGE_TIME) : 1);
+    if (b === sel) {              // the grabbed shape gets a white patch behind its number
+      ctx.fillStyle = '#f4f1ea'; ctx.beginPath();
+      ctx.arc(b.cx, b.cy, b.scale * Math.max(b.fs * 0.62, b.fs * 0.31 * b.label.length + 2), 0, 6.2832); ctx.fill();
+    }
+    label(b, 1);
   }
 
   // arrow: where the grabbed shape will fly (opposite the pull), longer for a stronger pull
@@ -840,6 +1097,7 @@ canvas.addEventListener('pointerdown', e => {
   sel = pickTray(ptrX, ptrY, 1e9);
   if (!sel) return;
   aiming = true; armed = false; aimPtr = e.pointerId; pressX = ptrX; pressY = ptrY; selX = sel.cx; pullX = pullY = 0;
+  sfxPick();
   try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
   e.preventDefault();
 });
@@ -864,25 +1122,32 @@ function setMuted(m) {
 soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); });
 restartBtn.addEventListener('click', () => { initAudio(); reset(); });
 againBtn.addEventListener('click', () => { initAudio(); reset(); });
+// A touch going down is not a user gesture, and iOS may not count a drag's release: any tap or key wakes the audio.
+['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
 
 /* ───────────────────────── boot ───────────────────────── */
 let last = 0;
-function frame(t) {
-  const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+function step(t) {
+  const dt = Math.max(0, Math.min(0.1, (t - last) / 1000 || 0)); last = t;
   tick(dt); draw();
-  requestAnimationFrame(frame);
 }
+function frame(t) { step(t); requestAnimationFrame(frame); }
+// Some embedded views hand out animation frames only now and then. A timer steps the game when
+// frames are late, so it keeps real time there instead of crawling. Paused while the page is hidden.
+setInterval(() => { const now = performance.now(); if (!document.hidden && now - last > 40) step(now); }, 20);
 window.addEventListener('resize', resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 resize(); setMuted(muted); reset();
 if (document.fonts && document.fonts.load) document.fonts.load('700 20px Fredoka');
-requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
+last = performance.now();
+requestAnimationFrame(frame);
 
 // small hook for automated play-testing
 window.__udm = { blobs, tick, draw, reset,
   tray: () => blobs.filter(b => b.tray && b.state === 0),
   shoot(a, i, pw) { const t = this.tray(); if (!t.length) return false; aim = a; power = pw || 1; fire(t[(i || 0) % t.length]); return true; },
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
+  audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   info: () => ({ n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
