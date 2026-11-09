@@ -141,7 +141,7 @@ const WALL_L = 0, WALL_R = W, CEIL = 0;   // the panel's edges are the walls
 const CORNER = 63 * 360 / 402;   // the panel's corner radius (63 design px) in world units
 const LX = W / 2;
 let TRAY_Y = 574, DANGER_Y = 474, FLOOR_Y = 614;
-const TRAY_MAX = 3, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 3 shapes, fed from a gate on each side
+const TRAY_MAX = 2, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 2 shapes, fed from a gate on each side
 const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
 
 const G = 150;                 // gravity, pulling UP (-y); barely there: in Sobosuba shapes drift at near-constant speed, and a shot off the back wall comes back to the shelf
@@ -152,9 +152,10 @@ const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger o
 // is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
-const RIPPLE_MIN = 240, RIPPLE_R = 520, RIPPLE_K = 1.2, RIPPLE_MAX = 460;
+const RIPPLE_MIN = 240, RIPPLE_R = 500, RIPPLE_K = 0.9, RIPPLE_MAX = 360;
+const SHAKE_MIN = 340, SHAKE_MAX = 2.2;   // landing speed that starts to rock the screen, and the most it ever rocks
 const V_DOWN_MAX = 300;           // a knocked (not shot) blob never heads toward the shelf faster than this: ~300 units of travel
-const ECHO = [[0.13, 0.55], [0.3, 0.3]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
+const ECHO = [[0.13, 0.45], [0.3, 0.22]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
@@ -178,7 +179,7 @@ const MERGE_TIME = 0.2, CHAIN_DELAY = 0.26;   // a merging pair glides into one 
 const V_MAX = 1500;
 const MAX_AIM = Math.PI;
 const AIM_FLOW = 95;
-const ENTER_V = 620;              // units/s a new shelf shape slides in from off-screen              // units/s the aim dots travel along the ray       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
+const ENTER_V = 430;              // units/s a new shelf shape slides in from off-screen              // units/s the aim dots travel along the ray       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
 const DANGER_HOLD = 2.8;       // how long the pile may sit past the line; long enough for the red build-up to read
 const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing at all
 const MAXN = 52;
@@ -254,7 +255,7 @@ let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // pea
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 let time = 0, acc = 0, shake = 0, shakeT = 0, shakeHeat = 0;
 // every shake heats up; while hot, new shakes land softer (spamming shots cannot keep the screen rattling)
-function kickShake(k) { k /= 1 + shakeHeat; shakeHeat = Math.min(3, shakeHeat + 0.7); if (k > shake) { shake = k; shakeT = 0; } }
+function kickShake(k) { k /= 1 + shakeHeat; shakeHeat = Math.min(3, shakeHeat + 1); if (k > shake) { shake = k; shakeT = 0; } }
 // screen tilt: a hard hit off to one side rocks the whole screen that way (degrees), a damped spring brings it back
 let tilt = 0, tiltV = 0;
 const TILT_W = 13, TILT_Z = 0.42, TILT_KICK = 0.12, TILT_MAX_V = 60, TILT_MIN = 140;
@@ -556,8 +557,9 @@ function substep(h) {
     if (b.tray) {
       // shelf: no gravity, drawn toward the middle of the row, heavily damped.
       // The grabbed shape follows the pull instead, so it squashes back like a slingshot.
-      let tx = LX, ty = TRAY_Y, kx = b.entering ? 60 : 14, lim = b.entering ? 3000 : 800;
+      let tx = LX, ty = TRAY_Y, kx = b.entering ? 40 : 14, lim = b.entering ? 3000 : 800;
       if (b === sel && armed) { tx = selX + pullX; ty = TRAY_Y + pullY; kx = 160; lim = 5000; }
+      else if (b === sel) { tx = selX; kx = 60; lim = 3000; }   // held: a sliding shape stops under the finger
       else if (sel && armed) kx = 0;        // neighbours hold still while one is pulled back
       let ax = (tx - b.cx) * kx; if (ax > lim) ax = lim; else if (ax < -lim) ax = -lim;
       const ay = (ty - b.cy) * 160, damp = 1 - 7 * h;
@@ -831,13 +833,13 @@ function finishMerge(a, b) {
   juiceMerge(x, y, nb, combo, a, b);
   const gl = Math.min(1, 0.22 + nb.level * 0.09 + (combo >= 2 ? 0.1 : 0));   // how hard the field lights up
   if (gl >= glow.a * 0.7) { glow.c = cidx(nb.level); glow.a = Math.max(glow.a, gl); }
-  let kick = REDUCED ? 0 : Math.min(5.5, 0.5 + nb.level * 0.15 + (combo >= 2 ? 1.2 + (combo - 2) * 0.7 : 0));   // every merge rocks the screen a little, chains a lot
+  let kick = REDUCED ? 0 : Math.min(3, 0.3 + nb.level * 0.1 + (combo >= 2 ? 0.8 + (combo - 2) * 0.4 : 0));   // every merge rocks the screen a little, chains a lot
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
     fanfare.c = cidx(nb.level); fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
-    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 7; glow.a = 1; }
+    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 4; glow.a = 1; }
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
   }
@@ -871,7 +873,7 @@ function popBlob(b) {
     sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
     sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
   }
-  kickShake(1.5);
+  kickShake(1);
 }
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
@@ -1173,7 +1175,9 @@ function impulses() {
     if (b.landV > RIPPLE_MIN && !b.tray) {
       // the knock travels: once per landing, neighbours are shoved away from the impact, less the further they sit,
       // and the wave comes back twice more, fainter (user: "more echo, more liquid")
-      b.echoJ = Math.min(RIPPLE_MAX, (b.landV - RIPPLE_MIN) * RIPPLE_K); b.landV = 0; b.echoI = 0; b.echoT = 0;
+      b.echoJ = Math.min(RIPPLE_MAX, (b.landV - RIPPLE_MIN) * RIPPLE_K); b.echoI = 0; b.echoT = 0;
+      if (!REDUCED && b.landV > SHAKE_MIN) kickShake(Math.min(SHAKE_MAX, (b.landV - SHAKE_MIN) / 230));   // only a real landing rocks the screen
+      b.landV = 0;
       ripple(b, b.echoJ);
     }
     if (b.echoI < ECHO.length && b.echoJ > 0) {
@@ -1189,9 +1193,6 @@ function impulses() {
     if (SKIN) skinKnock(b, dvx, dvy);
   }
   if (hit > 150) sfxThump(Math.min(1, hit / 1100));
-  if (!REDUCED && hit > RIPPLE_MIN) {
-    kickShake(Math.min(5, (hit - RIPPLE_MIN) / 170));   // a hit rocks the screen a little
-  }
   if (!REDUCED && Math.abs(torque) > TILT_MIN) {
     const kick = Math.max(-TILT_MAX_V, Math.min(TILT_MAX_V, (torque - Math.sign(torque) * TILT_MIN) * TILT_KICK));
     if (Math.sign(kick) !== Math.sign(tiltV) || Math.abs(kick) > Math.abs(tiltV)) tiltV = kick; else tiltV += kick * 0.3;
@@ -1575,7 +1576,8 @@ canvas.addEventListener('pointerdown', e => {
   initAudio(); aiming = false; setPtr(e);
   sel = pickTray(ptrX, ptrY, 1e9);
   if (!sel) return;
-  aiming = true; armed = false; aimPtr = e.pointerId; pressX = ptrX; pressY = ptrY; selX = sel.cx; pullX = pullY = 0;
+  aiming = true; armed = false; aimPtr = e.pointerId; pressX = ptrX; pressY = ptrY; pullX = pullY = 0;
+  selX = Math.max(WALL_L + sel.br + 4, Math.min(WALL_R - sel.br - 4, sel.cx));   // a shape caught mid-slide is pulled fully onto the screen
   sfxPick();
   try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
   e.preventDefault();
