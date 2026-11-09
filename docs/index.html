@@ -139,7 +139,12 @@ const TRAY_MAX = 3, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 3 shapes, fed f
 const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
 
 const G = 540;                 // gravity, pulling UP (-y); light, so shapes float up and bounce rather than slam
-const E_WALL = 0.45, E_BLOB = 0.35, E_CAP = 7;   // restitution against the field and against other blobs (capped per substep)
+const E_WALL = 0.5, E_BLOB = 0.5, E_CAP = 9;
+// percolation: a settled blob wedged by bigger neighbours gets lighter (LIGHT per unit of "how much bigger"),
+// is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
+const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
+// ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
+const RIPPLE_MIN = 180, RIPPLE_R = 300, RIPPLE_K = 0.42, RIPPLE_MAX = 420;   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 820;              // launch speed
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
@@ -150,14 +155,14 @@ const NOTCH = 0.4;            // how far one point may sit inside the chord of i
 const YOUNG = 0.22, PEN_YOUNG = 1.2, V_YOUNG = 260;   // a newborn inflates against its neighbours over a few frames instead of launching them
 const WALL_W = 0.12;           // how light a wall-held point counts in a blob-to-blob contact
 const CONTACT_PASSES = 2;      // contact solves per substep; one pass lets squeezed blobs sink into each other
-const MU = 0.38, MU_WALL = 0.22;
+const MU = 0.22, MU_WALL = 0.14;   // slippery: the pile flows and slides rather than locking up
 const K0 = 0.011, K1 = 1.5, KMAX = 0.6;   // shape stiffness: very soft (jelly), stiffening hard only near collapse
 const STRAIN = 0.85;           // how far a point may leave its rest place, in radii
 const KB = 0.06;               // outline smoothness: local bending, so it wobbles in big lazy lumps, not wrinkles
 const KA = 0.6;                // area (pressure) stiffness
-const KD = 0.008;              // deformation damping: about four visible wobbles, then rest
+const KD = 0.006;              // deformation damping: about four visible wobbles, then rest
 const LIN_DAMP = 0.9993, ANG_DAMP = 0.9995;   // in free flight
-const LIN_TOUCH = 0.999, ANG_TOUCH = 0.99;    // while touching something, so piles still come to rest
+const LIN_TOUCH = 0.9994, ANG_TOUCH = 0.992;    // while touching something, so piles still come to rest
 const V_SLEEP2 = 2.2 * 2.2;    // rest threshold (acts like static friction)
 const MERGE_TIME = 0.2, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
 const V_MAX = 1500;
@@ -460,7 +465,8 @@ function collide(A, B) {
       bpx[j0] -= nx * e * wb * u; bpy[j0] -= ny * e * wb * u; bpx[j1] -= nx * e * wb * t; bpy[j1] -= ny * e * wb * t;
     }
     if (tl > 1e-6) {
-      let f = MU * pen / tl; if (f > 1) f = 1; f /= denom;
+      const rs = A.r < B.r ? A.r / B.r : B.r / A.r;   // a much smaller blob slips against a much bigger one
+      let f = MU * (SLIP + (1 - SLIP) * rs) * pen / tl; if (f > 1) f = 1; f /= denom;
       const fx = tx * f, fy = ty * f;
       ax[i] -= fx * wa; ay[i] -= fy * wa;
       bx[j0] += fx * wb * u; by[j0] += fy * wb * u; bx[j1] += fx * wb * t; by[j1] += fy * wb * t;
@@ -545,9 +551,28 @@ function substep(h) {
         px[i] = x[i]; py[i] = y[i]; x[i] += vx[i] * h; y[i] += vy[i] * h;
       }
     } else {
-      const gh = G * h;
+      let gf = 1, sqx = 0, sqy = 0, held = 0;
+      if (b.touched && b.state === 0 && b.young <= 0) {
+        const ra = b.r * b.scale;
+        for (let q = 0; q < nb; q++) {
+          const o = blobs[q]; if (o === b || o.tray || o.dead || o.level <= b.level) continue;
+          const rb = o.r * o.scale, dx = b.cx - o.cx, dy = b.cy - o.cy, d2 = dx * dx + dy * dy, rr = ra + rb + 6;
+          if (d2 > rr * rr || d2 < 1e-6) continue;
+          const d = Math.sqrt(d2), w = Math.min(1.5, rb / ra - 1);   // how much bigger the neighbour is
+          sqx += dx / d * w; sqy += dy / d * w; gf -= LIGHT * w; held++;
+        }
+        let buried = false;
+        if (held >= 2) for (let q = 0; q < nb; q++) {   // something bigger below it, between it and the player?
+          const o = blobs[q]; if (o === b || o.tray || o.dead || o.level <= b.level) continue;
+          if (o.cy > b.cy + ra * 0.5 && Math.abs(o.cx - b.cx) < o.r * o.scale + ra * 0.6) { buried = true; break; }
+        }
+        if (!buried) { gf = 1; sqx = sqy = 0; held = 0; }   // resting in a crevice on the face is fine: leave it be
+        else if (gf < 0.3) gf = 0.3;
+        if (sqy < 0) sqy = 0;                         // never squeeze toward the ceiling, only sideways or out toward the face
+      }
+      const gh = G * gf * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
       for (let i = 0; i < n; i++) {
-        vy[i] -= gh; px[i] = x[i]; py[i] = y[i];
+        vx[i] += ax; vy[i] += ay - gh; px[i] = x[i]; py[i] = y[i];
         x[i] += vx[i] * h; y[i] += vy[i] * h;
       }
     }
@@ -567,7 +592,11 @@ function substep(h) {
     const A = blobs[i];
     for (let j = i + 1; j < nb; j++) {
       const B = blobs[j];
-      if (A.tray !== B.tray || (A.state === 1 && A.partner === B)) continue;
+      if (A.state === 1 && A.partner === B) continue;
+      if (A.tray !== B.tray) {   // shelf vs field: only a shot on its way back down, near the shelf, touches the shelf
+        const f = A.tray ? B : A;
+        if (f.vcy < 40 || f.cy < TRAY_Y - 150 || f.state === 1) continue;
+      }
       const dx = B.cx - A.cx, dy = B.cy - A.cy, rr = A.br + B.br + MARGIN;
       const d2 = dx * dx + dy * dy;
       if (d2 > rr * rr) continue;
@@ -721,7 +750,7 @@ function finishMerge(a, b) {
   const near = [], reach = Math.hypot(a.cx - b.cx, a.cy - b.cy) / 2 + Math.max(a.br, b.br);
   for (let q = 0; q < blobs.length; q++) {
     const o = blobs[q];
-    if (o === a || o === b || o.dead || o.tray !== a.tray) continue;
+    if (o === a || o === b || o.dead || (o.tray !== a.tray && o.tray !== b.tray)) continue;
     if (Math.hypot(o.cx - x, o.cy - y) < reach + o.br) near.push(o);
   }
   let maxY = -1e9, br2 = 0;
@@ -740,7 +769,7 @@ function finishMerge(a, b) {
   }
   let A2 = 0;
   for (let i = 0; i < n; i++) { const j = i + 1 < n ? i + 1 : 0; A2 += nb.x[i] * nb.y[j] - nb.x[j] * nb.y[i]; }
-  const onShelf = a.tray;
+  const onShelf = a.tray || b.tray;   // a shot merging into the shelf joins the shelf
   nb.scale = Math.max(0.6, Math.min(1.6, Math.sqrt(Math.abs(A2) * 0.5 / nb.area0) * 0.86));   // born a touch small: it pops out of the join
   nb.scaleT = onShelf ? trayScale(nb) : 1; nb.anim = true; nb.animT = 0;
   nb.cx = x; nb.cy = y; nb.cs = 1; nb.sn = 0; nb.pa = 0; nb.la = 0; nb.vcx = nb.pvx = vx; nb.vcy = nb.pvy = vy;
@@ -1079,6 +1108,17 @@ function impulses() {
     b.pvx = b.vcx; b.pvy = b.vcy;
     const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
     if (dv > hit) hit = dv;
+    if (!b.tray && b.young <= 0 && dv > RIPPLE_MIN && b.state === 0) {
+      // the knock travels: neighbours are shoved away from the impact, less the further they sit
+      const j0 = Math.min(RIPPLE_MAX, (dv - RIPPLE_MIN) * RIPPLE_K);
+      for (let q = 0; q < blobs.length; q++) {
+        const o = blobs[q]; if (o === b || o.tray || o.dead || o.state === 1) continue;
+        const dx = o.cx - b.cx, dy = o.cy - b.cy, d = Math.sqrt(dx * dx + dy * dy); if (d > RIPPLE_R || d < 1e-3) continue;
+        const fall = 1 - d / RIPPLE_R, j = j0 * fall * fall * Math.min(1, (b.r * b.r) / (o.r * o.r)), jx = dx / d * j, jy = dy / d * j;
+        for (let k = 0; k < o.n; k++) { o.vx[k] += jx; o.vy[k] += jy; }
+        o.hit = true;
+      }
+    }
     if (!b.tray && b.young <= 0) {
       // sideways: the blob was flying toward the side it hit, so the screen leans that way (-dvx);
       // a landing off-centre leans toward where the weight came down
@@ -1088,6 +1128,9 @@ function impulses() {
     if (SKIN) skinKnock(b, dvx, dvy);
   }
   if (hit > 150) sfxThump(Math.min(1, hit / 1100));
+  if (!REDUCED && hit > RIPPLE_MIN) {
+    const k = Math.min(5, (hit - RIPPLE_MIN) / 170); if (k > shake) { shake = k; shakeT = 0; }   // a hit rocks the screen a little
+  }
   if (!REDUCED && Math.abs(torque) > TILT_MIN) {
     const kick = Math.max(-TILT_MAX_V, Math.min(TILT_MAX_V, (torque - Math.sign(torque) * TILT_MIN) * TILT_KICK));
     if (Math.sign(kick) !== Math.sign(tiltV) || Math.abs(kick) > Math.abs(tiltV)) tiltV = kick; else tiltV += kick * 0.3;
