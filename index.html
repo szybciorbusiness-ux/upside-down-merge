@@ -139,7 +139,7 @@ const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 const RIPPLE_MIN = 240, RIPPLE_R = 480, RIPPLE_K = 0.5, RIPPLE_MAX = 200;
 const SHAKE_MIN = 380, SHAKE_MAX = 1.1;   // landing speed that starts to rock the screen, and the most it ever rocks
 const V_DOWN_MAX = 200;
-const WALL_DOUBLE_V = 560, DOUBLE_BOOST = 1.12;   // ...and leaves the wall at this share of its approach speed        // a fresh shot hitting a side or back wall faster than this doubles (a full-power shot qualifies)
+const WALL_DOUBLE_V = 330, DOUBLE_BOOST = 1.12;   // about a third of the pull already doubles; it leaves the wall at this share of its approach speed        // a fresh shot hitting a side or back wall faster than this doubles (a full-power shot qualifies)
 const doubleQ = [];           // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
 const ECHO = [[0.14, 0.4], [0.3, 0.2]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
