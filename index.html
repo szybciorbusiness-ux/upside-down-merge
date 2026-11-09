@@ -623,7 +623,7 @@ function finishMerge(a, b) {
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
   if (REDUCED) return;
-  const ci = (nb.level - 1) % COLORS.length, pi = (a.level - 1) % COLORS.length;   // the new colour, with a little of the old
+  const ci = (nb.level - 1) % COLORS.length;   // everything a merge throws off is the new blob's colour, nothing else
   const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;                      // a ring of the new colour bursts out of the seam
   rg.t = 0; rg.life = 0.32 + 0.04 * Math.min(4, c); rg.x = x; rg.y = y; rg.r0 = nb.r * 0.8; rg.r1 = nb.r * 1.8 + 14 * Math.min(5, c); rg.c = ci;
   // sparkles leave the seam between the two parents, both ways along it
@@ -632,7 +632,7 @@ function juiceMerge(x, y, nb, c, a, b) {
   for (let i = 0; i < ns; i++) {
     const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
     const o = (Math.random() - 0.5) * 2 * half, dir = Math.random() < 0.5 ? 1 : -1, v = 160 + Math.random() * 220 * (1 + 0.1 * c);
-    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = Math.random() < 0.45 ? -1 : ci;
+    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
     sp.x = x + px * o; sp.y = y + py * o;
     sp.vx = ux * dir * v + px * (Math.random() - 0.5) * 60; sp.vy = uy * dir * v + py * (Math.random() - 0.5) * 60;
   }
@@ -641,7 +641,7 @@ function juiceMerge(x, y, nb, c, a, b) {
     const b = bits[bitI]; bitI = (bitI + 1) % bits.length;
     const th = Math.random() * 6.283, v = 160 + Math.random() * 280 + c * 25;
     b.t = 0; b.tt = 0; b.life = 0.65 + Math.random() * 0.5; b.x = x; b.y = y; b.vx = Math.cos(th) * v; b.vy = Math.sin(th) * v;
-    b.r = 2.6 + Math.random() * 3.6; b.c = Math.random() < 0.7 ? ci : pi; b.a = Math.random() * 6.283; b.spin = (Math.random() - 0.5) * 14;
+    b.r = 2.6 + Math.random() * 3.6; b.c = ci; b.a = Math.random() * 6.283; b.spin = (Math.random() - 0.5) * 14;
     for (let k = 0; k < TRAIL; k++) { b.tx[k] = x; b.ty[k] = y; }
   }
   if (c >= 3) hitStop = Math.max(hitStop, 0.05 + Math.min(0.06, (c - 3) * 0.02));
@@ -686,7 +686,7 @@ function drawJuice() {
   for (let i = 0; i < sparks.length; i++) {
     const sp = sparks[i]; if (sp.t >= sp.life) continue;
     const k = sp.t / sp.life, l = sp.s * (1 - k) * (k < 0.2 ? k / 0.2 : 1) * 2.2;
-    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4; ctx.strokeStyle = sp.c < 0 ? '#ffffff' : COLORS[sp.c].hex;
+    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4; ctx.strokeStyle = COLORS[sp.c].hex;
     ctx.beginPath(); ctx.moveTo(sp.x - l, sp.y); ctx.lineTo(sp.x + l, sp.y); ctx.moveTo(sp.x, sp.y - l); ctx.lineTo(sp.x, sp.y + l); ctx.stroke();
   }
   // confetti bits: a comet trail (two strokes: a thick head half, a thin tail half), then a spinning square
@@ -1197,7 +1197,7 @@ function draw() {
     ctx.globalAlpha = k < 0.05 ? k / 0.05 : 1 - Math.pow((k - 0.05) / 0.95, 2);
     const pop = 1 + 0.5 * Math.exp(-6 * q) * Math.cos(8 * q), fs = big ? Math.min(26, 16 + p.c * 2) : 16;
     ctx.save(); ctx.translate(p.x, p.y + 8 + k * 24); ctx.scale(pop, pop);
-    ctx.font = `${big ? 700 : 600} ${fs}px ${FONT}`; ctx.lineWidth = big ? 4 : 3; ctx.strokeStyle = 'rgba(5,5,7,0.85)'; ctx.fillStyle = big ? '#ffb347' : '#f4f1ea';
+    ctx.font = `${big ? 700 : 600} ${fs}px ${FONT}`; ctx.lineWidth = big ? 4 : 3; ctx.strokeStyle = 'rgba(5,5,7,0.85)'; ctx.fillStyle = '#f4f1ea';   // always white, bigger along a chain
     ctx.strokeText('+' + p.v, 0, 0); ctx.fillText('+' + p.v, 0, 0);
     ctx.restore();
   }
@@ -1215,7 +1215,6 @@ function draw() {
   const scoreText = Math.round(shown).toLocaleString();
   ctx.fillStyle = '#f4f1ea'; ctx.font = `600 30px ${FONT}`;
   ctx.fillText(scoreText, 0, 0);
-  if (scoreBump > 0) { ctx.globalAlpha = scoreBump; ctx.fillStyle = '#ffd23f'; ctx.fillText(scoreText, 0, 0); ctx.globalAlpha = 1; }
   ctx.restore();
   ctx.fillStyle = '#8b8b96'; ctx.font = `500 10.5px ${FONT}`;
   ctx.fillText('B E S T  ' + best.toLocaleString(), LX, 58);
