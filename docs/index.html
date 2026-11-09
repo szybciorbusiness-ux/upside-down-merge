@@ -50,8 +50,10 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
-#best{position:absolute;left:0;right:0;bottom:calc(11*var(--u));margin:0;text-align:center;pointer-events:none;z-index:2;color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;
-  font:900 calc(13*var(--u))/normal var(--font-brand);letter-spacing:calc(.4*var(--u));font-variant-numeric:tabular-nums;white-space:nowrap}
+#best{position:absolute;left:0;right:0;bottom:calc(8*var(--u));margin:0;display:flex;flex-direction:column;align-items:center;gap:calc(1*var(--u));pointer-events:none;z-index:2;
+  color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1}
+#best-lbl{font:900 calc(9*var(--u))/1 var(--font-brand);letter-spacing:calc(2.2*var(--u));text-indent:calc(2.2*var(--u));opacity:.75}
+#best-val{font:900 calc(22*var(--u))/1 var(--font-brand);letter-spacing:0}
 body.bare #best{bottom:calc(11*var(--u) + env(safe-area-inset-bottom,0px))}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--hud,var(--brand));mix-blend-mode:plus-lighter}
@@ -105,7 +107,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
       <h1 id="brand" aria-label="Score">0</h1>
       <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1" style="opacity:var(--hud-g,.25)"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
-    <p id="best" aria-label="Best score" hidden>Best <span id="best-val">0</span></p>
+    <p id="best" aria-label="Best score" hidden><span id="best-lbl">BEST</span><span id="best-val">0</span></p>
     <div id="menu" role="menu" hidden>
       <button id="sound" type="button" role="menuitem" aria-pressed="false">Sound <span id="sound-state">On</span></button>
       <button id="restart" type="button" role="menuitem">Restart</button>
@@ -172,7 +174,8 @@ const LIN_TOUCH = 0.9997, ANG_TOUCH = 0.994;    // while touching something, so 
 const V_SLEEP2 = 1.0 * 1.0;    // rest threshold (acts like static friction)
 const MERGE_TIME = 0.2, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
 const V_MAX = 1500;
-const MAX_AIM = Math.PI;       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
+const MAX_AIM = Math.PI;
+const AIM_FLOW = 95;              // units/s the aim dots travel along the ray       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
 const DANGER_HOLD = 2.8;       // how long the pile may sit past the line; long enough for the red build-up to read
 const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing at all
 const MAXN = 52;
@@ -821,13 +824,13 @@ function finishMerge(a, b) {
   juiceMerge(x, y, nb, combo, a, b);
   const gl = Math.min(1, 0.22 + nb.level * 0.09 + (combo >= 2 ? 0.1 : 0));   // how hard the field lights up
   if (gl >= glow.a * 0.7) { glow.c = cidx(nb.level); glow.a = Math.max(glow.a, gl); }
-  let kick = REDUCED ? 0 : Math.min(11, 1 + nb.level * 0.3 + (combo >= 2 ? 2.5 + (combo - 2) * 1.4 : 0));   // every merge rocks the screen a little, chains a lot
+  let kick = REDUCED ? 0 : Math.min(5.5, 0.5 + nb.level * 0.15 + (combo >= 2 ? 1.2 + (combo - 2) * 0.7 : 0));   // every merge rocks the screen a little, chains a lot
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
     fanfare.c = cidx(nb.level); fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
-    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 14; glow.a = 1; }
+    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 7; glow.a = 1; }
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
   }
@@ -1494,9 +1497,10 @@ function draw() {
     // only the first stretch of the path (user: "not the full trajectory"), a little longer for a harder pull
     const t0 = rs + 10, show = Math.min(tEnd - 4, t0 + 95 + 45 * (power - POW_MIN) / (POW_MAX - POW_MIN)), step = 13;
     ctx.fillStyle = '#f4f1ea';
-    for (let t = t0; t < show; t += step) {
-      const q = (t - t0) / (show - t0);
-      ctx.globalAlpha = 0.95 * (1 - q * q);
+    const flow = (time * AIM_FLOW) % step;                                    // dots drift outward along the ray
+    for (let t = t0 + flow - step; t < show; t += step) {
+      const q = Math.max(0, (t - t0) / (show - t0)), lead = t < t0 ? (t - t0 + step) / step : 1;   // the newest dot fades in near the shape
+      ctx.globalAlpha = 0.95 * (1 - q * q) * lead;
       ctx.beginPath(); ctx.arc(sx + ux * t, sy + uy * t, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
     }
     ctx.globalAlpha = 1;
