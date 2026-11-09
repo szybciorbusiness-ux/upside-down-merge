@@ -67,6 +67,9 @@ body.bare #menu{top:calc(64*var(--u) + env(safe-area-inset-top,0px))}
 #stage{position:absolute;left:0;right:0;top:calc(130*var(--u));bottom:0}
 body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
+/* danger: a red vignette over the whole screen that beats faster the closer the pile is to losing */
+#danger{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse 70% 60% at 50% 45%,rgba(255,40,60,0) 30%,rgba(255,30,50,.5) 72%,rgba(190,0,25,.92) 100%)}
 #over{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(5,5,7,.72);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   animation:fade .28s ease both}
@@ -106,6 +109,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     <div id="stage">
       <canvas id="c" aria-label="Upside Down Merge play field"></canvas>
     </div>
+    <div id="danger" aria-hidden="true"></div>
     <div id="over" hidden>
       <div class="panel" role="dialog" aria-labelledby="over-title">
         <h1 id="over-title">GAME OVER</h1>
@@ -157,7 +161,7 @@ const V_SLEEP2 = 2.2 * 2.2;    // rest threshold (acts like static friction)
 const MERGE_TIME = 0, CHAIN_DELAY = 0.26, MERGE_PULL = 0.045;
 const V_MAX = 1500;
 const MAX_AIM = 1.16;          // ±66° from straight up
-const DANGER_HOLD = 1.6;
+const DANGER_HOLD = 2.6;       // how long the pile may sit past the line; long enough for the red build-up to read
 const MAXN = 52;
 // Skin: a damped wave that runs round each outline after a knock. Drawn only, never collided with.
 const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -186,7 +190,7 @@ const COLORS = PALETTE.map(hex => {
   return { hex, r, g, b, ink: `rgb(${Math.round(r * 0.3)},${Math.round(g * 0.3)},${Math.round(b * 0.3)})` };
 });
 const colorFor = level => COLORS[(level - 1) % COLORS.length];
-const radiusFor = level => Math.min(104, 17 + 5 * level + 0.2 * level * level);   // ~10% bigger than the first cut (user: "slightly bigger overall")
+const radiusFor = level => Math.min(114, 19 + 5.5 * level + 0.22 * level * level);   // ~20% bigger than the first cut (user asked twice for bigger)
 
 /* ───────────────────────── state ───────────────────────── */
 const blobs = [];
@@ -196,7 +200,7 @@ let aiming = false, aim = 0, aimPtr = -1, ptrX = LX, ptrY = 0, ptrMouse = false,
 let pressX = 0, pressY = 0, power = 1, selX = LX, pullX = 0, pullY = 0;
 const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
 let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0;
-let over = false, overT = 0, dangerT = 0, warn = false;
+let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 let time = 0, acc = 0, shake = 0, shakeT = 0;
 let muted = false;
 const popups = [];
@@ -215,6 +219,10 @@ const rings = []; for (let i = 0; i < 8; i++) rings.push({ t: 9, life: 1, x: 0, 
 let ringI = 0;
 let sparkI = 0;
 let hitStop = 0, scoreBump = 0;
+// Fanfare for a big tier (1024 and up): the field freezes for a beat and dims, rays in the new colour spin out
+// of the blob, which pulses on top under a glow while sparkles pour out of it.
+const FANFARE_LEVEL = 10;
+const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0 };
 
 try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; } catch (e) {}
 
@@ -708,10 +716,17 @@ function finishMerge(a, b) {
   p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, x)); p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.v = pts; p.c = onShelf ? 0 : combo;   // beside the new blob, never over its number
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
-  const kick = REDUCED ? 0 : Math.min(11, 1 + nb.level * 0.3 + (combo >= 2 ? 2.5 + (combo - 2) * 1.4 : 0));   // every merge rocks the screen a little, chains a lot
-  if (kick > shake) { shake = kick; shakeT = 0; }
+  let kick = REDUCED ? 0 : Math.min(11, 1 + nb.level * 0.3 + (combo >= 2 ? 2.5 + (combo - 2) * 1.4 : 0));   // every merge rocks the screen a little, chains a lot
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
+  if (nb.level >= FANFARE_LEVEL) {
+    fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
+    fanfare.c = (nb.level - 1) % COLORS.length; fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
+    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 14; }
+    // three rising pings on top of the merge chime, then the thump
+    setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
+  }
+  if (kick > shake) { shake = kick; shakeT = 0; }
 }
 
 function juiceMerge(x, y, nb, c, a, b) {
@@ -761,6 +776,54 @@ function juiceStep(dt) {
   }
   for (let i = 0; i < rings.length; i++) { const rg = rings[i]; if (rg.t < rg.life) { juiceLive++; rg.t += dt; } }
   if (scoreBump > 0) scoreBump = Math.max(0, scoreBump - dt * 3.2);
+  if (fanfare.t < fanfare.life) {
+    juiceLive++; fanfare.t += dt; fanfare.rot += dt * 0.9;
+    const b = fanfare.b; if (b && !b.dead) { fanfare.x = b.cx; fanfare.y = b.cy; }
+    if (!REDUCED && fanfare.t < fanfare.life * 0.6) {   // sparkles keep pouring out of the blob while the rays turn
+      fanfare.sp += dt * 70;
+      while (fanfare.sp >= 1) {
+        fanfare.sp -= 1;
+        const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
+        const th = Math.random() * 6.283, r0 = (b ? b.r * b.scale : 40) * (0.6 + Math.random() * 0.6), v = 120 + Math.random() * 260;
+        sp.t = 0; sp.life = 0.5 + Math.random() * 0.5; sp.s = 3 + Math.random() * 4; sp.c = Math.random() < 0.5 ? fanfare.c : -1;
+        sp.x = fanfare.x + Math.cos(th) * r0; sp.y = fanfare.y + Math.sin(th) * r0; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
+      }
+    }
+  }
+}
+// envelope of the fanfare: snaps in, holds, fades over the last half second
+function fanfareEnv() {
+  if (fanfare.t >= fanfare.life) return 0;
+  return Math.min(1, fanfare.t / 0.08) * Math.min(1, (fanfare.life - fanfare.t) / 0.5);
+}
+function drawFanfare() {
+  const env = fanfareEnv(); if (env <= 0) return;
+  const c = COLORS[fanfare.c], x = fanfare.x, y = fanfare.y, b = fanfare.b, rs = b ? b.r * b.scale : 40;
+  ctx.save(); panelPath(); ctx.clip();
+  ctx.fillStyle = `rgba(14,14,24,${(0.62 * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // dim the field
+  // rays: two fans of wedges turning against each other, additive, in the new colour and white
+  ctx.globalCompositeOperation = 'lighter';
+  for (let set = 0; set < 2; set++) {
+    const n = set ? 9 : 14, w = set ? 0.07 : 0.11, rot = set ? -fanfare.rot * 0.7 + 0.4 : fanfare.rot;
+    ctx.fillStyle = set ? `rgba(255,255,255,${(0.07 * env).toFixed(3)})` : `rgba(${c.r},${c.g},${c.b},${(0.2 * env).toFixed(3)})`;
+    for (let i = 0; i < n; i++) {
+      const a0 = rot + i * 6.283 / n, a1 = a0 + w;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a0) * 1200, y + Math.sin(a0) * 1200); ctx.lineTo(x + Math.cos(a1) * 1200, y + Math.sin(a1) * 1200); ctx.closePath(); ctx.fill();
+    }
+  }
+  const g = ctx.createRadialGradient(x, y, rs * 0.6, x, y, rs * 3.2);   // glow behind the blob
+  g.addColorStop(0, `rgba(${c.r},${c.g},${c.b},${(0.55 * env).toFixed(3)})`); g.addColorStop(1, `rgba(${c.r},${c.g},${c.b},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rs * 3.2, 0, 6.2832); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  // the blob itself on top, pulsing once, with a white rim
+  if (b && !b.dead) {
+    const k = Math.min(1, fanfare.t / 0.45), s = 1 + 0.28 * Math.sin(k * 3.1416) * (1 + 0.15 * Math.sin(fanfare.t * 18) * (1 - k));
+    ctx.translate(x, y); ctx.scale(s, s); ctx.translate(-x, -y);
+    drawBlob(b, false);
+    ctx.strokeStyle = `rgba(255,255,255,${(0.9 * env).toFixed(3)})`; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.stroke();
+    label(b, 1);
+  }
+  ctx.restore();
 }
 function panelPath() {
   const r = CORNER, rb = Math.min(CORNER, H / 2);
@@ -770,6 +833,7 @@ function panelPath() {
 }
 function drawJuice() {
   if (!juiceLive) return;
+  drawFanfare();   // under the particles: dim, rays, glow, the blob on top
   ctx.save();   // everything stays inside the panel
   panelPath(); ctx.clip();
   // rings: a thinning hoop of the new colour, out and gone
@@ -784,7 +848,7 @@ function drawJuice() {
   for (let i = 0; i < sparks.length; i++) {
     const sp = sparks[i]; if (sp.t >= sp.life) continue;
     const k = sp.t / sp.life, l = sp.s * (1 - k) * (k < 0.2 ? k / 0.2 : 1) * 2.2;
-    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4; ctx.strokeStyle = COLORS[sp.c].hex;
+    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4; ctx.strokeStyle = sp.c < 0 ? '#ffffff' : COLORS[sp.c].hex;
     ctx.beginPath(); ctx.moveTo(sp.x - l, sp.y); ctx.lineTo(sp.x + l, sp.y); ctx.moveTo(sp.x, sp.y - l); ctx.lineTo(sp.x, sp.y + l); ctx.stroke();
   }
   // confetti bits: a comet trail (two strokes: a thick head half, a thin tail half), then a spinning square
@@ -827,9 +891,10 @@ function pickLevel() {
 
 function reset() {
   blobs.length = 0;
-  score = shown = 0; combo = 0; over = false; overT = 0; dangerT = 0; warn = false;
+  score = shown = 0; combo = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
+  fanfare.t = 9; fanfare.b = null;
   aiming = false; armed = false; sel = hover = null;
   gateT[0] = 0.8; gateT[1] = 0.45; gateFlash[0] = gateFlash[1] = 0; openQ = [1, 2, 3];
   // Opening board: 8 4 2 8 2 4 along the ceiling. A 2 into the left 2 chains 4 → 8 → 16.
@@ -913,6 +978,7 @@ function frameLogic(dt) {
     }
     dangerT = past ? dangerT + dt : Math.max(0, dangerT - dt * 3);
     warn = dangerT > 0.12;
+    if (dangerT > 0) dangerPh += dt * (1.1 + 2.6 * Math.min(1, dangerT / DANGER_HOLD)); else dangerPh = 0;   // heartbeat, quickening
     if (dangerT >= DANGER_HOLD) { over = true; overT = 0; aiming = false; armed = false; sel = null; sfxOver(); }
   } else {
     overT += dt;
@@ -1119,8 +1185,8 @@ const stage = document.getElementById('stage');
 const overEl = document.getElementById('over'), oScore = document.getElementById('o-score'), oBest = document.getElementById('o-best');
 const againBtn = document.getElementById('again'), restartBtn = document.getElementById('restart'), soundBtn = document.getElementById('sound');
 const gearBtn = document.getElementById('gear'), menuEl = document.getElementById('menu'), soundState = document.getElementById('sound-state');
-const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), screenEl = document.getElementById('screen');
-let shakeCss = '';
+const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), screenEl = document.getElementById('screen'), dangerEl = document.getElementById('danger');
+let shakeCss = '', dangerCss = '';
 let scoreShown = '', scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
@@ -1205,15 +1271,22 @@ function draw() {
   panelPath(); ctx.fillStyle = '#353543'; ctx.fill();
   ctx.save(); panelPath(); ctx.clip();
 
-  // no drawn danger line; only while the pile is actually in danger, a soft red pulse below it
-  if (warn) {
-    const pulse = 0.5 + 0.5 * Math.sin(time * 11);
-    const g = ctx.createLinearGradient(0, DANGER_Y - 10, 0, DANGER_Y + 60);
-    g.addColorStop(0, 'rgba(255,77,94,0)'); g.addColorStop(0.3, `rgba(255,77,94,${0.08 + 0.1 * pulse})`); g.addColorStop(1, 'rgba(255,77,94,0)');
-    ctx.fillStyle = g; ctx.fillRect(WALL_L, DANGER_Y - 10, WALL_R - WALL_L, 70);   // (inside the panel clip)
+  // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
+  // screen (DOM) and a red wash on the field, both growing with the time left before the game ends
+  const dk = over ? 1 : Math.min(1, dangerT / DANGER_HOLD);
+  let dangerA = 0;
+  if (dk > 0) {
+    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), pulse = over ? 0.7 : 0.35 + 0.65 * beat * beat;
+    dangerA = dk * (0.4 + 0.6 * pulse);
+    ctx.fillStyle = `rgba(255,40,60,${(0.22 * dangerA).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // (inside the panel clip)
+    const g = ctx.createLinearGradient(0, DANGER_Y - 10, 0, DANGER_Y + 90);
+    g.addColorStop(0, 'rgba(255,40,60,0)'); g.addColorStop(0.3, `rgba(255,40,60,${(0.3 * dangerA).toFixed(3)})`); g.addColorStop(1, 'rgba(255,40,60,0)');
+    ctx.fillStyle = g; ctx.fillRect(WALL_L, DANGER_Y - 10, WALL_R - WALL_L, 100);
   }
+  const dc = dangerA > 0.004 ? dangerA.toFixed(3) : '0';
+  if (dc !== dangerCss) { dangerCss = dc; dangerEl.style.opacity = dc; }
 
-  // aim: only the arrow below (no band, no dots, no text)
+  // aim: the straight trajectory below (no band, no text)
   const showAim = aiming && armed && sel && !over;
 
   // blobs, then their numbers on top
@@ -1230,15 +1303,31 @@ function draw() {
   }
   ctx.restore();   // end of the panel clip
 
-  // arrow: where the grabbed shape will fly (opposite the pull), longer for a stronger pull
+  // trajectory: a straight ray from the grabbed shape to the first thing it would reach (ceiling, wall or
+  // blob), drawn as evenly spaced dots with a faint ghost of the shape at the end. Pure geometry, no
+  // simulation, so it follows the finger with no lag.
   if (showAim) {
     const ux = Math.sin(aim), uy = -Math.cos(aim), rs = sel.r * sel.scale;
-    const ax = sel.cx + ux * (rs + 6), ay = sel.cy + uy * (rs + 6), len = 20 + 74 * (power - POW_MIN) / (POW_MAX - POW_MIN);
-    const ex = ax + ux * len, ey = ay + uy * len;
-    ctx.strokeStyle = ctx.fillStyle = '#f4f1ea'; ctx.lineWidth = 3.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ex, ey); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(ex + ux * 5, ey + uy * 5);
-    ctx.lineTo(ex - ux * 9 - uy * 8, ey - uy * 9 + ux * 8); ctx.lineTo(ex - ux * 9 + uy * 8, ey - uy * 9 - ux * 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const sx = sel.cx, sy = sel.cy;
+    let tEnd = uy < -1e-6 ? (CEIL + rs - sy) / uy : 1e9;                     // ceiling (the blob's top edge stops at y = CEIL + r)
+    if (ux > 1e-6) tEnd = Math.min(tEnd, (WALL_R - rs - sx) / ux);           // walls
+    else if (ux < -1e-6) tEnd = Math.min(tEnd, (WALL_L + rs - sx) / ux);
+    for (let i = 0; i < blobs.length; i++) {                                 // first blob the moving circle would touch
+      const b = blobs[i]; if (b.tray) continue;
+      const rr = b.r * b.scale + rs, dx = b.cx - sx, dy = b.cy - sy, tc = dx * ux + dy * uy;
+      if (tc <= 0) continue;
+      const h2 = dx * dx + dy * dy - tc * tc; if (h2 >= rr * rr) continue;
+      const t = tc - Math.sqrt(rr * rr - h2); if (t > 0 && t < tEnd) tEnd = t;
+    }
+    // only the first stretch of the path (user: "not the full trajectory"), a little longer for a harder pull
+    const t0 = rs + 10, show = Math.min(tEnd - 4, t0 + 95 + 45 * (power - POW_MIN) / (POW_MAX - POW_MIN)), step = 13;
+    ctx.fillStyle = '#f4f1ea';
+    for (let t = t0; t < show; t += step) {
+      const q = (t - t0) / (show - t0);
+      ctx.globalAlpha = 0.95 * (1 - q * q);
+      ctx.beginPath(); ctx.arc(sx + ux * t, sy + uy * t, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   drawJuice();
