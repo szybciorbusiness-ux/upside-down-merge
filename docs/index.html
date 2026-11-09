@@ -1216,19 +1216,9 @@ function draw() {
   ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * (OX + shx * S), DPR * (OY + shy * S));
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-  // the panel is the play field: the ceiling is the "floor"; two gate timers sit along the bottom edge
-  const bottom = FLOOR_Y;
+  // the panel is the play field: the ceiling is the "floor". No gate bars: shapes just arrive from the sides.
   panelPath(); ctx.fillStyle = '#353543'; ctx.fill();
   ctx.save(); panelPath(); ctx.clip();
-  for (let s = 0; s < 2; s++) {
-    const bw = 118, bx = s === 0 ? WALL_L + 22 : WALL_R - 22 - bw, by = bottom + 9;
-    ctx.fillStyle = '#2a2a37'; ctx.fillRect(bx, by, bw, 4);
-    ctx.fillStyle = '#f4f1ea'; const f = bw * gateT[s];
-    ctx.fillRect(s === 0 ? bx : bx + bw - f, by, f, 4);
-    if (gateFlash[s] > 0) {
-      ctx.globalAlpha = Math.min(1, gateFlash[s]); ctx.fillRect(s === 0 ? WALL_L : WALL_R - 3.5, TRAY_Y - 20, 3.5, 40); ctx.globalAlpha = 1;
-    }
-  }
 
   // no drawn danger line; only while the pile is actually in danger, a soft red pulse below it
   if (warn) {
