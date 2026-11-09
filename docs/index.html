@@ -50,12 +50,6 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
-#best{position:absolute;left:0;right:0;bottom:calc(24*var(--u));margin:0;display:flex;align-items:center;justify-content:center;gap:calc(12*var(--u));height:calc(48*var(--u));pointer-events:none;z-index:2;
-  color:var(--hud-dk,var(--screen));opacity:.9;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:normal}
-#best-val{font:900 calc(32*var(--u))/normal var(--font-brand);letter-spacing:0}
-#best .laurel{width:calc(16*var(--u));height:calc(32*var(--u));flex:none;display:block}
-#best .laurel-r{transform:scaleX(-1)}
-body.bare #best{bottom:calc(24*var(--u) + env(safe-area-inset-bottom,0px))}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--hud,var(--brand));mix-blend-mode:plus-lighter}
 #gear svg{width:100%;height:100%}
@@ -108,7 +102,6 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
       <h1 id="brand" aria-label="Score">0</h1>
       <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1" style="opacity:var(--hud-g,.25)"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
-    <p id="best" aria-label="Best score" hidden><svg class="laurel" width="16" height="32" viewBox="0 0 16.0017 32" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z"/></svg><span id="best-val">0</span><svg class="laurel laurel-r" width="16" height="32" viewBox="0 0 16.0017 32" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z"/></svg></p>
     <div id="menu" role="menu" hidden>
       <button id="sound" type="button" role="menuitem" aria-pressed="false">Sound <span id="sound-state">On</span></button>
       <button id="restart" type="button" role="menuitem">Restart</button>
@@ -155,7 +148,9 @@ const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
 const RIPPLE_MIN = 240, RIPPLE_R = 500, RIPPLE_K = 0.75, RIPPLE_MAX = 300;
 const SHAKE_MIN = 380, SHAKE_MAX = 1.1;   // landing speed that starts to rock the screen, and the most it ever rocks
-const V_DOWN_MAX = 230;           // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
+const V_DOWN_MAX = 230;
+const WALL_DOUBLE_V = 560;        // a fresh shot hitting a side or back wall faster than this doubles (a full-power shot qualifies)
+const doubleQ = [];           // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
 const ECHO = [[0.13, 0.45], [0.3, 0.22]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
 const DT = 1 / 240;            // physics substep
@@ -670,9 +665,13 @@ function substep(h) {
     }
     // whole-body rebound off the field: on first wall contact remember the approach speed; when the blob lets go
     // of the wall slower than E_BODY of that, give it the difference (the squash absorbed it)
+    const wasLaunched = b.launched;
     if (touching) { b.launched = false; if (b.freeT > 0.1 && !b.tray) { b.landV = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy); b.landX = b.cx; b.landY = b.cy; } b.freeT = 0; } else b.freeT += h;
     const onWall = b.wallHit | 0; b.wallHit = 0;
-    if (onWall && !b.wasWall) b.wIn = -(b.vcx * b.wnx + b.vcy * b.wny);
+    if (onWall && !b.wasWall) {
+      b.wIn = -(b.vcx * b.wnx + b.vcy * b.wny);
+      if (wasLaunched && b.wny < 0.5 && b.wIn > WALL_DOUBLE_V && !b.tray && b.state === 0 && !over) doubleQ.push(b);   // bank shot: doubles on the wall
+    }
     else if (!onWall && b.wasWall && !b.tray && b.state === 0 && b.wIn > E_BODY_MIN) {
       const vOut = sx * b.wnx + sy * b.wny, add = E_BODY * b.wIn - vOut;
       if (add > 0) { for (let i = 0; i < n; i++) { vx[i] += b.wnx * add; vy[i] += b.wny * add; } sx += b.wnx * add; sy += b.wny * add; }
@@ -685,6 +684,8 @@ function substep(h) {
       b.vcx = b.vcy = 0;
     }
   }
+
+  while (doubleQ.length) wallDouble(doubleQ.pop());
 
   // finish merges (one at a time per pair, so chains play out step by step)
   for (let bi = 0; bi < blobs.length; bi++) {
@@ -860,6 +861,30 @@ function ripple(b, j0) {
     o.hit = true;
   }
 }
+// A fresh shot that slams a side or back wall doubles: it is reborn one level up, bouncing off, and scores like a merge.
+function wallDouble(b) {
+  if (b.dead) return;
+  b.dead = true;
+  const nb = makeBlob(b.level + 1), rs = b.r * b.scale, k = rs / nb.r, off = nb.r - rs + 2;
+  let vx = b.vcx, vy = b.vcy; const vn = vx * b.wnx + vy * b.wny, want = E_BODY * b.wIn;
+  if (vn < want) { vx += b.wnx * (want - vn); vy += b.wny * (want - vn); }   // it leaves the wall at a proper bounce
+  placeBlob(nb, b.cx + b.wnx * off, b.cy + b.wny * off, b.pa, k, 0, 1, 1, vx, vy);   // born at the old size, grows into the new
+  nb.scaleT = 1; nb.anim = true; nb.animT = 0; nb.flash = 1; nb.flashDur = 0.9;
+  nb.noMerge = 0.15; nb.young = YOUNG; nb.touched = true; nb.sinceTouch = 1; nb.freeT = 1;
+  blobs.push(nb);
+  score += nb.value; if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
+  const p = popups[popI]; popI = (popI + 1) % popups.length;
+  p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, nb.cx)); p.y = nb.cy; p.v = nb.value; p.c = 0;
+  scoreBump = Math.max(scoreBump, 0.5); sfxMerge(nb.level, 0);
+  if (REDUCED) return;
+  const ci = cidx(nb.level);
+  for (let i = 0; i < 12; i++) {
+    const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
+    const th = Math.random() * 6.283, v = 120 + Math.random() * 200;
+    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
+    sp.x = nb.cx; sp.y = nb.cy; sp.vx = Math.cos(th) * v + vx * 0.3; sp.vy = Math.sin(th) * v + vy * 0.3;
+  }
+}
 function popBlob(b) {
   b.dead = true;
   const x = b.cx, y = b.cy, ci = cidx(b.level);
@@ -1020,7 +1045,7 @@ function drawJuice() {
 
 /* ───────────────────────── game flow ───────────────────────── */
 function layout() {
-  TRAY_Y = H - 112; FLOOR_Y = H - 26; DANGER_Y = Math.min(TRAY_Y - 58, CEIL + 430);   // the shelf sits well above the bottom edge, easy to grab and pull
+  TRAY_Y = H - 112; FLOOR_Y = H - 1; DANGER_Y = Math.min(TRAY_Y - 58, CEIL + 430);   // the shelf sits well above the bottom edge, easy to grab and pull
   planes = [[1, 0, WALL_L, 0], [-1, 0, -WALL_R, 0], [0, 1, CEIL, 1], [0, -1, -FLOOR_Y, 0]];
 }
 
@@ -1374,11 +1399,12 @@ const stage = document.getElementById('stage');
 const overEl = document.getElementById('over'), oScore = document.getElementById('o-score'), oBest = document.getElementById('o-best');
 const againBtn = document.getElementById('again'), restartBtn = document.getElementById('restart'), soundBtn = document.getElementById('sound');
 const gearBtn = document.getElementById('gear'), menuEl = document.getElementById('menu'), soundState = document.getElementById('sound-state');
-const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), bestEl = document.getElementById('best'), bestValEl = document.getElementById('best-val'), screenEl = document.getElementById('screen'), dangerEl = document.getElementById('danger');
-let shakeCss = '', dangerCss = '', bestShown = null;
+const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), screenEl = document.getElementById('screen'), dangerEl = document.getElementById('danger');
+let shakeCss = '', dangerCss = '';
 let scoreShown = '', scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
+const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z');   // 16x32 laurel branch from the Figma frame (Squish 19:114)
 
 // The phone scales as one piece: --u is one design pixel. On a narrow or touch screen the shell drops away.
 let bare = false;
@@ -1464,9 +1490,20 @@ function draw() {
   const sc = `linear-gradient(${mixHex(...mixRgb(30, 30, 42, tc, 0.06), gc, 0.32 * ga)},${mixHex(30, 30, 42, gc, 0.06 * ga)} 60%)`;
   if (sc !== fieldCss) { fieldCss = sc; screenEl.style.background = sc; }
   // the score and the gear sit on the screen in plus-lighter: they take the glow colour and brighten with it
-  const hc = mixHex(...mixRgb(166, 166, 188, tc, 0.42), gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3) + '|' + mixHex(...mixRgb(30, 30, 42, tc, 0.3), gc, 0.45 * ga);
-  if (hc !== hudCss) { hudCss = hc; const [col, a, lo] = hc.split('|'); screenEl.style.setProperty('--hud', col); screenEl.style.setProperty('--hud-a', a); screenEl.style.setProperty('--hud-g', (+a - 0.05).toFixed(3)); screenEl.style.setProperty('--hud-dk', lo); }
+  const hc = mixHex(...mixRgb(166, 166, 188, tc, 0.42), gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3);
+  if (hc !== hudCss) { hudCss = hc; const [col, a] = hc.split('|'); screenEl.style.setProperty('--hud', col); screenEl.style.setProperty('--hud-a', a); screenEl.style.setProperty('--hud-g', (+a - 0.05).toFixed(3)); }
   ctx.save(); panelPath(); ctx.clip();
+
+  // best score, cut into the panel: the screen colour shows through it and the blobs pass over it (Figma 19:114:
+  // the number between two laurel branches, 24 above the bottom, row 48 tall, gap 12)
+  if (best > 0) {
+    const cut = mixHex(30, 30, 42, gc, 0.06 * ga), txt = best.toLocaleString(), by = H - 48;
+    ctx.font = '900 32px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(txt).width;
+    ctx.fillStyle = cut; ctx.fillText(txt, LX, by + 1);
+    ctx.save(); ctx.translate(LX - tw / 2 - 28, by - 16); ctx.fill(LAUREL); ctx.restore();
+    ctx.save(); ctx.translate(LX + tw / 2 + 28, by - 16); ctx.scale(-1, 1); ctx.fill(LAUREL); ctx.restore();
+  }
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
   // screen (DOM) and a red wash on the field, both growing with the time left before the game ends
@@ -1548,8 +1585,6 @@ function draw() {
   // the wordmark is the score: it rolls up and bumps with a merge
   const scoreText = String(Math.round(shown));
   if (scoreText !== scoreShown) { scoreShown = scoreText; brandEl.textContent = scoreText; }
-  const bestText = best > 0 ? best.toLocaleString() : '';
-  if (bestText !== bestShown) { bestShown = bestText; bestValEl.textContent = bestText; bestEl.hidden = !bestText; }
   const sb = scoreBump > 0 ? 1 + 0.12 * scoreBump * scoreBump : 1;
   if (sb !== scoreScale) { scoreScale = sb; brandEl.style.transform = sb === 1 ? '' : `scale(${sb.toFixed(3)})`; }
 }
