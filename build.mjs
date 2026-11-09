@@ -1,6 +1,7 @@
 // index.html is a body fragment (the same file is published as a Claude artifact).
-// This wraps it into a standalone page at docs/index.html, which GitHub Pages serves.
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+// This wraps it into a standalone page at docs/index.html, which GitHub Pages serves,
+// and copies assets/ next to it.
+import { readFile, writeFile, mkdir, readdir, copyFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -17,6 +18,7 @@ const head = `<!doctype html>
 <body>
 `;
 const body = await readFile(join(dir, 'index.html'), 'utf8');
-await mkdir(join(dir, 'docs'), { recursive: true });
+await mkdir(join(dir, 'docs', 'assets'), { recursive: true });
 await writeFile(join(dir, 'docs', 'index.html'), head + body + '</body>\n</html>\n');
-console.log('built docs/index.html');
+for (const f of await readdir(join(dir, 'assets'))) await copyFile(join(dir, 'assets', f), join(dir, 'docs', 'assets', f));
+console.log('built docs/index.html + assets');
