@@ -161,21 +161,10 @@ const SKIN = !REDUCED;
 const SK_K = 150, SK_C = 160, SK_D = 3, SK_D2 = 0.4, SK_J = 8, SK_GC = 0.6, SK_MAX = 0.2, SK_SIG = 0.35, SK_DV0 = 60, SK_DV1 = 700;
 const MUSIC = true;
 
-const PALETTE = [         // the user's Headspace-style poster, sampled: blue, yellow, pink, orange + their darker panels
-  '#fece00', // 2 yellow
-  '#ff7300', // 4 orange
-  '#fea1cd', // 8 pink
-  '#00a3fe', // 16 blue
-  '#fb5500', // 32 deep orange (the poster's darker orange panel)
-  '#0081f8', // 64 deep blue (the darker blue panel)
-  '#8a5cf6', // 128 violet      (extensions in the same flat, vivid vocabulary)
-  '#2ecc40', // 256 green (a true leaf green, not mint)
-  '#ff3d57', // 512 red
-  '#1ad1c8', // 1024 teal
-  '#ffb000', // 2048 amber
-  '#f4f1ea', // 4096
-  '#c9f04a', // 8192
-  '#ff61a6'  // 16384
+const PALETTE = [         // the pool: the user's poster colours (yellow, orange, pink, blue + their darker panels), then
+  '#fece00', '#ff7300', '#fea1cd', '#00a3fe', '#fb5500', '#0081f8',   // more in the same flat vocabulary. Dealt out in a
+  '#8a5cf6', '#2ecc40', '#ff3d57', '#1ad1c8', '#ffb000', '#c9f04a',   // new order every run (see shuffleRun), so every tier
+  '#ff61a6', '#5b6cff', '#ff8a5b', '#a3e635', '#e040fb', '#12b5a5'    // a run reaches shows a colour it has not used yet
 ];
 function rgb2hsl(r, g, b) {
   r /= 255; g /= 255; b /= 255;
@@ -208,7 +197,23 @@ const COLORS = PALETTE.map(hex0 => {
   return { hex, r, g, b, hi: rgbs(hi), lo: rgbs(lo), lit: rgbs(lit), core: rgbs(core), deep: rgbs(deep), rim, rimA: al => rgba(rim, al), drift, driftA: al => rgba(drift, al), ink: `rgb(${Math.round(r * 0.3)},${Math.round(g * 0.3)},${Math.round(b * 0.3)})` };
 
 });
-const colorFor = level => COLORS[(level - 1) % COLORS.length];
+// Per-run colour order. Each run deals the pool out afresh: a random walk through the pool where each next tier is
+// at least 0.09 of the hue circle away from the one before, so the climb keeps showing new, clearly different colours.
+const HUES = COLORS.map(c => rgb2hsl(c.r, c.g, c.b)[0]);
+let runOrder = [];
+function shuffleRun() {
+  const left = COLORS.map((_, k) => k); runOrder = [];
+  while (left.length) {
+    const prev = runOrder.length ? HUES[runOrder[runOrder.length - 1]] : null;
+    let pool = left;
+    if (prev !== null) { pool = left.filter(k => { const d = Math.abs(HUES[k] - prev); return Math.min(d, 1 - d) >= 0.09; }); if (!pool.length) pool = left; }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    runOrder.push(pick); left.splice(left.indexOf(pick), 1);
+  }
+}
+shuffleRun();
+const cidx = level => runOrder[(level - 1) % runOrder.length];
+const colorFor = level => COLORS[cidx(level)];
 const radiusFor = level => Math.min(114, 19 + 5.5 * level + 0.22 * level * level);   // ~20% bigger than the first cut (user asked twice for bigger)
 
 /* ───────────────────────── state ───────────────────────── */
@@ -756,13 +761,13 @@ function finishMerge(a, b) {
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
   const gl = Math.min(1, 0.22 + nb.level * 0.09 + (combo >= 2 ? 0.1 : 0));   // how hard the field lights up
-  if (gl >= glow.a * 0.7) { glow.c = (nb.level - 1) % COLORS.length; glow.a = Math.max(glow.a, gl); }
+  if (gl >= glow.a * 0.7) { glow.c = cidx(nb.level); glow.a = Math.max(glow.a, gl); }
   let kick = REDUCED ? 0 : Math.min(11, 1 + nb.level * 0.3 + (combo >= 2 ? 2.5 + (combo - 2) * 1.4 : 0));   // every merge rocks the screen a little, chains a lot
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
-    fanfare.c = (nb.level - 1) % COLORS.length; fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
+    fanfare.c = cidx(nb.level); fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
     if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 14; glow.a = 1; }
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
@@ -773,7 +778,7 @@ function finishMerge(a, b) {
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
   if (REDUCED) return;
-  const ci = (nb.level - 1) % COLORS.length;   // everything a merge throws off is the new blob's colour, nothing else
+  const ci = cidx(nb.level);   // everything a merge throws off is the new blob's colour, nothing else
   const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;                      // a ring of the new colour bursts out of the seam
   rg.t = 0; rg.life = 0.32 + 0.04 * Math.min(4, c); rg.x = x; rg.y = y; rg.r0 = nb.r * 0.8; rg.r1 = nb.r * 1.8 + 14 * Math.min(5, c); rg.c = ci;
   // sparkles leave the seam between the two parents, both ways along it
@@ -941,7 +946,7 @@ function pickLevel() {
 }
 
 function reset() {
-  blobs.length = 0;
+  blobs.length = 0; shuffleRun();
   score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
@@ -1334,7 +1339,7 @@ function draw() {
   // the panel is the play field: the ceiling is the "floor". No gate bars: shapes just arrive from the sides.
   // Its slate lights up in the merge colour from the top and carries a faint standing tint of the biggest blob.
   let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level > top) top = blobs[i].level;
-  const gc = COLORS[glow.c], tc = COLORS[(Math.max(1, top) - 1) % COLORS.length], ga = glow.a * glow.a * (2 - glow.a);
+  const gc = COLORS[glow.c], tc = COLORS[cidx(Math.max(1, top))], ga = glow.a * glow.a * (2 - glow.a);
   const fg = ctx.createLinearGradient(0, CEIL, 0, H);
   fg.addColorStop(0, mixHex(...mixRgb(53, 53, 67, tc, 0.08), gc, 0.5 * ga));
   fg.addColorStop(0.55, mixHex(...mixRgb(53, 53, 67, tc, 0.05), gc, 0.2 * ga));
@@ -1512,6 +1517,6 @@ window.__udm = { blobs, tick, draw, reset,
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
-  pickLevel, setPeak: v => { peak = v; }, info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
+  pickLevel, setPeak: v => { peak = v; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
