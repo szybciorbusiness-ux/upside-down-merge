@@ -39,8 +39,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-displ
 /* everything but the settings sheet. While the sheet is up it sits back: a little smaller, rounded, dropped from the top */
 #back{position:absolute;inset:0;overflow:hidden;background:var(--screen);transform-origin:50% 0;
   transition:transform .5s cubic-bezier(.32,.72,0,1),border-radius .5s cubic-bezier(.32,.72,0,1)}
-#back.pushed{transform:translateY(calc(14*var(--u) + env(safe-area-inset-top,0px))) scale(var(--push-s,.9303));border-radius:calc(49*var(--u))}
-body.bare #back.pushed{border-radius:calc(38*var(--u))}
+#back.pushed{transform:translateY(calc(54*var(--u))) scale(var(--push-s,.849));border-radius:calc(22*var(--u))}
+body.bare #back.pushed{transform:translateY(calc(30*var(--u) + env(safe-area-inset-top,0px))) scale(var(--push-s,.849))}
 #back.drag{transition:none}
 #tint{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:opacity}
 body.bare{background:var(--screen)}   /* the shake slides the screen a few px; the edge it uncovers is the same colour */
@@ -63,37 +63,46 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #gear:active{transform:scale(.92)}
 #gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* settings: a bottom sheet over a dimmed screen. It rises on the sheet curve, follows a downward drag, and leaves by
-   a drag, the round close button, a tap on the dimmed screen, or Escape. The game runs in slow motion behind it. */
-#scrim{position:absolute;inset:0;z-index:3;background:rgba(5,5,7,.44);opacity:0;transition:opacity .35s ease}
+   a drag, a tap on the dimmed screen, or Escape. More swaps it for a second sheet of the same build. The game runs in slow motion behind it. */
+#scrim{position:absolute;inset:0;z-index:3;background:rgba(0,0,0,.4);opacity:0;transition:opacity .35s ease}
 #scrim.open{opacity:1}
-#sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;gap:calc(10*var(--u));
-  padding:calc(10*var(--u)) calc(16*var(--u)) calc(20*var(--u) + env(safe-area-inset-bottom,0px));
-  border-radius:calc(34*var(--u)) calc(34*var(--u)) 0 0;background:var(--sh,#24242f);color:var(--ink);
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;
+  padding:calc(32*var(--u)) calc(32*var(--u)) calc(31*var(--u) + env(safe-area-inset-bottom,0px));
+  border-radius:calc(54*var(--u)) calc(54*var(--u)) 0 0;background:var(--sh,#353543);color:var(--ink);
   transform:translateY(110%);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
 #sheet.open{transform:translateY(0)}
+#sheet.open.swap{transform:translateY(110%);transition:transform .24s cubic-bezier(.4,0,1,1)}   /* on its way down to come back as the other sheet */
 #sheet.drag,#scrim.drag{transition:none}
 #scrim:not(.open),#sheet:not(.open){pointer-events:none}   /* on its way out it takes no presses: the game is already running */
 #sheet:focus{outline:none}
 #sheet::after{content:"";position:absolute;left:0;right:0;top:100%;height:calc(80*var(--u));background:inherit}   /* nothing shows under it when it is pulled up */
-.grab{align-self:center;width:calc(40*var(--u));height:calc(5*var(--u));border-radius:999px;background:rgba(255,255,255,.22)}
-#sheet h2{margin:calc(8*var(--u)) calc(6*var(--u)) calc(4*var(--u));font:900 calc(24*var(--u))/1.1 var(--font-display);letter-spacing:0}
-#sheet .row{display:flex;align-items:center;justify-content:space-between;gap:calc(16*var(--u));width:100%;min-height:calc(60*var(--u));
-  padding:calc(14*var(--u)) calc(18*var(--u));border:0;border-radius:calc(20*var(--u));background:var(--sh-row,#30303d);color:var(--ink);
-  font:900 calc(18*var(--u))/1.2 var(--font-display);cursor:pointer;text-align:left;transition:transform .12s ease,background .12s ease}
-#sheet .row:active{transform:scale(.98);background:var(--sh-hi,#383846)}
-#sheet .row:disabled{opacity:.45;cursor:default}
-#sheet .row:disabled:active{transform:none;background:var(--sh-row,#30303d)}
-.chev{flex:none;width:calc(10*var(--u));height:calc(16*var(--u));color:var(--muted)}
-.tog{position:relative;flex:none;width:calc(50*var(--u));height:calc(30*var(--u));border-radius:999px;background:var(--sh-tog,#4a4a58);transition:background .2s ease}
-.tog::after{content:"";position:absolute;left:calc(3*var(--u));top:calc(3*var(--u));width:calc(24*var(--u));height:calc(24*var(--u));border-radius:50%;
-  background:var(--ink);transition:transform .25s cubic-bezier(.32,.72,0,1)}
-#sheet .row[aria-pressed="true"] .tog{background:#3ecf6e}
-#sheet .row[aria-pressed="true"] .tog::after{transform:translateX(calc(20*var(--u)))}
+#sheet [hidden]{display:none}
+.grab{position:absolute;left:50%;top:calc(10*var(--u));width:calc(53*var(--u));height:calc(6*var(--u));margin-left:calc(-26.5*var(--u));border-radius:999px;background:var(--sh-row,rgba(30,30,42,.6))}
+.view{display:flex;flex-direction:column;gap:calc(6*var(--u))}
+#sheet .row{position:relative;display:flex;align-items:center;justify-content:space-between;width:100%;height:calc(85*var(--u));
+  padding:0 calc(16*var(--u)) 0 calc(26*var(--u));border:0;border-radius:calc(22*var(--u));background:var(--sh-row,rgba(30,30,42,.6));color:#fff;
+  font:900 calc(24*var(--u))/normal var(--font-display);cursor:pointer;text-align:left;transition:transform .12s ease,background .12s ease}
+#sheet .row>span:first-child{opacity:.4;mix-blend-mode:plus-lighter}
+#sheet .row:active{transform:scale(.98);background:var(--sh-hi,rgba(30,30,42,.75))}
+#sheet .row:disabled{cursor:default}
+#sheet .row:disabled .tog{opacity:.4}
+#sheet .row:disabled>span:first-child{opacity:.18}
+#sheet .row:disabled:active{transform:none;background:var(--sh-row,rgba(30,30,42,.6))}
+.chev{flex:none;display:block;width:calc(32*var(--u));height:calc(32*var(--u))}
+.chev.back{transform:scaleX(-1)}
+/* the switches take the board's colour (--sw-on follows the biggest blob), never a fixed green */
+.tog{position:relative;flex:none;width:calc(56*var(--u));height:calc(32*var(--u));margin-right:calc(6*var(--u));border-radius:999px;background:rgba(255,255,255,.1);transition:background .2s ease}
+.tog::after{content:"";position:absolute;left:calc(4*var(--u));top:calc(4*var(--u));width:calc(24*var(--u));height:calc(24*var(--u));border-radius:50%;
+  background:rgba(255,255,255,.42);transition:transform .25s cubic-bezier(.32,.72,0,1),background .2s ease}
+#sheet .row[aria-pressed="true"] .tog{background:var(--sw-on,#8a8aa0)}
+#sheet .row[aria-pressed="true"] .tog::after{transform:translateX(calc(24*var(--u)));background:var(--sw-knob,#fff)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-#sheet-close{align-self:center;display:grid;place-items:center;width:calc(54*var(--u));height:calc(54*var(--u));margin-top:calc(8*var(--u));padding:0;border:0;
-  border-radius:50%;background:var(--sh-row,#30303d);color:var(--muted);cursor:pointer;transition:transform .12s ease}
-#sheet-close:active{transform:scale(.92)}
-#sheet-close svg{width:calc(18*var(--u));height:calc(18*var(--u))}
+/* a legal page: one tall card in the rows' own build, the text scrolls inside it */
+.doc{box-sizing:border-box;height:calc(267*var(--u));padding:calc(24*var(--u)) calc(26*var(--u));border-radius:calc(22*var(--u));background:var(--sh-row,rgba(30,30,42,.6));
+  overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.doc.fits{touch-action:none}
+.doc h3{margin:0 0 calc(12*var(--u));font:900 calc(24*var(--u))/normal var(--font-display);color:rgba(255,255,255,.62);letter-spacing:0}
+.doc p{margin:0;white-space:pre-line;font:500 calc(15*var(--u))/1.5 var(--font-system);color:rgba(255,255,255,.56)}
 #lab{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-wrap:wrap;justify-content:center;gap:calc(8*var(--u));
   padding:calc(12*var(--u)) calc(14*var(--u)) calc(18*var(--u) + env(safe-area-inset-bottom,0px))}
 #lab button{padding:calc(9*var(--u)) calc(14*var(--u));border:0;border-radius:999px;background:#30303d;color:var(--ink);
@@ -111,7 +120,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   animation:fade .28s ease both}
 .panel{display:flex;flex-direction:column;align-items:center;gap:calc(18*var(--u));min-width:min(calc(260*var(--u)),100%);
-  padding:calc(28*var(--u)) calc(32*var(--u));border-radius:calc(30*var(--u));background:var(--sh,var(--panel));animation:rise .32s cubic-bezier(.2,.9,.3,1.2) both}
+  padding:calc(28*var(--u)) calc(32*var(--u));border-radius:calc(30*var(--u));background:var(--card,var(--panel));animation:rise .32s cubic-bezier(.2,.9,.3,1.2) both}
 .panel:focus{outline:none}
 .panel h1{margin:0;font-size:calc(30*var(--u));font-weight:900;letter-spacing:0}
 .panel dl{display:flex;gap:calc(28*var(--u));margin:0}
@@ -189,11 +198,23 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     <div id="scrim" hidden></div>
     <div id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
       <div class="grab" aria-hidden="true"></div>
-      <h2 id="sheet-title">Settings</h2>
-      <button id="restart" class="row" type="button"><span>Replay</span><svg class="chev" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M2 2l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <button id="sound" class="row" type="button" aria-pressed="false"><span>Sound</span><span class="tog" aria-hidden="true"></span><span class="sr" id="sound-state">On</span></button>
-      <button id="vib" class="row" type="button" aria-pressed="false"><span>Vibration</span><span class="tog" aria-hidden="true"></span><span class="sr" id="vib-state">On</span></button>
-      <button id="sheet-close" type="button" aria-label="Close settings"><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+      <h2 id="sheet-title" class="sr">Settings</h2>
+      <div class="view" data-view="main">
+        <button id="sound" class="row" type="button" aria-pressed="false"><span>Sound</span><span class="tog" aria-hidden="true"></span><span class="sr" id="sound-state">On</span></button>
+        <button id="vib" class="row" type="button" aria-pressed="false"><span>Vibrations</span><span class="tog" aria-hidden="true"></span><span class="sr" id="vib-state">On</span></button>
+        <button id="restart" class="row" type="button"><span>Replay</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
+        <button id="more" class="row" type="button"><span>More</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
+      </div>
+      <div class="view" data-view="more" hidden>
+        <button class="row" type="button" data-go="privacy"><span>Privacy</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
+        <button class="row" type="button" data-go="terms"><span>Terms</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
+        <button class="row" type="button" data-go="licenses"><span>Licenses</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
+        <button class="row" type="button" data-go="main"><span>Back</span><svg class="chev back" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
+      </div>
+      <div class="view" data-view="doc" hidden>
+        <div class="doc" tabindex="0"><h3 id="doc-title"></h3><p id="doc-body"></p></div>
+        <button class="row" type="button" data-go="more"><span>Back</span><svg class="chev back" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
+      </div>
     </div>
   </div>
   <img id="bezel" src="assets/bezel.png" alt="" draggable="false">
@@ -1850,7 +1871,7 @@ const stage = document.getElementById('stage');
 const overEl = document.getElementById('over'), oScore = document.getElementById('o-score'), oBest = document.getElementById('o-best');
 const againBtn = document.getElementById('again'), restartBtn = document.getElementById('restart'), soundBtn = document.getElementById('sound');
 const backEl = document.getElementById('back');
-const gearBtn = document.getElementById('gear'), sheetEl = document.getElementById('sheet'), scrimEl = document.getElementById('scrim'), sheetClose = document.getElementById('sheet-close'), soundState = document.getElementById('sound-state');
+const gearBtn = document.getElementById('gear'), sheetEl = document.getElementById('sheet'), scrimEl = document.getElementById('scrim'), soundState = document.getElementById('sound-state');
 const reviveEl = document.getElementById('revive'), reviveYes = document.getElementById('revive-yes'), reviveNo = document.getElementById('revive-no');
 const ringLeft = document.getElementById('ring-left'), ringN = document.getElementById('ring-n'), oWhy = document.getElementById('o-why'), oNew = document.getElementById('o-new');
 const vibBtn = document.getElementById('vib'), vibState = document.getElementById('vib-state');
@@ -1869,7 +1890,8 @@ const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944
 
 // The phone scales as one piece: --u is one design pixel. On a narrow or touch screen the shell drops away.
 let bare = false, uPx = 1, pushS = 0.9303;
-const PUSH_GAP = 14;   // design units between the screen's edge and the game while the settings sheet is up
+const PUSH_GAP = 30, PUSH_R = 22;   // the Figma frame: 30 design units at each side of the game while the settings sheet is up, corners 22
+const pushTop = () => bare ? '(30 * var(--u) + env(safe-area-inset-top, 0px))' : '(54 * var(--u))';   // and 54 from the top (under the status bar)
 function fitShell() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -1905,7 +1927,7 @@ function resize() {
   const pw = Math.round(CW * DPR), ph = Math.round(CH * DPR), grew = canvas.width !== pw || canvas.height !== ph;
   if (grew) { canvas.width = pw; canvas.height = ph; }
   S = CW / W; setCursor();
-  pushS = Math.max(0.8, 1 - 2 * PUSH_GAP * uPx / (screenEl.clientWidth || 402 * uPx));   // so the side gaps equal the top one
+  pushS = Math.max(0.8, 1 - 2 * PUSH_GAP * uPx / (screenEl.clientWidth || 402 * uPx));   // the side gaps
   backEl.style.setProperty('--push-s', pushS.toFixed(4));
   H = Math.max(560, Math.min(CH / S, 820));
   OX = 0; OY = 0;
@@ -2000,8 +2022,11 @@ function draw() {
       backEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
       // the settings sheet and the cards are cut from the same cloth: their surfaces, rows and switch tracks carry the
       // screen's own faint tint (no stronger than the screen's, or a warm blob turns them brown)
-      screenEl.style.setProperty('--sh', mixHex(36, 36, 47, tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(48, 48, 61, tc, 0.05));
-      screenEl.style.setProperty('--sh-hi', mixHex(56, 56, 70, tc, 0.06)); screenEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.07));
+      screenEl.style.setProperty('--sh', mixHex(53, 53, 67, tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(39, 39, 52, tc, 0.04));
+      screenEl.style.setProperty('--sh-hi', mixHex(33, 33, 45, tc, 0.04)); screenEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.07));
+      screenEl.style.setProperty('--card', mixHex(36, 36, 47, tc, 0.04));
+      screenEl.style.setProperty('--sw-on', mixHex(53, 53, 67, tc, 0.82));
+      screenEl.style.setProperty('--sw-knob', 0.2126 * tc.r + 0.7152 * tc.g + 0.0722 * tc.b > 150 ? tc.ink : '#fff');   // a dark knob on a light track (yellow, lime, pink)   // a switch that is on wears the biggest blob's colour
     }
     if (glow.c !== fxC) tintEl.style.background = `linear-gradient(rgba(${gc.r},${gc.g},${gc.b},.32),rgba(${gc.r},${gc.g},${gc.b},.06) 60%)`;
     const to = ga.toFixed(3); if (to !== tintCss) { tintCss = to; tintEl.style.opacity = to; }
@@ -2211,7 +2236,9 @@ function showMenu(open) {
   clearTimeout(sheetTimer);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
+  clearTimeout(viewTimer); sheetEl.classList.remove('swap'); swapUntil = 0;
   if (open) {
+    setView('main');
     aiming = false; armed = false; sel = null; shake = 0; tilt = tiltV = 0; saveRun();   // (the screen holds still under the sheet: see draw())
     dragId = -1; dragMoved = false;
     sheetEl.hidden = false; scrimEl.hidden = false;
@@ -2224,14 +2251,35 @@ function showMenu(open) {
     sheetTimer = setTimeout(() => { if (!sheetOpen) { sheetEl.hidden = true; scrimEl.hidden = true; } }, REDUCED ? 0 : 520);
   }
 }
+// More: the sheet drops and comes straight back as a second sheet of the same build (the legal pages), and back again.
+const DOCS = {
+  privacy: ['Privacy', 'Upside Down Merge keeps your best score, your current run and your sound and vibration choices on this device, in your browser\'s storage. Nothing is sent anywhere.\n\nThere are no accounts, no ads, no analytics and no tracking.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe page is served by GitHub Pages. Like any web host, it may log technical request data such as your IP address.'],
+  terms: ['Terms', 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run live only on your device. They can be lost if the browser\'s data is cleared, and they cannot be restored.\n\nNothing in the game costs money.'],
+  licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Upside Down Merge.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
+};
+const sheetViews = sheetEl.querySelectorAll('.view'), docTitle = document.getElementById('doc-title'), docBody = document.getElementById('doc-body');
+let sheetAt = 'main', viewTimer = 0, swapUntil = 0;
+function setView(v) {
+  sheetAt = v; const shown = DOCS[v] ? 'doc' : v;
+  for (let i = 0; i < sheetViews.length; i++) sheetViews[i].hidden = sheetViews[i].dataset.view !== shown;
+  if (DOCS[v]) { docTitle.textContent = DOCS[v][0]; docBody.textContent = DOCS[v][1]; const d = docBody.parentNode; d.scrollTop = 0; d.classList.toggle('fits', d.scrollHeight <= d.clientHeight + 1); }
+}
+function goView(v) {
+  if (!sheetOpen || v === sheetAt || sheetEl.classList.contains('swap') || dragMoved) return;
+  sfxUi(v !== 'main'); clearTimeout(viewTimer);
+  if (REDUCED) { setView(v); sheetEl.focus({ preventScroll: true }); return; }
+  sheetEl.classList.add('swap'); swapUntil = performance.now() + 450;   // no presses until the other sheet has nearly arrived
+  viewTimer = setTimeout(() => { setView(v); void sheetEl.offsetHeight; sheetEl.classList.remove('swap'); sheetEl.focus({ preventScroll: true }); }, 250);
+}
+document.getElementById('more').addEventListener('click', () => goView('more'));
+sheetEl.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) goView(b.dataset.go); });
 gearBtn.addEventListener('click', () => { initAudio(); showMenu(!sheetOpen); });
-scrimEl.addEventListener('click', () => showMenu(false));
-sheetClose.addEventListener('click', () => showMenu(false));
+scrimEl.addEventListener('click', () => { if (performance.now() >= swapUntil) showMenu(false); });
 // Drag: the sheet follows the finger down (pulling up barely gives). Let go past a quarter of its height, or with a
 // quick flick, and it leaves; otherwise it settles back. A drag is never a tap on a row.
 let dragId = -1, dragY0 = 0, dragDy = 0, dragPy = 0, dragPt = 0, dragV = 0, dragMoved = false, dragEat = false, dragH = 1;
 sheetEl.addEventListener('pointerdown', e => {
-  if (!sheetOpen || (e.pointerType === 'mouse' && e.button !== 0) || (dragId !== -1 && dragMoved && e.pointerId !== dragId)) return;   // a second finger does not take over a drag
+  if (!sheetOpen || e.target.closest('.doc:not(.fits)') || sheetEl.classList.contains('swap') || (e.pointerType === 'mouse' && e.button !== 0) || (dragId !== -1 && dragMoved && e.pointerId !== dragId)) return;   // a second finger does not take over a drag
   dragId = e.pointerId; dragY0 = dragPy = e.clientY; dragPt = performance.now(); dragDy = 0; dragV = 0; dragMoved = false; dragH = sheetEl.offsetHeight || 1;
 });
 sheetEl.addEventListener('pointermove', e => {
@@ -2248,8 +2296,8 @@ sheetEl.addEventListener('pointermove', e => {
   sheetEl.style.transform = `translateY(${dragDy.toFixed(1)}px)`;
   const p = Math.max(0, Math.min(1, dragDy / dragH));   // how far the sheet has been pulled away: the game comes forward with it
   scrimEl.style.opacity = String(1 - p);
-  backEl.style.transform = `translateY(calc(${(1 - p).toFixed(3)} * (${PUSH_GAP} * var(--u) + env(safe-area-inset-top, 0px)))) scale(${(pushS + (1 - pushS) * p).toFixed(4)})`;
-  backEl.style.borderRadius = `calc(${((bare ? 38 : 49) * (1 - p)).toFixed(1)} * var(--u))`;
+  backEl.style.transform = `translateY(calc(${(1 - p).toFixed(3)} * ${pushTop()})) scale(${(pushS + (1 - pushS) * p).toFixed(4)})`;
+  backEl.style.borderRadius = `calc(${(PUSH_R * (1 - p)).toFixed(1)} * var(--u))`;
 });
 const endDrag = e => {
   if (e.pointerId !== dragId) return;
@@ -2263,7 +2311,7 @@ const endDrag = e => {
 };
 sheetEl.addEventListener('pointerup', endDrag);
 sheetEl.addEventListener('pointercancel', endDrag);
-sheetEl.addEventListener('click', e => { if (dragEat) { dragEat = false; e.preventDefault(); e.stopPropagation(); } }, true);
+sheetEl.addEventListener('click', e => { if (dragEat || performance.now() < swapUntil) { dragEat = false; e.preventDefault(); e.stopPropagation(); } }, true);
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) { showMenu(false); gearBtn.focus(); } });
 soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); sfxUi(true); });
 vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); sfxUi(vib); });
