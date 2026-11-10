@@ -165,7 +165,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
   100%{opacity:0;transform:translate(calc(var(--dx)*1.12 - 50%),calc(var(--dy) + 150*var(--u) - 50%)) rotate(calc(var(--r) + 220deg)) scale(.85)}}
 @keyframes punch{0%{transform:scale(1)}30%{transform:scale(1.16)}100%{transform:scale(1)}}
 @keyframes slam{0%{transform:scale(1.9);opacity:0}60%{opacity:1}100%{transform:scale(1)}}
-#over{background:var(--sh,#353543);overflow:hidden;animation:fade .25s ease both}
+#over{background:var(--fin-bg,#353543);overflow:hidden;animation:fade .25s ease both}
 #over.fx-waves{background:linear-gradient(180deg,var(--fin-w1,#f59a00),var(--fin-w2,#ffe36b))}
 .waves{position:absolute;left:-20%;top:0;width:140%;height:100%;display:none;pointer-events:none}
 #over.fx-waves .waves{display:block}
@@ -173,12 +173,12 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .waves g+g{animation-duration:11s;animation-direction:alternate-reverse}
 @keyframes sway{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
 #over .panel{gap:0;padding-top:calc(5*var(--u))}
-#over .obest{box-sizing:border-box;height:calc(48*var(--u));gap:calc(12*var(--u));padding:calc(2*var(--u));opacity:.7;color:var(--fin-k,#1e1e2a);animation:rise .4s .08s cubic-bezier(.2,.9,.3,1.2) both}
+#over .obest{box-sizing:border-box;height:calc(48*var(--u));gap:calc(12*var(--u));padding:calc(2*var(--u));opacity:1;color:var(--fin-k,#262633);animation:rise .4s .08s cubic-bezier(.2,.9,.3,1.2) both}
 #over .obest div{flex-direction:row;align-items:baseline;gap:calc(8*var(--u))}
-#over .obest span{font-size:calc(32*var(--u));color:var(--fin-k,#1e1e2a);opacity:.9}
+#over .obest span{font-size:calc(32*var(--u));color:var(--fin-k,#262633);opacity:1}
 #over .obest small{display:none}
 #over .oblob{width:auto;height:auto;margin-top:calc(10*var(--u));animation:rise .4s .16s cubic-bezier(.2,.9,.3,1.2) both}
-#over .oblob b{color:var(--fin-n,#a6a6bc);opacity:.4;line-height:1.2}
+#over .oblob b{color:var(--fin-n,#626273);opacity:1;line-height:1.2}
 #over #again{display:grid;place-items:center;width:calc(338*var(--u));height:calc(85*var(--u));margin-top:calc(45*var(--u));padding:0;border-radius:calc(22*var(--u));
   background:var(--sh-row,rgba(30,30,42,.6));color:#fff;animation:rise .4s .24s cubic-bezier(.2,.9,.3,1.2) both}
 #over #again svg{width:calc(24*var(--u));height:calc(24*var(--u))}
@@ -1695,7 +1695,7 @@ function frameLogic(dt) {
       if (v !== overN) { overN = v; oScore.textContent = String(v); }
       const step = Math.floor(k * 14);
       if (step > overTick && k < 1) { overTick = step; sfxCount(k); buzz(5); oScore.classList.remove('tick'); void oScore.offsetWidth; oScore.classList.add('tick'); }
-      if (k >= 1) { overDone = true; overEl.classList.add('counted'); if (overBest || (finFx & 8)) launchBurst();
+      if (k >= 1) { overDone = true; overEl.classList.add('counted'); if (finFx & 8) launchBurst();   // (a record gets the confetti only: user)
         if (!REDUCED && (overBest || (finFx & 4)) && fxSize()) { cannonLeft = 300; rainOn = true; rainAcc = 0; if (!pieces.length) burstLast = performance.now(); } sfxDone(overBest); buzz(overBest ? [30, 50, 30, 50, 80] : 30); }
     }
   }
@@ -2238,7 +2238,11 @@ function draw() {
       screenEl.style.setProperty('--sh-hi', mixHex(33, 33, 45, tc, 0.04)); screenEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.07));
       screenEl.style.setProperty('--card', mixHex(36, 36, 47, tc, 0.04));
       burstPalette(tc); screenEl.style.setProperty('--fin-r', mixHex(238, 236, 243, tc, 0.5));   // a record's best row: the colour, softened
-      screenEl.style.setProperty('--fin-n', mixHex(166, 166, 188, tc, 0.16)); screenEl.style.setProperty('--fin-k', mixHex(30, 30, 42, tc, 0.1));   // the ending screen's score and best: the HUD's own tinted inks
+      { // the ending's two inks are cut from its own background: the same tinted slate, darker for the best and lighter for the score, in the
+        // Figma frame's proportions (so the tint is one hue across the screen: mixing each ink toward the colour separately went muddy)
+        const br = 53 + (tc.r - 53) * 0.02, bg2 = 53 + (tc.g - 53) * 0.02, bb = 67 + (tc.b - 67) * 0.02,   // (half the sheet's tint: a warm blob turned the slate brown, user)
+           c3 = (a, b, c) => 'rgb(' + Math.round(Math.min(255, br * a)) + ',' + Math.round(Math.min(255, bg2 * b)) + ',' + Math.round(Math.min(255, bb * c)) + ')';
+        screenEl.style.setProperty('--fin-bg', c3(1, 1, 1)); screenEl.style.setProperty('--fin-k', c3(0.72, 0.72, 0.76)); screenEl.style.setProperty('--fin-n', c3(1.85, 1.85, 1.72)); }   // the ending screen's score and best: the HUD's own tinted inks
       screenEl.style.setProperty('--fin-w1', mixHex(20, 18, 30, tc, 0.88)); screenEl.style.setProperty('--fin-w2', mixHex(255, 255, 255, tc, 0.6));   // the waves' ground
       screenEl.style.setProperty('--sw-on', mixHex(53, 53, 67, tc, 0.82));
       screenEl.style.setProperty('--sw-knob', 0.2126 * tc.r + 0.7152 * tc.g + 0.0722 * tc.b > 150 ? tc.ink : '#fff');   // a dark knob on a light track (yellow, lime, pink)   // a switch that is on wears the biggest blob's colour
