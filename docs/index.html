@@ -35,7 +35,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-displ
 #phone{position:relative;width:calc(450*var(--u));height:calc(920*var(--u))}
 #bezel{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 #screen{position:absolute;left:calc(24*var(--u));top:calc(23*var(--u));width:calc(402*var(--u));height:calc(874*var(--u));
-  background:var(--screen);border-radius:calc(63*var(--u));overflow:hidden}
+  background:var(--screen);border-radius:calc(63*var(--u));overflow:hidden;will-change:transform}
+#tint{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:opacity}
 body.bare{background:var(--screen)}   /* the shake slides the screen a few px; the edge it uncovers is the same colour */
 body.bare #phone{width:100vw;height:100dvh}
 body.bare #bezel,body.bare #status{display:none}
@@ -48,13 +49,11 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 #status .cell{width:calc(19.2*var(--u))}#status .wifi{width:calc(17.142*var(--u))}#status .batt{width:calc(27.328*var(--u))}
 #hud{position:absolute;left:0;right:0;top:calc(62*var(--u));height:calc(68*var(--u))}
 body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
-#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:var(--hud,var(--brand));opacity:var(--hud-a,.3);mix-blend-mode:plus-lighter;letter-spacing:0;
+#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#505062;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
-  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--hud,var(--brand));mix-blend-mode:plus-lighter}
+  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#484859);will-change:transform}
 #gear svg{width:100%;height:100%}
-#gear svg g{transition:opacity .15s ease}
-#gear:hover svg g,#gear[aria-expanded="true"] svg g{opacity:.9}
 #gear:active{transform:scale(.92)}
 #gear:focus-visible,#menu button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 #menu{position:absolute;right:calc(18*var(--u));top:calc(118*var(--u));z-index:3;display:flex;flex-direction:column;gap:calc(2*var(--u));min-width:calc(176*var(--u));
@@ -68,7 +67,7 @@ body.bare #menu{top:calc(64*var(--u) + env(safe-area-inset-top,0px))}
 body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
 /* danger: a red vignette over the whole screen that beats faster the closer the pile is to losing */
-#danger{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;
+#danger{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;will-change:opacity;
   background:radial-gradient(ellipse 70% 60% at 50% 45%,rgba(255,40,60,0) 30%,rgba(255,30,50,.5) 72%,rgba(190,0,25,.92) 100%)}
 #over{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(5,5,7,.72);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -82,14 +81,33 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .panel dd{margin:0;font-size:calc(28*var(--u));font-weight:900;font-variant-numeric:tabular-nums}
 #again{padding:calc(12*var(--u)) calc(34*var(--u));border:0;border-radius:999px;background:var(--ink);color:var(--bg);
   font:900 calc(18*var(--u)) var(--font-display);cursor:pointer;transition:transform .12s ease}
-#again:active{transform:scale(.95)}
+#again:active,#revive-yes:active{transform:scale(.95)}
+#revive{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(5,5,7,.72);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  animation:fade .28s ease both}
+.reason{margin:0;max-width:calc(250*var(--u));text-align:center;color:var(--muted);font:600 calc(15*var(--u))/1.4 var(--font-system);text-wrap:balance}
+.tag{margin:0;padding:calc(5*var(--u)) calc(12*var(--u));border-radius:999px;background:#ffd24a;color:#17171c;font-size:calc(13*var(--u));font-weight:900}
+.ring{position:relative;width:calc(104*var(--u));height:calc(104*var(--u))}
+.ring svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:8}
+.ring .track{stroke:rgba(255,255,255,.12)}
+.ring .left{stroke:var(--ink);stroke-linecap:round;stroke-dasharray:264}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(38*var(--u));font-weight:900;font-variant-numeric:tabular-nums}
+#revive-yes{padding:calc(13*var(--u)) calc(44*var(--u));border:0;border-radius:999px;background:var(--ink);color:var(--bg);
+  font:900 calc(19*var(--u)) var(--font-display);cursor:pointer;transition:transform .12s ease}
+.ghost{padding:calc(8*var(--u)) calc(16*var(--u));border:0;background:transparent;color:var(--muted);font:900 calc(15*var(--u)) var(--font-display);cursor:pointer}
+.ghost:hover{color:var(--ink)}
+#revive-yes:focus-visible,.ghost:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+#menu button:disabled{opacity:.45;cursor:default}
+#menu button:disabled:hover{background:transparent}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
-@media (prefers-reduced-motion:reduce){#over,.panel,#menu{animation:none}}
+@media (prefers-reduced-motion:reduce){#over,#revive,.panel,#menu{animation:none}}
 </style>
 
 <div id="phone">
   <div id="screen">
+    <div id="tint" aria-hidden="true"></div>
     <div id="status" aria-hidden="true">
       <div><span id="clock">9:41</span></div>
       <div>
@@ -100,24 +118,36 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     </div>
     <header id="hud">
       <h1 id="brand" aria-label="Score">0</h1>
-      <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1" style="opacity:var(--hud-g,.25)"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
+      <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
     <div id="menu" role="menu" hidden>
+      <button id="restart" type="button" role="menuitem">Replay</button>
       <button id="sound" type="button" role="menuitem" aria-pressed="false">Sound <span id="sound-state">On</span></button>
-      <button id="restart" type="button" role="menuitem">Restart</button>
+      <button id="vib" type="button" role="menuitem" aria-pressed="false">Vibration <span id="vib-state">On</span></button>
     </div>
     <div id="stage">
       <canvas id="c" aria-label="Upside Down Merge play field"></canvas>
     </div>
     <div id="danger" aria-hidden="true"></div>
+    <div id="revive" hidden>
+      <div class="panel" role="dialog" aria-labelledby="revive-title">
+        <h1 id="revive-title">Out of room</h1>
+        <p class="reason">The pile stayed past the line. Revive clears the blobs crowding it, once per run.</p>
+        <div class="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="42"/><circle class="left" id="ring-left" cx="50" cy="50" r="42"/></svg><span id="ring-n">6</span></div>
+        <button id="revive-yes" type="button">Revive</button>
+        <button id="revive-no" class="ghost" type="button">End run</button>
+      </div>
+    </div>
     <div id="over" hidden>
       <div class="panel" role="dialog" aria-labelledby="over-title">
-        <h1 id="over-title">GAME OVER</h1>
+        <h1 id="over-title">Game over</h1>
+        <p class="reason" id="o-why">The pile stayed past the line.</p>
+        <p class="tag" id="o-new" hidden>New best</p>
         <dl>
           <div><dt>Score</dt><dd id="o-score">0</dd></div>
           <div><dt>Best</dt><dd id="o-best">0</dd></div>
         </dl>
-        <button id="again" type="button">Restart</button>
+        <button id="again" type="button">Play again</button>
       </div>
     </div>
   </div>
@@ -174,7 +204,7 @@ const V_MAX = 1500;
 const MAX_AIM = Math.PI;
 const AIM_FLOW = 95;
 const ENTER_V = 430;              // units/s a new shelf shape slides in from off-screen              // units/s the aim dots travel along the ray       // aim anywhere: bank shots off the side walls and the back wall behind the shelf are allowed
-const DANGER_HOLD = 2.8;       // how long the pile may sit past the line; long enough for the red build-up to read
+const DANGER_HOLD = 3.35;      // how long the pile may sit past the line: the grace, then a visible 3-2-1
 const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing at all
 const MAXN = 52;
 // Skin: a damped wave that runs round each outline after a knock. Drawn only, never collided with.
@@ -234,9 +264,49 @@ function shuffleRun() {
   }
 }
 shuffleRun();
-const cidx = level => runOrder[(level - 1) % runOrder.length];
+const cidx = level => runOrder[((level - 1) % runOrder.length + runOrder.length) % runOrder.length];
 const colorFor = level => COLORS[cidx(level)];
-const radiusFor = level => Math.min(114, 19 + 5.5 * level + 0.22 * level * level);   // ~20% bigger than the first cut (user asked twice for bigger)
+const baseRadiusFor = level => Math.min(114, 19 + 5.5 * level + 0.22 * level * level);   // ~20% bigger than the first cut (user asked twice for bigger)
+// Higher tiers make room for the next merges: from the first 64 to the first 16384 the whole board eases down to 72% size.
+let runSizeScale = 1, sizeDirty = false;
+const sizeTarget = () => 1 - 0.28 * Math.max(0, Math.min(1, (peak - 6) / 8));
+const radiusFor = level => baseRadiusFor(level) * runSizeScale;
+// Resize rest and live geometry together, so the collision body always matches what is drawn. On the shelf the
+// grab size stays what it was (the shape's own scale takes up the difference).
+function resizeBlob(b, r, onShelf) {
+  const k = r / b.r;
+  if (!(r > 0) || !isFinite(r) || Math.abs(k - 1) < 1e-7) return;
+  const k2 = k * k, n = b.n;
+  let cx = 0, cy = 0, pcx = 0, pcy = 0, vcx = 0, vcy = 0;
+  if (!onShelf) {
+    for (let i = 0; i < n; i++) { cx += b.x[i]; cy += b.y[i]; pcx += b.px[i]; pcy += b.py[i]; vcx += b.vx[i]; vcy += b.vy[i]; }
+    cx /= n; cy /= n; pcx /= n; pcy /= n; vcx /= n; vcy /= n;
+  }
+  for (let i = 0; i < n; i++) {
+    b.qx[i] *= k; b.qy[i] *= k; b.ox[i] *= k; b.oy[i] *= k; b.el[i] *= k; b.rl[i] *= k;
+    if (!onShelf) {
+      b.x[i] = cx + (b.x[i] - cx) * k; b.y[i] = cy + (b.y[i] - cy) * k;
+      b.px[i] = pcx + (b.px[i] - pcx) * k; b.py[i] = pcy + (b.py[i] - pcy) * k;   // each frame around its own centre: no kick
+      b.vx[i] = vcx + (b.vx[i] - vcx) * k; b.vy[i] = vcy + (b.vy[i] - vcy) * k;
+      b.RX[i] = cx + (b.RX[i] - cx) * k; b.RY[i] = cy + (b.RY[i] - cy) * k;
+    }
+  }
+  if (onShelf) { b.scale /= k; b.scaleT /= k; b.scaleV /= k; b.v11 /= k; b.v12 /= k; b.v21 /= k; b.v22 /= k; }
+  else { b.cx = cx; b.cy = cy; b.br = (b.br - 1) * k + 1; b.maxY = cy + (b.maxY - cy) * k; }
+  b.r = r; b.area0 *= k2; b.sqq *= k2; b.w = n / Math.pow(r, 1.25);
+  const digits = b.label.length;
+  b.fs = Math.min(r * 0.8, r * 1.56 / digits) * (r > 44 ? Math.max(0.78, 1 - (r - 44) * 0.0045) : 1);
+  const g = n / 6.2832, sb = Math.sqrt(19.8 / r);
+  b.kS = SK_K * sb * sb; b.cS = SK_C * sb * sb * g * g; b.dS = SK_D * sb; b.d2S = SK_D2 * g * g * sb;
+}
+function stepSize(h) {
+  const target = sizeTarget();
+  if (runSizeScale === target && !sizeDirty) return;
+  runSizeScale += (target - runSizeScale) * (1 - Math.exp(-1.4 * h));
+  if (Math.abs(target - runSizeScale) < 1e-5) runSizeScale = target;
+  sizeDirty = false;
+  for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (!b.dead) resizeBlob(b, radiusFor(b.level), b.tray); }
+}
 
 /* ───────────────────────── state ───────────────────────── */
 const blobs = [];
@@ -247,6 +317,11 @@ let pressX = 0, pressY = 0, power = 1, selX = LX, pullX = 0, pullY = 0;
 const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
 let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // peak: highest tier made this run
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
+// Losing, step by step: the line shows as the pile nears it; past it a 3-2-1 counts down on the line; at zero the run
+// stops and a revive is offered once (a ring timer); declined or timed out, the game-over card says why.
+const REVIVE_TIME = 6, REVIVE_BAND = 120, LINE_NEAR = 110;
+let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, count = 0, countPop = 0, ringShown = -1, bestAtStart = 0;
+let vib = true;
 let time = 0, acc = 0, shake = 0, shakeT = 0, shakeHeat = 0;
 // every shake heats up; while hot, new shakes land softer (spamming shots cannot keep the screen rattling)
 function kickShake(k) { k /= 1 + shakeHeat; shakeHeat = Math.min(3, shakeHeat + 1); if (k > shake) { shake = k; shakeT = 0; } }
@@ -259,6 +334,7 @@ for (let i = 0; i < 14; i++) popups.push({ t: 9, x: 0, y: 0, v: 0, c: 0 });
 let popI = 0;
 const tmpX = new Float32Array(MAXN), tmpY = new Float32Array(MAXN);
 const drawOrder = [];
+const eKind = new Uint8Array(MAXN), eList = new Uint8Array(MAXN);
 // Merge juice, all in the new blob's colour: sparkles along the seam, a ring that bursts outward,
 // confetti bits with comet trails, a screen shake, a score bump; along a chain, more of everything
 // and a short hit-stop.
@@ -278,17 +354,19 @@ const FANFARE_LEVEL = 10;
 // Hit glow: every merge lights the field and the screen behind it up in the new colour (more for a bigger
 // result), fading back over a second; the biggest blob on the board leaves a faint standing tint.
 const glow = { c: 0, a: 0 };
-let fieldCss = '', hudCss = '';
+let fieldPaint = null, fxTop = -1, fxC = -1, fxA = -1, fxH = 0, tintCss = '0', hudCss = '', gearCss = '', hudT = 0.17;
 const mixRgb = (r0, g0, b0, c, k) => [r0 + (c.r - r0) * k, g0 + (c.g - g0) * k, b0 + (c.b - b0) * k];
 const mixHex = (r0, g0, b0, c, k) => `rgb(${Math.round(r0 + (c.r - r0) * k)},${Math.round(g0 + (c.g - g0) * k)},${Math.round(b0 + (c.b - b0) * k)})`;
 const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0 };
 
-try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; } catch (e) {}
+try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; vib = localStorage.getItem('udm_vib') !== '0'; } catch (e) {}
+const CAN_VIB = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+function buzz(p) { if (vib && CAN_VIB) { try { navigator.vibrate(p); } catch (e) {} } }
 
 /* ───────────────────────── blobs ───────────────────────── */
-function makeBlob(level) {
+function makeBlob(level, sh) {
   const r = radiusFor(level);
-  const n = Math.max(14, Math.min(MAXN, Math.round(2 * Math.PI * r / 7.5)));
+  const n = sh ? sh[6] : Math.max(14, Math.min(MAXN, Math.round(2 * Math.PI * r / 7.5)));
   const b = {
     level, value: Math.pow(2, level), r, n,
     x: new Float32Array(n), y: new Float32Array(n), px: new Float32Array(n), py: new Float32Array(n),
@@ -307,8 +385,9 @@ function makeBlob(level) {
   const digits = b.label.length;
   b.fs = Math.min(r * 0.8, r * 1.56 / digits) * (r > 44 ? Math.max(0.78, 1 - (r - 44) * 0.0045) : 1);   // big ones carry their number a little smaller
   // irregular pebble outline
-  const a2 = 0.045 + Math.random() * 0.05, a3 = 0.025 + Math.random() * 0.035, a4 = 0.01 + Math.random() * 0.02;
-  const p2 = Math.random() * 6.283, p3 = Math.random() * 6.283, p4 = Math.random() * 6.283;
+  const a2 = sh ? sh[0] : 0.045 + Math.random() * 0.05, a3 = sh ? sh[1] : 0.025 + Math.random() * 0.035, a4 = sh ? sh[2] : 0.01 + Math.random() * 0.02;
+  const p2 = sh ? sh[3] : Math.random() * 6.283, p3 = sh ? sh[4] : Math.random() * 6.283, p4 = sh ? sh[5] : Math.random() * 6.283;
+  b.sh = [a2, a3, a4, p2, p3, p4, n];
   let mx = 0, my = 0;
   for (let i = 0; i < n; i++) {
     const th = i / n * Math.PI * 2;
@@ -422,22 +501,57 @@ function collide(A, B) {
   const ax = A.x, ay = A.y, apx = A.px, apy = A.py, bx = B.x, by = B.y, bpx = B.px, bpy = B.py;
   const nA = A.n, nB = B.n, wA = A.w, wB = B.w;
   const R = B.br + MARGIN, R2 = R * R, bcx = B.cx, bcy = B.cy;
-  let hits = 0;
+  let hits = 0, fresh = false, nL = 0, sax = 0, say = 0, sup = 0;
   for (let i = 0; i < nA; i++) {
     const X = ax[i], Y = ay[i];
     const ddx = X - bcx, ddy = Y - bcy;
     if (ddx * ddx + ddy * ddy > R2) continue;
+    if (!fresh) {
+      // Once per call (again only if a hit moved an edge that was left out): how far B reaches toward A along the
+      // line of centres, and which of B's edges can matter to any point of A. eKind: 1 = may be within the margin of
+      // A's box (full test), 2 = right of the box and level with it (can only be crossed by the inside ray), 0 = neither.
+      fresh = true;
+      sax = A.cx - bcx; say = A.cy - bcy; sup = -1e18;
+      let lx = 1e18, hx = -1e18, ly = 1e18, hy = -1e18;
+      for (let k = 0; k < nA; k++) { const u = ax[k], v = ay[k]; if (u < lx) lx = u; if (u > hx) hx = u; if (v < ly) ly = v; if (v > hy) hy = v; }
+      lx -= MARGIN + 0.01; hx += MARGIN + 0.01; ly -= MARGIN + 0.01; hy += MARGIN + 0.01;
+      let u1 = bx[nB - 1], v1 = by[nB - 1]; nL = 0;
+      for (let j = 0; j < nB; j++) {
+        const u2 = bx[j], v2 = by[j], s = (u2 - bcx) * sax + (v2 - bcy) * say;
+        if (s > sup) sup = s;
+        let kind = 0;
+        if (!((v1 < ly && v2 < ly) || (v1 > hy && v2 > hy))) {
+          if (u1 > hx && u2 > hx) kind = 2; else if (!(u1 < lx && u2 < lx)) kind = 1;
+        }
+        eKind[j] = kind; if (kind) eList[nL++] = j;
+        u1 = u2; v1 = v2;
+      }
+      sup += (MARGIN + 0.01) * Math.sqrt(sax * sax + say * say);
+    }
+    if (ddx * sax + ddy * say > sup) continue;   // beyond everything B has on this side: neither inside nor within the margin
     let inside = false, best = 1e18, bj = 0, bt = 0, bqx = 0, bqy = 0;
-    let x1 = bx[nB - 1], y1 = by[nB - 1];
-    for (let j = 0; j < nB; j++) {
-      const x2 = bx[j], y2 = by[j];
+    for (let k = 0; k < nL; k++) {
+      const j = eList[k], jp = j === 0 ? nB - 1 : j - 1, x1 = bx[jp], y1 = by[jp], x2 = bx[j], y2 = by[j];
       if (((y1 > Y) !== (y2 > Y)) && (X < (x2 - x1) * (Y - y1) / (y2 - y1) + x1)) inside = !inside;
-      const ex = x2 - x1, ey = y2 - y1, el = ex * ex + ey * ey;
-      let t = el > 1e-9 ? ((X - x1) * ex + (Y - y1) * ey) / el : 0;
-      if (t < 0) t = 0; else if (t > 1) t = 1;
-      const qx = x1 + t * ex - X, qy = y1 + t * ey - Y, d2 = qx * qx + qy * qy;
-      if (d2 < best) { best = d2; bj = j; bt = t; bqx = qx; bqy = qy; }
-      x1 = x2; y1 = y2;
+      if (eKind[j] === 1) {
+        const ex = x2 - x1, ey = y2 - y1, el = ex * ex + ey * ey, dot = (X - x1) * ex + (Y - y1) * ey;
+        const t = (dot <= 0 || el <= 1e-9) ? 0 : dot >= el ? 1 : dot / el;
+        const qx = x1 + t * ex - X, qy = y1 + t * ey - Y, d2 = qx * qx + qy * qy;
+        if (d2 < best) { best = d2; bj = j; bt = t; bqx = qx; bqy = qy; }
+      }
+    }
+    if (inside) {   // a point inside B needs its true nearest edge, wherever that is: finish the search over the other edges
+      let x1 = bx[nB - 1], y1 = by[nB - 1];
+      for (let j = 0; j < nB; j++) {
+        const x2 = bx[j], y2 = by[j];
+        if (eKind[j] !== 1) {
+          const ex = x2 - x1, ey = y2 - y1, el = ex * ex + ey * ey, dot = (X - x1) * ex + (Y - y1) * ey;
+          const t = (dot <= 0 || el <= 1e-9) ? 0 : dot >= el ? 1 : dot / el;
+          const qx = x1 + t * ex - X, qy = y1 + t * ey - Y, d2 = qx * qx + qy * qy;
+          if (d2 < best || (d2 === best && j < bj)) { best = d2; bj = j; bt = t; bqx = qx; bqy = qy; }
+        }
+        x1 = x2; y1 = y2;
+      }
     }
     const d = Math.sqrt(best);
     if (!inside && d >= MARGIN) continue;
@@ -483,6 +597,8 @@ function collide(A, B) {
       bx[j0] += fx * wb * u; by[j0] += fy * wb * u; bx[j1] += fx * wb * t; by[j1] += fy * wb * t;
     }
     A.ct[i] = 1; B.ct[j0] = 1; B.ct[j1] = 1;
+    if (eKind[j0] !== 1 || eKind[j1] !== 1 || eKind[j1 + 1 < nB ? j1 + 1 : 0] !== 1) fresh = false;   // an edge outside the full-test set just moved: sort the edges again
+    else { const s0 = (bx[j0] - bcx) * sax + (by[j0] - bcy) * say, s1 = (bx[j1] - bcx) * sax + (by[j1] - bcy) * say, m = (MARGIN + 0.01) * Math.sqrt(sax * sax + say * say); if (s0 + m > sup) sup = s0 + m; if (s1 + m > sup) sup = s1 + m; }
     hits++;
   }
   return hits;
@@ -537,6 +653,7 @@ function collideWalls(b) {
 }
 
 function substep(h) {
+  stepSize(h);
   const ih = 1 / h;
   let nb = blobs.length;
   for (let bi = 0; bi < nb; bi++) {
@@ -773,7 +890,7 @@ function skinStep(b, dt) {
 }
 
 function finishMerge(a, b) {
-  a.dead = b.dead = true;
+  a.dead = b.dead = true; saveDirty = true;
   const x = (a.cx + b.cx) / 2, y = (a.cy + b.cy) / 2;
   const nb = makeBlob(a.level + 1), n = nb.n;
   const vx = (a.vcx + b.vcx) / 2, vy = (a.vcy + b.vcy) / 2;
@@ -824,14 +941,14 @@ function finishMerge(a, b) {
   if (onShelf) { nb.tray = true; nb.sq = nb.sqT = 1; } else { combo++; comboIdle = 0; }
   const pts = nb.value * (onShelf ? 1 : combo);
   score += pts;
-  if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
+  if (score > best) { best = score; bestDirty = true; }
   if (nb.level > peak) peak = nb.level;
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
   const gl = Math.min(0.8, 0.14 + nb.level * 0.07 + (combo >= 2 ? 0.08 : 0));   // how much the screen takes the colour
   if (gl >= glow.a * 0.7) { glow.c = cidx(nb.level); glow.a = Math.max(glow.a, gl); }
   let kick = 0;   // a merge does not shake the screen; only the big-blob fanfare does
-  sfxMerge(nb.level, combo);
+  sfxMerge(nb.level, combo); buzz(Math.min(28, 8 + nb.level * 2));
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
@@ -857,9 +974,9 @@ function ripple(b, j0) {
   }
 }
 function popBlob(b) {
-  b.dead = true;
+  b.dead = true; saveDirty = true;
   const x = b.cx, y = b.cy, ci = cidx(b.level);
-  score += b.value; if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
+  score += b.value; if (score > best) { best = score; bestDirty = true; }
   scoreBump = Math.max(scoreBump, 0.5); sfxPick();
   if (REDUCED) return;
   for (let i = 0; i < 14; i++) {
@@ -919,7 +1036,7 @@ function fanfareEnv() {
 function drawFanfare() {
   const env = fanfareEnv(); if (env <= 0) return;
   const c = COLORS[fanfare.c], x = fanfare.x, y = fanfare.y, b = fanfare.b, rs = b ? b.r * b.scale : 40;
-  ctx.save(); panelPath(); ctx.clip();
+  ctx.save();
   ctx.fillStyle = `rgba(14,14,24,${(0.62 * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // dim the field
   // rays: two fans of wedges turning against each other, additive, in the new colour and white
   ctx.globalCompositeOperation = 'lighter';
@@ -941,9 +1058,29 @@ function drawFanfare() {
     ctx.translate(x, y); ctx.scale(s, s); ctx.translate(-x, -y);
     drawBlob(b, false);
     ctx.strokeStyle = `rgba(255,255,255,${(0.9 * env).toFixed(3)})`; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.stroke();
-    label(b, 1);
+    ctx.font = fontOf(b); label(b, 1);
   }
   ctx.restore();
+}
+// The panel's rounded corners: everything is drawn unclipped, then the four corner slivers (and anything below the
+// panel on a very tall screen) are erased once per frame. The canvas edges already cut the straight sides.
+let sliverH = -1; const slivers = [null, null, null, null];
+function cornerSlivers() {
+  if (sliverH === H) return slivers;
+  sliverH = H;
+  const r = CORNER, rb = Math.min(CORNER, H / 2), L = WALL_L, R = WALL_R, T = CEIL, B = H, o = 2;
+  let p = new Path2D(); p.moveTo(L - o, T - o); p.lineTo(L + r, T - o); p.lineTo(L + r, T); p.arcTo(L, T, L, T + r, r); p.lineTo(L - o, T + r); p.closePath(); slivers[0] = p;
+  p = new Path2D(); p.moveTo(R + o, T - o); p.lineTo(R - r, T - o); p.lineTo(R - r, T); p.arcTo(R, T, R, T + r, r); p.lineTo(R + o, T + r); p.closePath(); slivers[1] = p;
+  p = new Path2D(); p.moveTo(R + o, B + o); p.lineTo(R + o, B - rb); p.lineTo(R, B - rb); p.arcTo(R, B, R - rb, B, rb); p.lineTo(R - rb, B + o); p.closePath(); slivers[2] = p;
+  p = new Path2D(); p.moveTo(L - o, B + o); p.lineTo(L + rb, B + o); p.lineTo(L + rb, B); p.arcTo(L, B, L, B - rb, rb); p.lineTo(L - o, B - rb); p.closePath(); slivers[3] = p;
+  return slivers;
+}
+function punchCorners() {
+  const sl = cornerSlivers();
+  ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = 1; ctx.fillStyle = '#000';
+  for (let i = 0; i < 4; i++) ctx.fill(sl[i]);
+  if (H * S < CH - 0.5) ctx.fillRect(WALL_L - 2, H, WALL_R - WALL_L + 4, CH / S - H + 2);   // only on screens taller than the 820-unit panel
+  ctx.globalCompositeOperation = 'source-over';
 }
 function panelPath() {
   const r = CORNER, rb = Math.min(CORNER, H / 2);
@@ -954,18 +1091,7 @@ function panelPath() {
 function drawJuice() {
   if (!juiceLive) return;
   drawFanfare();   // under the particles: dim, rays, glow, the blob on top
-  ctx.save();   // everything stays inside the panel
-  panelPath(); ctx.clip();
-  // wall flares: a half-disc of light blooming on the wall where a shot doubled (the clip cuts it to the field side)
-  ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < flares.length; i++) {
-    const f = flares[i]; if (f.t >= f.life) continue;
-    const k = f.t / f.life, R = 50 + 110 * (1 - Math.pow(1 - k, 3)), c = COLORS[f.c];
-    const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, R);
-    g.addColorStop(0, c.hex + 'cc'); g.addColorStop(0.45, c.hex + '55'); g.addColorStop(1, c.hex + '00');
-    ctx.globalAlpha = 1 - k * k; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, R, 0, 6.2832); ctx.fill();
-  }
-  ctx.globalCompositeOperation = 'source-over';
+  ctx.save();
   // rings: a thinning hoop of the new colour, out and gone
   ctx.lineCap = 'round';
   for (let i = 0; i < rings.length; i++) {
@@ -1002,34 +1128,33 @@ function drawJuice() {
 
 /* ───────────────────────── game flow ───────────────────────── */
 function layout() {
-  TRAY_Y = H - 112; FLOOR_Y = H - 1; DANGER_Y = Math.min(TRAY_Y - 58, CEIL + 430);   // the shelf sits well above the bottom edge, easy to grab and pull
+  TRAY_Y = H - 144; FLOOR_Y = H - 1; DANGER_Y = Math.min(H - 170, CEIL + 430);   // the shelf sits well above the bottom edge, easy to grab and pull
   planes = [[1, 0, WALL_L, 0], [-1, 0, -WALL_R, 0], [0, 1, CEIL, 1], [0, -1, -FLOOR_Y, 0]];
 }
 
-const trayScale = b => Math.min(1, TRAY_R / b.r);
+const trayScale = b => Math.min(baseRadiusFor(b.level), TRAY_R) / b.r;   // the grab size never shrinks with the run
 function boardHas(level) { for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level === level) return true; return false; }
-// The shelf climbs with the run. `floorL` is the lowest tier still fed normally: 1 until the run makes 64, then it
-// rises half a tier per tier of peak, so 2s thin out at 128 and are gone at 256, 4s at 1024, 8s at 4096... A tier
-// below the floor that is still on the board keeps a trickle so stragglers can always be paired off (never blocked).
-const spawnFloor = () => Math.max(1, 1 + (peak - 6) / 2);
+// The smallest launch tier retires as the run climbs: 2s stop at 128, 4s at 512, 8s at 2048, and so on.
+// Blobs already on the board stay; only new shelf arrivals obey the floor.
+const spawnFloor = () => Math.max(1, 1 + Math.ceil((peak - 6) / 2));
 function pickLevel() {
   let maxL = 4;
-  for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level > maxL) maxL = blobs[i].level;
-  const f = spawnFloor(), lo = Math.floor(f);
+  for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > maxL) maxL = blobs[i].level;
+  const lo = spawnFloor();
   const top = Math.max(lo + 2, Math.min(lo + 4, maxL - 2));
   let total = 0; const w = [];
-  for (let l = 1; l <= top; l++) {
-    let v = l < lo ? 0 : Math.pow(0.62, l - lo) * Math.min(1, l - f + 1);
-    if (boardHas(l)) v = Math.max(v * 1.5, 0.28);   // on the board: a bit likelier; below the floor: the trickle
+  for (let l = lo; l <= top; l++) {
+    let v = Math.pow(0.62, l - lo);
+    if (boardHas(l)) v = Math.max(v * 1.5, 0.28);   // a tier with a match waiting on the board is a bit likelier
     w.push(v); total += v;
   }
   let r = Math.random() * total;
-  for (let l = 1; l <= top; l++) { r -= w[l - 1]; if (r <= 0) return l; }
+  for (let l = lo; l <= top; l++) { r -= w[l - lo]; if (r <= 0) return l; }
   return lo;
 }
 
 function reset() {
-  blobs.length = 0; shuffleRun();
+  blobs.length = 0; shuffleRun(); runSizeScale = 1; sizeDirty = true;
   score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; shakeHeat = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
@@ -1047,18 +1172,108 @@ function reset() {
     b.noMerge = 0.9; b.touched = true; b.sinceTouch = 1;
     blobs.push(b); x += r * 2 + gap;
   }
-  overEl.hidden = true;
+  overEl.hidden = true; reviveEl.hidden = true;
+  reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; count = 0; countPop = 0; ringShown = -1; bestAtStart = best;
+  saveT = 0; saveDirty = true; clearSave();
+}
+
+/* ───────── save: the run in progress survives closing the page ───────── */
+// A blob is stored as [level, x, y, vx, vy, flags, angle, outline] (flags: 1 on the shelf, 2 still in flight; the
+// outline is its points in tenths of a unit, field blobs only). Written when something changed, at most every two
+// seconds, and when the page is hidden; never from the physics.
+const SAVE_KEY = 'udm_save', SAVE_V = 1;
+let saveT = 0, saveDirty = true;
+let bestDirty = false;
+function flushBest() { if (!bestDirty) return; bestDirty = false; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
+function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+function saveRun() {
+  flushBest();
+  if (over || !blobs.length) return;
+  const bl = [];
+  let moving = false;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]; if (b.dead || b.popping) continue;
+    const e = [b.level, Math.round(b.cx * 10) / 10, Math.round(b.cy * 10) / 10, b.tray ? 0 : Math.round(b.vcx), b.tray ? 0 : Math.round(b.vcy),
+      (b.tray ? 1 : 0) | (!b.tray && b.launched && !b.touched ? 2 : 0), Math.round(Math.atan2(b.sn, b.cs) * 100) / 100];
+    if (!b.tray) {
+      const p = new Array(b.n * 2);
+      for (let k = 0; k < b.n; k++) { p[k * 2] = Math.round(b.x[k] * 10); p[k * 2 + 1] = Math.round(b.y[k] * 10); }
+      e.push(p);
+      if (b.vcx * b.vcx + b.vcy * b.vcy > 36 || b.state !== 0) moving = true;
+    } else { e.push(0); if (b.entering) moving = true; }
+    e.push(b.sh);
+    bl.push(e);
+  }
+  saveDirty = moving;   // keep saving while the board is still moving, then once more at rest
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, blobs: bl })); } catch (e) {}
+}
+function loadRun() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { d = null; }
+  if (!d || d.v !== SAVE_V || !Array.isArray(d.blobs) || !d.blobs.length || d.blobs.length > 80 || !Array.isArray(d.order) || d.order.length !== COLORS.length) return false;
+  const seen = new Set(d.order);
+  if (seen.size !== COLORS.length) return false;
+  for (const k of d.order) if (!Number.isInteger(k) || k < 0 || k >= COLORS.length) return false;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  for (const e of d.blobs) {
+    if (!Array.isArray(e) || e.length < 6 || !Number.isInteger(e[0]) || e[0] < 1 || e[0] > 24 || !isFinite(+e[1]) || !isFinite(+e[2])) return false;
+  }
+  reset();                                        // a clean slate: pools, flags, cards
+  blobs.length = 0;
+  runOrder = d.order.slice();
+  score = shown = Math.max(0, +d.score || 0); peak = Math.max(0, Math.min(24, d.peak | 0)); reviveUsed = !!d.revive;
+  runSizeScale = sizeTarget(); sizeDirty = false;
+  openQ = Array.isArray(d.openQ) ? d.openQ.filter(l => Number.isInteger(l) && l >= 1 && l <= 12).slice(0, 3) : [];
+  for (const e of d.blobs) {
+    const x = +e[1], y = +e[2], vx = +e[3] || 0, vy = +e[4] || 0, f = e[5] | 0, a = +e[6] || 0;
+    const q = e[8];   // its own pebble shape, if the save has a sane one
+    const shOk = Array.isArray(q) && q.length === 7 && q.every(v => typeof v === 'number' && isFinite(v)) && Number.isInteger(q[6]) && q[6] >= 14 && q[6] <= MAXN &&
+      q[0] >= 0 && q[0] < 0.2 && q[1] >= 0 && q[1] < 0.2 && q[2] >= 0 && q[2] < 0.2;
+    const b = makeBlob(e[0], shOk ? q : undefined);
+    if (f & 1) {
+      const ts = trayScale(b), rs = b.r * ts;
+      placeBlob(b, clamp(x, WALL_L + rs + 4, WALL_R - rs - 4), TRAY_Y, a, ts, 0, 1, 1, 0, 0);
+      b.tray = true; b.scale = b.scaleT = ts; b.sq = b.sqT = 1; b.noMerge = 0.3;
+    } else {
+      const r = b.r, p = e[7], n = b.n;
+      const exact = Array.isArray(p) && p.length >= 16 && p.length % 2 === 0 && p.length <= 400 && p.every(v => typeof v === 'number' && isFinite(v));
+      const k = exact ? 1 : 0.9;
+      placeBlob(b, clamp(x, WALL_L + r * 0.7, WALL_R - r * 0.7), clamp(y, CEIL + r * 0.7, FLOOR_Y - r), a, k, 0, 1, 1, clamp(vx, -V_MAX, V_MAX), clamp(vy, -V_MAX, V_MAX));
+      if (exact) {
+        // the saved outline, resampled if this blob was born at another size (its point count follows its radius)
+        const m = p.length / 2; let sx = 0, sy = 0, my = -1e9;
+        for (let i = 0; i < n; i++) {
+          const t = i * m / n, i0 = Math.floor(t) % m, i1 = (i0 + 1) % m, fr = t - Math.floor(t);
+          const X = clamp((p[i0 * 2] + (p[i1 * 2] - p[i0 * 2]) * fr) / 10, WALL_L, WALL_R), Y = clamp((p[i0 * 2 + 1] + (p[i1 * 2 + 1] - p[i0 * 2 + 1]) * fr) / 10, CEIL, FLOOR_Y);
+          b.x[i] = b.px[i] = X; b.y[i] = b.py[i] = Y; sx += X; sy += Y; if (Y > my) my = Y;
+        }
+        b.cx = sx / n; b.cy = sy / n; b.maxY = my;
+        let br2 = 0; for (let i = 0; i < n; i++) { const dx = b.x[i] - b.cx, dy = b.y[i] - b.cy; if (dx * dx + dy * dy > br2) br2 = dx * dx + dy * dy; }
+        b.br = Math.sqrt(br2) + 1; b.noMerge = 0.25;
+      } else {
+        // no outline: a touch small, inflating like a newborn, so restored neighbours ease apart instead of jumping
+        b.scale = k; b.scaleT = 1; b.anim = true; b.animT = 0; b.young = YOUNG; b.noMerge = 0.5;
+      }
+      if (f & 2) b.launched = true; else { b.touched = true; b.sinceTouch = 1; }
+    }
+    blobs.push(b);
+  }
+  if (score > best) best = score;
+  bestAtStart = best;
+  saveRun();
+  return true;
 }
 
 function trayCount() { let c = 0; for (let i = 0; i < blobs.length; i++) if (blobs[i].tray) c++; return c; }
 
 // A new shape slides onto the shelf from the left (0) or right (1) gate.
 function spawnTray(side) {
+  while (openQ.length && openQ[0] < spawnFloor()) openQ.shift();
   const b = makeBlob(openQ.length ? openQ.shift() : pickLevel()), ts = trayScale(b);
   const x = side === 0 ? WALL_L - b.r * ts * 1.15 : WALL_R + b.r * ts * 1.15;   // starts beyond the edge of the screen
   placeBlob(b, x, TRAY_Y, Math.random() * 6.28, ts, 0, 1, 1, side === 0 ? ENTER_V : -ENTER_V, 0);
   b.tray = true; b.entering = true; b.scale = b.scaleT = ts; b.sq = 1.18; b.sqT = 1; b.anim = true; b.animT = 0; b.noMerge = 0.3;
-  blobs.push(b); gateFlash[side] = 1;
+  blobs.push(b); gateFlash[side] = 1; saveDirty = true;
 }
 
 function pickTray(x, y, maxDist) {
@@ -1077,6 +1292,7 @@ function fire(b) {
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
   b.tray = false; b.launched = true; b.scaleT = 1; b.sqT = 0; b.anim = true; b.animT = 0;   // springs back to full size: the launch stretch
+  saveDirty = true;
   b.vcx = b.pvx = dx; b.vcy = b.pvy = dy; b.touched = false; b.sinceTouch = 0; b.noMerge = 0;
   combo = 0;
   // on touch it is this release that wakes the audio, a moment later: still play the launch then
@@ -1112,25 +1328,72 @@ function frameLogic(dt) {
 
   // danger line: the pile grows downward; lose only if it stays past the line
   if (!over) {
-    let past = false;
+    // only a settled blob counts: in the pile for a while, not merging, and nearly at rest (something flying
+    // through the line is not danger). `low` is how far down the settled pile reaches.
+    let low = -1e9;
     for (let i = 0; i < blobs.length; i++) {
       const b = blobs[i];
-      // only a settled blob counts: in the pile for a while, not merging, and nearly at rest (something flying
-      // through the line is not danger)
-      if (!b.tray && b.touched && b.sinceTouch > 0.7 && b.freeT < 0.05 && b.state === 0 && b.maxY > DANGER_Y && b.vcx * b.vcx + b.vcy * b.vcy < 50 * 50) { past = true; break; }
+      if (!b.tray && b.touched && b.sinceTouch > 0.7 && b.freeT < 0.05 && b.state === 0 && b.maxY > low && b.vcx * b.vcx + b.vcy * b.vcy < 50 * 50) low = b.maxY;
     }
-    dangerT = past ? dangerT + dt : Math.max(0, dangerT - dt * 3);
+    const past = low > DANGER_Y;
+    const near = Math.max(0, Math.min(1, (low - (DANGER_Y - LINE_NEAR)) / 70));   // the line fades in as the pile comes close
+    lineA += (near - lineA) * (1 - Math.exp(-dt * 8));
+    dangerT = past ? dangerT + dt : dangerT > 0 ? Math.max(0, dangerT - dt * 3) : Math.min(0, dangerT + dt);
     warn = dangerT > 0.12;
     if (dangerT > 0) dangerPh += dt * (1.1 + 2.6 * Math.min(1, dangerT / DANGER_HOLD)); else dangerPh = 0;   // heartbeat, quickening
-    if (dangerT >= DANGER_HOLD) { over = true; overT = 0; aiming = false; armed = false; sel = null; sfxOver(); }
+    const c = dangerT > DANGER_GRACE ? Math.max(1, Math.ceil(DANGER_HOLD - dangerT)) : 0;   // 3, 2, 1
+    if (c !== count) { if (c > 0 && (count === 0 || c < count)) { countPop = 1; sfxTick(c); buzz(18); } count = c; }
+    if (countPop > 0) countPop = Math.max(0, countPop - dt * 4);
+    if (dangerT >= DANGER_HOLD) lose();
+    saveT += dt; if (saveT >= 2) { saveT = 0; if (saveDirty) saveRun(); }
+  } else if (offer) {
+    offerT += dt;
+    const left = REVIVE_TIME - Math.max(0, offerT - 0.55);   // a beat to see the board, then the card and its timer
+    if (offerT > 0.55 && reviveEl.hidden) { reviveEl.hidden = false; reviveYes.focus({ preventScroll: true }); }
+    const n = Math.max(0, Math.ceil(left));
+    if (n !== ringShown) { ringShown = n; ringN.textContent = String(n); }
+    ringLeft.style.strokeDashoffset = (264 * (1 - Math.max(0, Math.min(1, left / REVIVE_TIME)))).toFixed(1);
+    if (left <= 0) endRun();
   } else {
     overT += dt;
-    if (overT > 0.75 && overEl.hidden) {
+    if (overT > 0.45 && overEl.hidden) {
       oScore.textContent = score.toLocaleString(); oBest.textContent = best.toLocaleString();
+      oWhy.textContent = 'The pile stayed past the line for 3 seconds.' + (reviveUsed ? ' Your revive was already used.' : '');
+      oNew.hidden = !(score > 0 && score >= best && score > bestAtStart);
       overEl.hidden = false; againBtn.focus({ preventScroll: true });
     }
   }
   juiceStep(dt); frameFx(dt);
+}
+// The countdown ran out: the run stops. One revive per run is offered first.
+function lose() {
+  over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countPop = 0;
+  flushBest(); buzz([40, 60, 90]);
+  if (!reviveUsed) { offer = true; offerT = 0; ringShown = -1; sfxStop(); } else endRun();
+}
+function endRun() {
+  offer = false; ended = true; overT = 0; reviveEl.hidden = true; flushBest(); clearSave(); sfxOver();
+}
+// Revive: the blobs crowding the line burst (never fewer than three, and never the run's biggest), play goes on.
+function revive() {
+  if (!offer) return;
+  reviveUsed = true; offer = false; over = false; ended = false; reviveEl.hidden = true;
+  dangerT = -1.5; dangerPh = 0; warn = false; count = 0;   // a moment's grace before the line counts again
+  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > top) top = blobs[i].level;
+  const field = blobs.filter(b => !b.tray && !b.dead && b.level < top).sort((p, q) => q.maxY - p.maxY);
+  let n = 0;
+  for (const b of field) {
+    if (n >= 3 && b.maxY < DANGER_Y - REVIVE_BAND) break;
+    b.dead = true; n++;
+    if (!REDUCED) for (let i = 0; i < 10; i++) {
+      const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
+      const th = Math.random() * 6.283, v = 120 + Math.random() * 220;
+      sp.t = 0; sp.life = 0.3 + Math.random() * 0.35; sp.s = 2 + Math.random() * 3; sp.c = cidx(b.level);
+      sp.x = b.cx; sp.y = b.cy; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
+    }
+  }
+  if (!REDUCED) kickShake(1); glow.a = Math.max(glow.a, 0.6);
+  sfxRevive(); buzz([20, 40, 30]); saveDirty = true; saveT = 1.5;
 }
 function frameFx(dt) {
   const d = score - shown;
@@ -1191,11 +1454,13 @@ function tick(dt) {
   }
   acc += dt;
   let steps = 0;
+  const t0 = performance.now(), need = Math.ceil(dtS / DT) * 2, budget = Math.max(7, dtS * 450);   // ms a long catch-up may take
   while (acc >= DT && steps < 24) {   // real time down to 10 frames a second
     substep(DT); acc -= DT; steps++;
     if (++impN >= IMP_SUB) { impN = 0; impulses(); }
+    if (steps >= need && (steps & 1) === 0 && acc >= DT && performance.now() - t0 > budget) { perfC.shed++; break; }   // a hitch's backlog, out of time
   }
-  if (acc > DT) acc = 0;
+  if (acc > DT) acc %= DT;   // drop a backlog, keep the phase
   frameLogic(dt);
 }
 
@@ -1214,6 +1479,7 @@ function initAudio() {
   }
   if (actx.state !== 'running') { const p = actx.resume(); if (p && p.catch) p.catch(() => {}); }   // also iOS 'interrupted'
 }
+let lastMerge = -1, lastMergeLv = 0;
 function tone(f0, f1, t0, dur, vol, type) {
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t0);
@@ -1287,6 +1553,7 @@ function chimeNote(f, t0, vol, u, last) {
 const BLOOP = [520, 470, 420, 370, 330, 295, 262, 235, 210, 188, 168];   // the merge "bloop" root per level: bigger blobs, lower
 function sfxMerge(level, combo) {
   if (!audible()) return; const t = actx.currentTime;
+  if (level === lastMergeLv && t - lastMerge < 0.03) return; lastMerge = t; lastMergeLv = level;   // the same bloop twice in one step: once
   const f = BLOOP[Math.max(0, Math.min(BLOOP.length - 1, level - 2))] * (0.97 + Math.random() * 0.06);
   const vol = Math.min(0.42, 0.32 + combo * 0.02), ring = 0.55 + 0.03 * level;
   const o = actx.createOscillator(), g = actx.createGain();                 // the drop: a sine that dips and bends up into its note
@@ -1341,6 +1608,18 @@ function musicTick() {
     barI++; nextBar += BAR;
   }
 }
+function sfxTick(n) {            // the countdown on the line: a short blip, higher for the last second
+  if (!audible()) return; const t = actx.currentTime, f = n <= 1 ? 988 : 740;
+  tone(f, f, t, 0.1, 0.17, 'triangle');
+}
+function sfxStop() {              // the countdown ran out: two falling notes, before the revive offer
+  if (!audible()) return; const t = actx.currentTime;
+  tone(330, 300, t, 0.22, 0.18, 'triangle'); tone(220, 196, t + 0.16, 0.34, 0.18, 'triangle');
+}
+function sfxRevive() {           // back in the run: four quick rising notes
+  if (!audible()) return; const t = actx.currentTime;
+  [392, 523, 659, 784].forEach((f, i) => tone(f, f, t + i * 0.07, 0.26, 0.16, 'triangle'));
+}
 function sfxOver() {
   if (!audible()) return; const t = actx.currentTime;
   [392, 311, 233, 175].forEach((f, i) => tone(f, f * 0.97, t + i * 0.2, 0.42, 0.2, 'triangle'));
@@ -1352,11 +1631,18 @@ const stage = document.getElementById('stage');
 const overEl = document.getElementById('over'), oScore = document.getElementById('o-score'), oBest = document.getElementById('o-best');
 const againBtn = document.getElementById('again'), restartBtn = document.getElementById('restart'), soundBtn = document.getElementById('sound');
 const gearBtn = document.getElementById('gear'), menuEl = document.getElementById('menu'), soundState = document.getElementById('sound-state');
+const reviveEl = document.getElementById('revive'), reviveYes = document.getElementById('revive-yes'), reviveNo = document.getElementById('revive-no');
+const ringLeft = document.getElementById('ring-left'), ringN = document.getElementById('ring-n'), oWhy = document.getElementById('o-why'), oNew = document.getElementById('o-new');
+const vibBtn = document.getElementById('vib'), vibState = document.getElementById('vib-state');
+const tintEl = document.getElementById('tint'), hudEl = document.getElementById('hud');
 const clockEl = document.getElementById('clock'), brandEl = document.getElementById('brand'), screenEl = document.getElementById('screen'), dangerEl = document.getElementById('danger');
 let shakeCss = '', dangerCss = '';
-let scoreShown = '', scoreScale = 1;
+let scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
+const FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
+let bestN = -1, bestTxt = '', bestW = 0;
+const bySize = (p, q) => q.r - p.r;
 const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
 const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z');   // 16x32 laurel branch from the Figma frame (Squish 19:114)
 
@@ -1370,17 +1656,38 @@ function fitShell() {
   const u = bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
 }
+let cursorS = 0;
+function setCursor() {   // the same grey ball with a light core, as a cursor image at the field's scale
+  if (S === cursorS || typeof document.createElement !== 'function') return;
+  cursorS = S;
+  const mk = k => {
+    const r = 5.5 * S * k, sz = Math.ceil(r * 2 + 2 * k), c = sz / 2, cv = document.createElement('canvas');
+    cv.width = cv.height = sz; const g = cv.getContext('2d');
+    g.beginPath(); g.arc(c, c, r, 0, 6.2832); g.fillStyle = '#a3a3ad'; g.fill();
+    g.beginPath(); g.arc(c, c, 1.9 * S * k, 0, 6.2832); g.fillStyle = '#f4f1ea'; g.fill();
+    return cv.toDataURL();
+  };
+  try {
+    const hot = Math.round((Math.ceil(5.5 * S * 2 + 2)) / 2), u1 = mk(1);
+    canvas.style.cursor = `url(${u1}) ${hot} ${hot}, default`;
+    const u2 = mk(2);   // a sharp one for dense screens, where the browser takes image-set (otherwise the line above stands)
+    canvas.style.cursor = `image-set(url(${u1}) 1x, url(${u2}) 2x) ${hot} ${hot}, default`;
+  } catch (e) {}
+}
 function resize() {
   fitShell();
   CW = stage.clientWidth; CH = stage.clientHeight;
   if (!CW || !CH) return;
-  DPR = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width = Math.round(CW * DPR); canvas.height = Math.round(CH * DPR);
-  S = CW / W;
+  DPR = Math.min(2, window.devicePixelRatio || 1, Math.max(1, Math.sqrt(1.6e6 / (CW * CH))));
+  const pw = Math.round(CW * DPR), ph = Math.round(CH * DPR), grew = canvas.width !== pw || canvas.height !== ph;
+  if (grew) { canvas.width = pw; canvas.height = ph; }
+  S = CW / W; setCursor();
   H = Math.max(560, Math.min(CH / S, 820));
   OX = 0; OY = 0;
   layout();
-  if (blobs.length) draw();
+  hudT = Math.max(0, Math.min(1, (hudEl.offsetTop + hudEl.offsetHeight * 0.45) / (0.6 * (screenEl.offsetHeight || 1))));
+  fxA = -1;
+  if (grew && blobs.length) draw();
 }
 function tickClock() {
   if (bare) return;
@@ -1393,6 +1700,7 @@ function pathPts(x, y, n) {
   for (let i = 0; i < n; i++) { const j = i + 1 < n ? i + 1 : 0; ctx.quadraticCurveTo(x[i], y[i], (x[i] + x[j]) / 2, (y[i] + y[j]) / 2); }
   ctx.closePath();
 }
+const fontOf = b => { if (b.fontFs !== b.fs) { b.fontFs = b.fs; b.font = '900 ' + b.fs.toFixed(1) + 'px ' + FONT; } return b.font; };
 function label(b, alpha) {
   if (alpha <= 0.02) return;
   const u = b.scale, k = 0.35, ca = Math.cos(b.la), sa = Math.sin(b.la);
@@ -1401,12 +1709,10 @@ function label(b, alpha) {
   if (v22 < 0.45) v22 = 0.45; else if (v22 > 1.7) v22 = 1.7;
   if (v12 < -0.6) v12 = -0.6; else if (v12 > 0.6) v12 = 0.6;
   if (v21 < -0.6) v21 = -0.6; else if (v21 > 0.6) v21 = 0.6;
-  ctx.save(); ctx.translate(b.cx, b.cy);
+  ctx.save(); ctx.translate(b.tray ? b.cx : b.cx + b.vcx * acc, b.tray ? b.cy : b.cy + b.vcy * acc);
   ctx.transform(v11 * ca + v12 * sa, v21 * ca + v22 * sa, -v11 * sa + v12 * ca, -v21 * sa + v22 * ca, 0, 0);
-  const c = colorFor(b.level);
   ctx.fillStyle = 'rgba(0,0,0,0.3)';   // Figma: 30% black over the blob's colour, the same when grabbed or on the merge flash
   ctx.globalAlpha = alpha;
-  ctx.font = '900 ' + b.fs.toFixed(1) + 'px ' + FONT;
   ctx.fillText(b.label, 0, b.fs * 0.04);
   ctx.restore();
 }
@@ -1414,81 +1720,134 @@ function label(b, alpha) {
 function drawBlob(b, outline) {
   const c = colorFor(b.level);
   const sk = SKIN && !b.fresh, X = sk ? b.RX : b.x, Y = sk ? b.RY : b.y;
+  const lx = b.tray ? 0 : b.vcx * acc, ly = b.tray ? 0 : b.vcy * acc, led = lx !== 0 || ly !== 0;
+  if (led) ctx.translate(lx, ly);
   ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = c.hex; ctx.fill();
   let fl = b.flash;                 // merge flash: a white veil over the same inside, fading away
   if (b.state === 1) fl = Math.max(fl, 0.7 * (1 - Math.max(0, b.mergeT) / MERGE_TIME));   // a merging pair brightens as it closes
-  if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${(fl * fl).toFixed(3)})`; ctx.fill(); }
-  if (outline) { ctx.beginPath(); pathPts(X, Y, b.n); ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.stroke(); }
+  if (fl > 0) { const a = fl * fl; if (a >= 0.002) { ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`; ctx.fill(); } }
+  if (outline) { ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.stroke(); }
+  if (led) ctx.translate(-lx, -ly);
 }
 
+const PANEL_STOPS = [[0, 0.08, 0.5], [0.55, 0.05, 0.2], [1, 0.02, 0.08]];   // [at, share of the top blob's colour, share of the glow]
+let bestPaint = null, bestPaintL = null, scoreN = -1;
 function draw() {
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  ctx.clearRect(0, 0, CW, CH);   // the screen's purple gradient shows through around the field
   // the shake moves the whole screen (DOM transform), so the wordmark and menu rock with the field
   let shx = 0, shy = 0;
   if (shake > 0) { const k = shake * Math.exp(-shakeT * 12); shx = Math.sin(shakeT * 95) * k; shy = Math.cos(shakeT * 83) * k; }
-  const st = (shake > 0 || tilt !== 0) ? `translate(${(shx * S).toFixed(2)}px,${(shy * S).toFixed(2)}px) rotate(${tilt.toFixed(3)}deg)` : '';
+  const stx = Math.round(shx * S * 4) / 4, sty = Math.round(shy * S * 4) / 4, srot = Math.round(tilt * 50) / 50;
+  const st = (stx || sty || srot) ? `translate(${stx}px,${sty}px) rotate(${srot}deg)` : '';
   if (st !== shakeCss) { shakeCss = st; screenEl.style.transform = st; }
-  ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY);
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // the wordmark is the score: it rolls up and bumps with a merge
+  const sv = Math.round(shown);
+  if (sv !== scoreN) { scoreN = sv; brandEl.textContent = String(sv); }
+  const sb = scoreBump > 0 ? 1 + 0.12 * scoreBump * scoreBump : 1;
+  if (sb !== scoreScale) { scoreScale = sb; brandEl.style.transform = sb === 1 ? '' : `scale(${sb.toFixed(3)})`; }
+  // while the pile sits past the line the whole screen goes red: a heartbeat vignette over the screen (DOM) and a
+  // red wash on the field (below), both growing with the time left before the run stops
+  const dk = over ? 1 : Math.max(0, Math.min(1, (dangerT - DANGER_GRACE) / (DANGER_HOLD - DANGER_GRACE)));   // nothing shows during the grace
+  let dangerA = 0;
+  if (dk > 0) { const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), pulse = over ? 0.7 : 0.35 + 0.65 * beat * beat; dangerA = dk * (0.4 + 0.6 * pulse); }
+  const dc = dangerA > 0.004 ? dangerA.toFixed(3) : '0';
+  if (dc !== dangerCss) { dangerCss = dc; dangerEl.style.opacity = dc; }
 
   // the panel is the play field: the ceiling is the "floor". No gate bars: shapes just arrive from the sides.
   // Its slate lights up in the merge colour from the top and carries a faint standing tint of the biggest blob.
   let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level > top) top = blobs[i].level;
-  const gc = COLORS[glow.c], tc = COLORS[cidx(Math.max(1, top))], ga = glow.a * glow.a * (2 - glow.a);
-  const fg = ctx.createLinearGradient(0, CEIL, 0, H);
-  fg.addColorStop(0, mixHex(...mixRgb(53, 53, 67, tc, 0.08), gc, 0.5 * ga));
-  fg.addColorStop(0.55, mixHex(...mixRgb(53, 53, 67, tc, 0.05), gc, 0.2 * ga));
-  fg.addColorStop(1, mixHex(...mixRgb(53, 53, 67, tc, 0.02), gc, 0.08 * ga));
-  panelPath(); ctx.fillStyle = fg; ctx.fill();
-  const sc = `linear-gradient(${mixHex(...mixRgb(30, 30, 42, tc, 0.06), gc, 0.32 * ga)},${mixHex(30, 30, 42, gc, 0.06 * ga)} 60%)`;
-  if (sc !== fieldCss) { fieldCss = sc; screenEl.style.background = sc; }
-  // the score and the gear sit on the screen in plus-lighter: they take the glow colour and brighten with it
-  const hc = mixHex(...mixRgb(166, 166, 188, tc, 0.42), gc, 0.85 * ga) + '|' + (0.3 + 0.45 * ga).toFixed(3);
-  if (hc !== hudCss) { hudCss = hc; const [col, a] = hc.split('|'); screenEl.style.setProperty('--hud', col); screenEl.style.setProperty('--hud-a', a); screenEl.style.setProperty('--hud-g', (+a - 0.05).toFixed(3)); }
-  ctx.save(); panelPath(); ctx.clip();
+  const ti = cidx(Math.max(1, top)), gc = COLORS[glow.c], tc = COLORS[ti], ga = Math.round(glow.a * glow.a * (2 - glow.a) * 64) / 64;
+  if (ti !== fxTop || glow.c !== fxC || ga !== fxA || H !== fxH || !fieldPaint) {
+    fieldPaint = ctx.createLinearGradient(0, CEIL, 0, H);
+    bestPaint = ctx.createLinearGradient(0, CEIL, 0, H);
+    bestPaintL = ctx.createLinearGradient(0, CEIL - (H - 64), 0, 64);   // the same gradient in the laurels' own (translated) space
+    const ik = 0.3 * ga, ir = 145 + (gc.r - 145) * ik, ig = 145 + (gc.g - 145) * ik, ib = 160 + (gc.b - 160) * ik;   // the cut-in's ink
+    for (let q = 0; q < 3; q++) {
+      const at = PANEL_STOPS[q][0], t = PANEL_STOPS[q][1], g = PANEL_STOPS[q][2] * ga;
+      const r0 = 53 + (tc.r - 53) * t, g0 = 53 + (tc.g - 53) * t, b0 = 67 + (tc.b - 67) * t;
+      const r = Math.round(r0 + (gc.r - r0) * g), gg = Math.round(g0 + (gc.g - g0) * g), bb = Math.round(b0 + (gc.b - b0) * g);
+      fieldPaint.addColorStop(at, `rgb(${r},${gg},${bb})`);
+      const m = `rgb(${Math.round(r * ir / 255)},${Math.round(gg * ig / 255)},${Math.round(bb * ib / 255)})`;
+      bestPaint.addColorStop(at, m); bestPaintL.addColorStop(at, m);
+    }
+    // the screen behind the field: a base that only follows the biggest blob, and the glow colour laid over it
+    // (a mix toward the glow colour by k is that colour at alpha k: the same picture, without repainting the screen)
+    if (ti !== fxTop) screenEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
+    if (glow.c !== fxC) tintEl.style.background = `linear-gradient(rgba(${gc.r},${gc.g},${gc.b},.32),rgba(${gc.r},${gc.g},${gc.b},.06) 60%)`;
+    const to = ga.toFixed(3); if (to !== tintCss) { tintCss = to; tintEl.style.opacity = to; }
+    // the score and the gear: the solid colour that their ink, added to the screen behind them, comes to
+    const a = 0.3 + 0.45 * ga; let bc = 'rgb(', gr = 'rgb(';
+    for (let k = 0; k < 3; k++) {
+      const X0 = k === 2 ? 42 : 30, I0 = k === 2 ? 188 : 166, T = k === 0 ? tc.r : k === 1 ? tc.g : tc.b, G = k === 0 ? gc.r : k === 1 ? gc.g : gc.b;
+      const t0 = X0 + (T - X0) * 0.06, topC = t0 + (G - t0) * 0.32 * ga, botC = X0 + (G - X0) * 0.06 * ga, bg = topC + (botC - topC) * hudT;
+      const i0 = I0 + (T - I0) * 0.42, ink = i0 + (G - i0) * 0.85 * ga;
+      bc += Math.min(255, Math.round(bg + ink * a)) + (k < 2 ? ',' : ')'); gr += Math.min(255, Math.round(bg + ink * (a - 0.05))) + (k < 2 ? ',' : ')');
+    }
+    if (bc !== hudCss) { hudCss = bc; brandEl.style.color = bc; }
+    if (gr !== gearCss) { gearCss = gr; gearBtn.style.setProperty('--gear-c', gr); }
+    fxTop = ti; fxC = glow.c; fxA = ga; fxH = H;
+  }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, CW, CH);   // the screen's gradient shows through around the field
+  ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = fieldPaint; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // punchCorners() rounds it
+  ctx.save();
 
   // best score, cut into the panel: the screen colour shows through it and the blobs pass over it (Figma 19:114:
   // the number between two laurel branches, 24 above the bottom, row 48 tall, gap 12)
   if (best > 0) {
-    // multiply (the nearest canvas has to "plus darker"): an ink of 145,145,160 over the panel's 53,53,67 lands on the screen's 30,30,42
-    const ink = mixHex(145, 145, 160, gc, 0.3 * ga), txt = best.toLocaleString(), by = H - 48;
-    ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = BEST_ALPHA;
+    // ("plus darker": an ink of 145,145,160 multiplied into the panel's 53,53,67 lands on the screen's 30,30,42)
+    const by = H - 48;
+    ctx.globalAlpha = BEST_ALPHA;
     ctx.font = '900 32px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const tw = ctx.measureText(txt).width;
-    ctx.fillStyle = ink; ctx.fillText(txt, LX, by + 1);
+    if (best !== bestN) { bestN = best; bestTxt = best.toLocaleString(); bestW = ctx.measureText(bestTxt).width; }
+    const txt = bestTxt, tw = bestW;
+    ctx.fillStyle = bestPaint; ctx.fillText(txt, LX, by + 1);
+    ctx.fillStyle = bestPaintL;
     ctx.save(); ctx.translate(LX - tw / 2 - 28, by - 16); ctx.fill(LAUREL); ctx.restore();
     ctx.save(); ctx.translate(LX + tw / 2 + 28, by - 16); ctx.scale(-1, 1); ctx.fill(LAUREL); ctx.restore();
-    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.globalAlpha = 1;
   }
 
-  // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
-  // screen (DOM) and a red wash on the field, both growing with the time left before the game ends
-  const dk = over ? 1 : Math.max(0, Math.min(1, (dangerT - DANGER_GRACE) / (DANGER_HOLD - DANGER_GRACE)));   // nothing shows during the grace
-  let dangerA = 0;
-  if (dk > 0) {
-    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), pulse = over ? 0.7 : 0.35 + 0.65 * beat * beat;
-    dangerA = dk * (0.4 + 0.6 * pulse);
+  if (dangerA > 0) {
     ctx.fillStyle = `rgba(255,40,60,${(0.22 * dangerA).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // (inside the panel clip)
     const g = ctx.createLinearGradient(0, DANGER_Y - 10, 0, DANGER_Y + 90);
     g.addColorStop(0, 'rgba(255,40,60,0)'); g.addColorStop(0.3, `rgba(255,40,60,${(0.3 * dangerA).toFixed(3)})`); g.addColorStop(1, 'rgba(255,40,60,0)');
     ctx.fillStyle = g; ctx.fillRect(WALL_L, DANGER_Y - 10, WALL_R - WALL_L, 100);
   }
-  const dc = dangerA > 0.004 ? dangerA.toFixed(3) : '0';
-  if (dc !== dangerCss) { dangerCss = dc; dangerEl.style.opacity = dc; }
 
   // aim: the straight trajectory below (no band, no text)
   const showAim = aiming && armed && sel && !over;
 
   // blobs, then their numbers on top
   drawOrder.length = 0; for (let i = 0; i < blobs.length; i++) drawOrder.push(blobs[i]);
-  drawOrder.sort((p, q) => q.r - p.r);          // big first, so a small shape is never hidden under a big one
+  drawOrder.sort(bySize);          // big first, so a small shape is never hidden under a big one
   for (let i = 0; i < drawOrder.length; i++) { const b = drawOrder[i]; drawBlob(b, b === sel || (b === hover && !aiming)); }
-  for (let i = 0; i < blobs.length; i++) {
-    const b = blobs[i];
+  let lf = '';
+  for (let i = 0; i < drawOrder.length; i++) {
+    const b = drawOrder[i], f = fontOf(b);
+    if (f !== lf) { lf = f; ctx.font = f; }
     label(b, 1);   // (the grabbed shape only gets the outline; no patch, no black number)
   }
-  ctx.restore();   // end of the panel clip
+  ctx.restore();
+
+  // the danger line: faint and dashed as the pile comes close, red and counting once the pile is past it
+  if (!over && (lineA > 0.02 || count > 0)) {
+    const hot = count > 0;
+    ctx.globalAlpha = hot ? 0.95 : 0.55 * lineA; ctx.strokeStyle = hot ? '#ff4d5e' : '#f4f1ea'; ctx.lineWidth = hot ? 3 : 2; ctx.lineCap = 'round';
+    ctx.setLineDash([9, 10]); ctx.lineDashOffset = -time * (hot ? 30 : 12);
+    ctx.beginPath(); ctx.moveTo(WALL_L + 16, DANGER_Y); ctx.lineTo(WALL_R - 16, DANGER_Y); ctx.stroke();
+    ctx.setLineDash([]); ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
+    if (hot) {   // the pill on the line: what to do, and how long is left
+      const sc = 1 + 0.3 * countPop * countPop, w = 196, h = 38;
+      ctx.save(); ctx.translate(LX, DANGER_Y); ctx.scale(sc, sc);
+      ctx.beginPath(); ctx.arc(-w / 2 + h / 2, 0, h / 2, 1.5708, 4.7124); ctx.arc(w / 2 - h / 2, 0, h / 2, -1.5708, 1.5708); ctx.closePath(); ctx.fillStyle = '#ff4d5e'; ctx.fill();
+      ctx.fillStyle = '#17171c'; ctx.textBaseline = 'middle';
+      ctx.font = FONT_PILL; ctx.textAlign = 'left'; ctx.fillText('Clear the line', -w / 2 + 18, 1);
+      ctx.font = FONT_PILL_N; ctx.textAlign = 'right'; ctx.fillText(String(count), w / 2 - 18, 1);
+      ctx.restore(); ctx.textAlign = 'center';
+    }
+  }
 
   // trajectory: a straight ray from the grabbed shape to the first thing it would reach (ceiling, wall or
   // blob), drawn as evenly spaced dots with a faint ghost of the shape at the end. Pure geometry, no
@@ -1510,8 +1869,8 @@ function draw() {
     const t0 = rs + 10, show = Math.min(tEnd - 4, t0 + 95 + 45 * (power - POW_MIN) / (POW_MAX - POW_MIN)), step = 13;
     ctx.fillStyle = '#f4f1ea';
     const flow = (time * AIM_FLOW) % step;                                    // dots drift outward along the ray
-    for (let t = t0 + flow - step; t < show; t += step) {
-      const q = Math.max(0, (t - t0) / (show - t0)), lead = t < t0 ? (t - t0 + step) / step : 1;   // the newest dot fades in near the shape
+    if (show > t0) for (let t = t0 + flow - step; t < show; t += step) {
+      const q = Math.min(1, Math.max(0, (t - t0) / (show - t0))), lead = t < t0 ? Math.max(0, (t - t0 + step) / step) : 1;   // the newest dot fades in near the shape
       ctx.globalAlpha = 0.95 * (1 - q * q) * lead;
       ctx.beginPath(); ctx.arc(sx + ux * t, sy + uy * t, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
     }
@@ -1519,6 +1878,7 @@ function draw() {
   }
 
   drawJuice();
+  ctx.globalAlpha = 1; punchCorners();
 
   // score popups: white for a lone merge, warm and bigger along a chain
   for (const p of popups) {
@@ -1534,17 +1894,7 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // pointer ball (mouse only), like the reference's cursor
-  if (ptrMouse && ptrIn && !over) {
-    ctx.beginPath(); ctx.arc(ptrX, ptrY, 5.5, 0, 6.283); ctx.fillStyle = '#a3a3ad'; ctx.fill();
-    ctx.beginPath(); ctx.arc(ptrX, ptrY, 1.9, 0, 6.283); ctx.fillStyle = '#f4f1ea'; ctx.fill();
-  }
 
-  // the wordmark is the score: it rolls up and bumps with a merge
-  const scoreText = String(Math.round(shown));
-  if (scoreText !== scoreShown) { scoreShown = scoreText; brandEl.textContent = scoreText; }
-  const sb = scoreBump > 0 ? 1 + 0.12 * scoreBump * scoreBump : 1;
-  if (sb !== scoreScale) { scoreScale = sb; brandEl.style.transform = sb === 1 ? '' : `scale(${sb.toFixed(3)})`; }
 }
 
 /* ───────────────────────── input ───────────────────────── */
@@ -1593,32 +1943,71 @@ function setMuted(m) {
   if (master) master.gain.value = m ? 0 : 0.6;
   try { localStorage.setItem('udm_muted', m ? '1' : '0'); } catch (e) {}
 }
+function setVib(v) {
+  vib = v && CAN_VIB;
+  vibBtn.disabled = !CAN_VIB; vibBtn.setAttribute('aria-pressed', String(vib)); vibState.textContent = !CAN_VIB ? 'N/A' : vib ? 'On' : 'Off';
+  if (CAN_VIB) { try { localStorage.setItem('udm_vib', v ? '1' : '0'); } catch (e) {} }
+}
 function showMenu(open) { menuEl.hidden = !open; gearBtn.setAttribute('aria-expanded', String(open)); }
 gearBtn.addEventListener('click', () => { initAudio(); showMenu(menuEl.hidden); });
 window.addEventListener('pointerdown', e => { if (!menuEl.hidden && !menuEl.contains(e.target) && !gearBtn.contains(e.target)) showMenu(false); }, true);
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && !menuEl.hidden) { showMenu(false); gearBtn.focus(); } });
 soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); });
+vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); });
+reviveYes.addEventListener('click', () => { initAudio(); revive(); });
+reviveNo.addEventListener('click', () => { initAudio(); if (offer) endRun(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveRun();
+  if (actx) { try { if (document.hidden) actx.suspend(); else if (!muted) actx.resume(); } catch (e) {} }
+});
+window.addEventListener('pagehide', () => saveRun());
 restartBtn.addEventListener('click', () => { initAudio(); showMenu(false); reset(); });
 againBtn.addEventListener('click', () => { initAudio(); reset(); });
 // A touch going down is not a user gesture, and iOS may not count a drag's release: any tap or key wakes the audio.
 ['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
 
 /* ───────────────────────── boot ───────────────────────── */
-let last = 0;
-function step(t) {
-  const now = Math.max(t, last);   // a frame timestamp can predate the last timer step; never rewind the clock
-  const dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
-  tick(dt); draw();
+let last = 0, rafDone = 0, dtS = 1 / 60, debt = 0, outN = 0, frameErr = false;
+const perfC = { raf: 0, wd: 0, shed: 0, err: 0, maxGap: 0, tickMs: 0, drawMs: 0 };   // where the frames come from, for the test hook
+// Frame times arrive noisy (whole milliseconds on iOS, late callbacks in embedded views) although the display ticks
+// evenly: follow the learned period and pay the difference to real time back over a few frames, so every frame gets
+// the same number of physics steps. A hitch is followed exactly and teaches nothing; a new pace is learned once it lasts.
+function pace(raw) {
+  const off = raw - dtS;
+  if (off > dtS * 0.25 || off < -dtS * 0.25) { if (++outN > 5) dtS += off * 0.25; debt = 0; return raw; }
+  outN = 0; dtS += off * 0.08;
+  debt += raw - dtS;
+  const pay = debt * 0.1; debt -= pay;
+  return dtS + pay;
 }
-function frame(t) { step(t); requestAnimationFrame(frame); }
-// Some embedded views hand out animation frames only now and then. A timer steps the game when
-// frames are late, so it keeps real time there instead of crawling. Paused while the page is hidden.
-setInterval(() => { const now = performance.now(); if (!document.hidden && now - last > 40) step(now); }, 20);
+// The game draws once per animation frame and nowhere else. The next frame is asked for first, and nothing thrown
+// while stepping or drawing can stop the loop.
+function frame(t) {
+  requestAnimationFrame(frame);
+  const raw = (t - last) / 1000;
+  try {
+    const a = performance.now();
+    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; tick(raw > 0.1 ? 0.1 : pace(raw)); }   // t can predate a watchdog step: nothing to simulate
+    const b = performance.now();
+    draw();
+    perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
+  } catch (e) { perfC.err++; if (!frameErr) { frameErr = true; if (window.console) console.error(e); } }
+  rafDone = performance.now();
+}
+// Watchdog for embedded views that stop handing out animation frames: only when none has finished for a while does a
+// timer keep the simulation in real time (the picture comes with the next frame). In a normal browser it never
+// fires. Paused while the page is hidden.
+setInterval(() => {
+  const now = performance.now();
+  if (document.hidden || now - rafDone < 120) return;
+  const dt = Math.min(0.1, (now - last) / 1000);
+  if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt); } catch (e) { perfC.err++; } }
+}, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
-resize(); setMuted(muted); reset();
-if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal');
+resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
+if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
 last = performance.now();
 requestAnimationFrame(frame);
 
@@ -1630,7 +2019,9 @@ window.__udm = { blobs, tick, draw, reset,
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
-  pickLevel, popBlob, setPeak: v => { peak = v; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
+  pickLevel, popBlob, setPeak: v => { peak = v; }, saveRun, loadRun, clearSave, lose, revive, endRun, setDanger: v => { dangerT = v; },
+  lose2: () => ({ over, offer, ended, reviveUsed, count, lineA, dangerT }),
+  perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
 </body>
