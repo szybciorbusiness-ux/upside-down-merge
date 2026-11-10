@@ -185,7 +185,8 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #over:not(.fx-conf):not(.best) .confetti{display:none}
 #over.fx-conf .confetti i{display:block!important}
 .burst{display:none!important}   /* (the old keyframe burst: replaced by the canvas one) */
-#o-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#o-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+#over .confetti{z-index:3}   /* confetti and the burst fly over everything on the ending screen (user) */
 .glow{position:absolute;inset:0;display:none;pointer-events:none;background:linear-gradient(0deg,var(--fin-g,#f3e3c8) 0%,rgba(255,255,255,0) 68%);animation:glowin .7s ease-out both}
 #over.fx-glow .glow{display:block}
 .glow i{position:absolute;bottom:0;transform-origin:50% 100%;border-radius:999px 999px 0 0;
