@@ -158,36 +158,36 @@ let TRAY_Y = 574, DANGER_Y = 474, FLOOR_Y = 614;
 const TRAY_MAX = 2, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 2 shapes, fed from a gate on each side
 const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
 
-const G = 150;                 // gravity, pulling UP (-y); barely there: in Sobosuba shapes drift at near-constant speed, and a shot off the back wall comes back to the shelf
-const E_WALL = 1.0, E_BLOB = 0.5, E_CAP = 7;
+const G = 170;                 // gravity, pulling UP (-y): firm enough to seat the soft pile against the ceiling after each impact
+const E_WALL = 0.55, E_BLOB = 0.16, E_CAP = 7;   // soft contacts: the outline takes the hit instead of bouncing it back
 const E_BODY = 0.8, E_BODY_MIN = 60;   // whole-body rebound off the field: when a blob leaves a wall slower than this share of its approach, it gets the rest back
 const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger ones for this long is squeezed until it pops   // measured: blob-blob rebound ~0.68 in the original
 // percolation: a settled blob wedged by bigger neighbours gets lighter (LIGHT per unit of "how much bigger"),
 // is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
-const RIPPLE_MIN = 240, RIPPLE_R = 480, RIPPLE_K = 0.3, RIPPLE_MAX = 120;
+const RIPPLE_MIN = 260, RIPPLE_R = 320, RIPPLE_K = 0.13, RIPPLE_MAX = 50;   // a small local shove; the soft outlines carry most of the response
 const SHAKE_MIN = 380, SHAKE_MAX = 1.1;   // landing speed that starts to rock the screen, and the most it ever rocks
-const V_DOWN_MAX = 160;      // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
-const ECHO = [[0.14, 0.3], [0.3, 0.15]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
-const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
+const V_DOWN_MAX = 95;       // gravity catches a knocked blob close to the pile instead of letting it float across the field
+const ECHO = [[0.14, 0.16], [0.3, 0.05]];   // faint local echoes of the landing wave: [seconds after, strength]
+const SHOT = 480;              // launch speed: less initial momentum, gravity supplies the pull toward the pile
 const DT = 1 / 240;            // physics substep
 const MARGIN = 1.3;            // contact skin → the thin dark seam between blobs
 const PEN_MAX = 10;
 const DEEP_FRAC = 0.3;         // a point further inside another blob than this fraction of its radius is "swallowed"
-const CORE_OUT = 0.34;         // last-resort centre separation: smaller radius fraction the small centre must be outside the big one
+const CORE_IN = 0.55;          // a small blob may press its centre this far (in its own radii) into a bigger one's rest circle; the outlines still collide
 const NOTCH = 0.4;            // how far one point may sit inside the chord of its neighbours, in rest edge lengths
 const YOUNG = 0.22, PEN_YOUNG = 1.2, V_YOUNG = 260;   // a newborn inflates against its neighbours over a few frames instead of launching them
 const WALL_W = 0.12;           // how light a wall-held point counts in a blob-to-blob contact
 const CONTACT_PASSES = 2;      // contact solves per substep; one pass lets squeezed blobs sink into each other
 const MU = 0.12, MU_WALL = 0.1;   // slippery: the pile flows and slides rather than locking up
-const K0 = 0.011, K1 = 1.5, KMAX = 0.6;   // shape stiffness: very soft (jelly), stiffening hard only near collapse
-const STRAIN = 0.85;           // how far a point may leave its rest place, in radii
+const K0 = 0.003, K1 = 0.12, KMAX = 0.2;   // soft surface tension: deep dents relax gradually instead of hitting a stiff round core
+const STRAIN = 1.05;           // a contact pocket can reach past the rest centre while the volume bulges around it
 const KB = 0.06;               // outline smoothness: local bending, so it wobbles in big lazy lumps, not wrinkles
 const KA = 0.42;               // area (pressure) stiffness (softer: more liquid)
 const KD = 0.0045;            // deformation damping: about four visible wobbles, then rest
 const LIN_DAMP = 0.9993, ANG_DAMP = 0.9995;   // in free flight
-const LIN_TOUCH = 0.9997, ANG_TOUCH = 0.994;    // while touching something, so piles still come to rest
+const LIN_TOUCH = 0.996, ANG_TOUCH = 0.994;    // whole-body motion damps on contact while the outline stays free to squish
 const V_SLEEP2 = 1.0 * 1.0;    // rest threshold (acts like static friction)
 const MERGE_TIME = 0.12, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
 const V_MAX = 1500;
@@ -731,14 +731,16 @@ function substep(h) {
           A.state = B.state = 1; A.partner = B; B.partner = A; A.mergeT = B.mergeT = MERGE_TIME;
         }
       }
-      // last-resort core separation so nothing can end up inside anything else: the smaller one's centre
-      // must sit at least a third of its radius outside the bigger one's circle
-      const ra = A.r * A.scale, rb = B.r * B.scale, core = (ra > rb ? ra + CORE_OUT * rb : rb + CORE_OUT * ra);
+      // rescue for a body swallowed by another, without a rigid circular core: a smaller blob can make a deep
+      // pocket in a bigger one; outline contacts and pressure carry normal impacts
+      const ra = A.r * A.scale, rb = B.r * B.scale;
+      const core = Math.max((ra + rb) * 0.45, Math.max(ra, rb) - CORE_IN * Math.min(ra, rb));
       if (d2 < core * core && d2 > 1e-6) {
         const d = Math.sqrt(d2), push = (core - d), ma = A.r * A.r, mb = B.r * B.r;
         const fa = push * mb / (ma + mb) / d, fb = push * ma / (ma + mb) / d;
-        for (let k = 0; k < A.n; k++) { A.x[k] -= dx * fa; A.y[k] -= dy * fa; }
-        for (let k = 0; k < B.n; k++) { B.x[k] += dx * fb; B.y[k] += dy * fb; }
+        // a position repair, not a collision: the previous positions move too, so a deep squeeze does not kick the pile
+        for (let k = 0; k < A.n; k++) { A.x[k] -= dx * fa; A.y[k] -= dy * fa; A.px[k] -= dx * fa; A.py[k] -= dy * fa; }
+        for (let k = 0; k < B.n; k++) { B.x[k] += dx * fb; B.y[k] += dy * fb; B.px[k] += dx * fb; B.py[k] += dy * fb; }
         A.cx -= dx * fa; A.cy -= dy * fa; B.cx += dx * fb; B.cy += dy * fb;   // so the next pass sees them apart
       }
     }
