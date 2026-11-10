@@ -143,7 +143,6 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .obest div{display:flex;flex-direction:column;align-items:center;gap:calc(3*var(--u))}
 .obest span{font:900 calc(30*var(--u))/1 var(--font-display);color:var(--ink);font-variant-numeric:tabular-nums}
 .obest small{font:900 calc(12*var(--u))/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase}
-#over.best .obest,#over.best .obest span{color:#ffd24a}
 .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .confetti i{position:absolute;top:-6%;border-radius:999px;opacity:0;animation:confall linear infinite}
 @keyframes confall{0%{opacity:1;transform:translate(0,0) rotate(var(--r))}85%{opacity:1}100%{opacity:0;transform:translate(var(--sx),112vh) rotate(calc(var(--r) + 300deg))}}
@@ -167,18 +166,16 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .waves g+g{animation-duration:11s;animation-direction:alternate-reverse}
 @keyframes sway{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
 #over .panel{gap:0;padding-top:calc(5*var(--u))}
-#over .obest{box-sizing:border-box;height:calc(48*var(--u));gap:calc(12*var(--u));padding:calc(2*var(--u));opacity:1;color:var(--fin-k,#8f8fa3);animation:rise .4s .08s cubic-bezier(.2,.9,.3,1.2) both}
+#over .obest{box-sizing:border-box;height:calc(48*var(--u));gap:calc(12*var(--u));padding:calc(2*var(--u));opacity:.7;color:var(--fin-k,#1e1e2a);animation:rise .4s .08s cubic-bezier(.2,.9,.3,1.2) both}
 #over .obest div{flex-direction:row;align-items:baseline;gap:calc(8*var(--u))}
-#over .obest span{font-size:calc(32*var(--u));color:var(--fin-k,#8f8fa3);opacity:1}
+#over .obest span{font-size:calc(32*var(--u));color:var(--fin-k,#1e1e2a);opacity:.9}
 #over .obest small{display:none}
-#over.best .obest{opacity:1}
-#over.best .obest,#over.best .obest span{color:var(--sw-on,#ffd24a)}
 #over .oblob{width:auto;height:auto;margin-top:calc(10*var(--u));animation:rise .4s .16s cubic-bezier(.2,.9,.3,1.2) both}
-#over .oblob b{color:var(--fin-n,#e9e7ee);opacity:1;line-height:1.2}
+#over .oblob b{color:var(--fin-n,#a6a6bc);opacity:.4;line-height:1.2}
 #over #again{display:grid;place-items:center;width:calc(338*var(--u));height:calc(85*var(--u));margin-top:calc(45*var(--u));padding:0;border-radius:calc(22*var(--u));
   background:var(--sh-row,rgba(30,30,42,.6));color:#fff;animation:rise .4s .24s cubic-bezier(.2,.9,.3,1.2) both}
 #over #again svg{width:calc(24*var(--u));height:calc(24*var(--u))}
-#over.fx-waves .oblob b{color:#fff;opacity:1}
+#over.fx-waves .oblob b{color:#fff;opacity:.95}
 #over.fx-waves .obest,#over.fx-waves .obest span{color:rgba(0,0,0,.5);opacity:1}
 #over.fx-waves #again{background:rgba(0,0,0,.24)}
 #over:not(.fx-conf):not(.best) .confetti{display:none}
@@ -313,7 +310,7 @@ const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1
 const G = 170;                 // gravity, pulling UP (-y): firm enough to seat the soft pile against the ceiling after each impact
 const E_WALL = 0.55, E_BLOB = 0.16, E_CAP = 7;   // soft contacts: the outline takes the hit instead of bouncing it back
 const E_BODY = 0.8, E_BODY_MIN = 60;   // whole-body rebound off the field: when a blob leaves a wall slower than this share of its approach, it gets the rest back
-const POP_AFTER = 2.2, POP_TIME = 0.32; // a small blob sealed in under bigger ones for this long is squeezed until it pops   // measured: blob-blob rebound ~0.68 in the original
+const POP_AFTER = 1.1, POP_TIME = 0.32; // a small blob sealed in under bigger ones for this long is squeezed until it pops   // measured: blob-blob rebound ~0.68 in the original
 // percolation: a settled blob wedged by bigger neighbours gets lighter (LIGHT per unit of "how much bigger"),
 // is pushed out of the pinch (SQUEEZE), and, held by two or more, drains toward the open face of the pile (DRAIN)
 const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
@@ -618,7 +615,7 @@ function solveShape(b) {
   // m: the stretch the goal shape takes on (world axes, unit area). Identity on the shelf, while newborn, and while
   // the shelf squash is still springing out of a shot (that is not the blob's own stretch).
   let m11 = 1, m12 = 0, m22 = 1;
-  if (FLOW > 0 && !b.tray && b.young <= 0 && sc > 0.5) {
+  if (FLOW > 0 && !b.tray && b.young <= 0 && sc > 0.5 && b.state === 0 && !b.buried && !b.popping) {   // (not while merging, trapped or popping: those keep a round goal, or they are drawn into tendrils and slivers)
     let w11 = b.v11, w12 = (b.v12 + b.v21) * 0.5, w22 = b.v22;
     const det = w11 * w22 - w12 * w12;
     if (det > 1e-6 && det === det) {
@@ -665,7 +662,7 @@ function solveShape(b) {
     const tx = x[i1] - x[i0], ty = y[i1] - y[i0], l = Math.sqrt(tx * tx + ty * ty) || 1;
     tmpX[i] = ty / l; tmpY[i] = -tx / l; per += l * 0.5;
   }
-  let d = KA * (b.buried ? 0.18 : 1) * (b.area0 * sxm * sym - A * 0.5) / per;   // buried: soft enough to be squeezed through
+  let d = KA * (b.buried ? 0.55 : 1) * (b.area0 * sxm * sym - A * 0.5) / per;   // buried: a little softer so it can be squeezed through (at 0.18 a trapped blob was pressed into a sliver and sat there: user "fix all those bugs")
   if (d > 1.2) d = 1.2; else if (d < -1.2) d = -1.2;
   let br2 = 0, maxY = -1e9;
   for (let i = 0; i < n; i++) {
@@ -1127,6 +1124,18 @@ function finishMerge(a, b) {
     nb.x[i] = nb.px[i] = x + dx * t; nb.y[i] = nb.py[i] = y + dy * t; nb.vx[i] = vx; nb.vy[i] = vy;
     if (nb.y[i] > maxY) maxY = nb.y[i]; if (t * t > br2) br2 = t * t;
   }
+  // The joined outline, tidied: with another blob between the two parents the rays gave thin arms and deep notches
+  // (the tendril and star shapes in the user's screenshot). No point may sit far inside or outside the typical
+  // radius, and the outline is smoothed twice; whatever that pushes into a neighbour, the contacts sort out.
+  {
+    const tt = new Float32Array(n), ux = new Float32Array(n), uy = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const dx = nb.x[i] - x, dy = nb.y[i] - y, l = Math.sqrt(dx * dx + dy * dy) || 1; tt[i] = l; ux[i] = dx / l; uy[i] = dy / l; }
+    const med = Array.from(tt).sort((p, q) => p - q)[n >> 1], lo = med * 0.62, hi = med * 1.45;
+    for (let i = 0; i < n; i++) tt[i] = tt[i] < lo ? lo : tt[i] > hi ? hi : tt[i];
+    for (let pass = 0; pass < 2; pass++) { let prev = tt[n - 1]; const first = tt[0]; for (let i = 0; i < n; i++) { const cur = tt[i], next = i + 1 < n ? tt[i + 1] : first; tt[i] = (prev + 2 * cur + next) / 4; prev = cur; } }
+    maxY = -1e9; br2 = 0;
+    for (let i = 0; i < n; i++) { nb.x[i] = nb.px[i] = x + ux[i] * tt[i]; nb.y[i] = nb.py[i] = y + uy[i] * tt[i]; if (nb.y[i] > maxY) maxY = nb.y[i]; if (tt[i] * tt[i] > br2) br2 = tt[i] * tt[i]; }
+  }
   let A2 = 0;
   for (let i = 0; i < n; i++) { const j = i + 1 < n ? i + 1 : 0; A2 += nb.x[i] * nb.y[j] - nb.x[j] * nb.y[i]; }
   const onShelf = a.tray || b.tray;   // a shot merging into the shelf joins the shelf
@@ -1207,7 +1216,7 @@ function popBlob(b) {
     sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
     sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
   }
-  kickShake(0.3);
+  // (no shake here: a trapped blob pops a second or more after anything the player did, and the shake read as late: user)
 }
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, Math.min(2.4, 0.7 + 0.42 * (c - 1) + 0.13 * Math.max(0, nb.level - 5)));   // no particles: the newborn's pale stretched shape is the whole effect
@@ -2004,7 +2013,13 @@ const oConf = document.getElementById('o-confetti');
 let finFx = 0; try { finFx = (+localStorage.getItem('udm_fin') | 0) & 14; } catch (e) {}
 // The burst: pieces with real motion, drawn on a canvas of their own over the ending screen.
 const fxCv = document.getElementById('o-fx'), fxCtx = fxCv && fxCv.getContext ? fxCv.getContext('2d') : null;
-const BURST_COL = ['#fece00', '#ff7300', '#fea1cd', '#00a3fe', '#2ecc40', '#a06bff', '#ff4d5e', '#19c6b6', '#f4f1ea'];
+// The confetti's colours come from the board (user: 'make the confetti match the colors more... completely too saturated'): shades
+// and tints of the biggest blob's colour, a little greyed, with two pale papers. Rebuilt whenever that colour changes.
+let BURST_COL = ['#f4f1ea'];
+function burstPalette(c) {   // just the biggest blob's colour (user: 'make the confetti in just the color of the thing'): itself, a shade lighter, a shade deeper
+  const sh = t => 'rgb(' + Math.round(c.r + ((t > 0 ? 255 : 0) - c.r) * Math.abs(t)) + ',' + Math.round(c.g + ((t > 0 ? 255 : 0) - c.g) * Math.abs(t)) + ',' + Math.round(c.b + ((t > 0 ? 255 : 0) - c.b) * Math.abs(t)) + ')';
+  BURST_COL = [sh(0), sh(0), sh(0.22), sh(-0.16)];
+}
 const pieces = []; let burstLast = 0, burstMore = 0, burstX = 0, burstY = 0, burstU = 1;
 function burstVolley(n, power) {
   for (let i = 0; i < n; i++) {
@@ -2215,7 +2230,8 @@ function draw() {
       screenEl.style.setProperty('--sh', mixHex(53, 53, 67, tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(39, 39, 52, tc, 0.04));
       screenEl.style.setProperty('--sh-hi', mixHex(33, 33, 45, tc, 0.04)); screenEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.07));
       screenEl.style.setProperty('--card', mixHex(36, 36, 47, tc, 0.04));
-      screenEl.style.setProperty('--fin-n', mixHex(240, 238, 244, tc, 0.22)); screenEl.style.setProperty('--fin-k', mixHex(140, 140, 160, tc, 0.3));   // the ending screen's score and best: the HUD's own tinted inks
+      burstPalette(tc); screenEl.style.setProperty('--fin-r', mixHex(238, 236, 243, tc, 0.5));   // a record's best row: the colour, softened
+      screenEl.style.setProperty('--fin-n', mixHex(166, 166, 188, tc, 0.16)); screenEl.style.setProperty('--fin-k', mixHex(30, 30, 42, tc, 0.1));   // the ending screen's score and best: the HUD's own tinted inks
       screenEl.style.setProperty('--fin-w1', mixHex(20, 18, 30, tc, 0.88)); screenEl.style.setProperty('--fin-w2', mixHex(255, 255, 255, tc, 0.6));   // the waves' ground
       screenEl.style.setProperty('--sw-on', mixHex(53, 53, 67, tc, 0.82));
       screenEl.style.setProperty('--sw-knob', 0.2126 * tc.r + 0.7152 * tc.g + 0.0722 * tc.b > 150 ? tc.ink : '#fff');   // a dark knob on a light track (yellow, lime, pink)   // a switch that is on wears the biggest blob's colour
