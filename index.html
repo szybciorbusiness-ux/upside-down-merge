@@ -29,7 +29,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-displ
 /* everything but the settings sheet. While the sheet is up it sits back: a little smaller, rounded, dropped from the top */
 #back{position:absolute;inset:0;overflow:hidden;background:var(--screen);transform-origin:50% 0;
   transition:transform .5s cubic-bezier(.32,.72,0,1),border-radius .5s cubic-bezier(.32,.72,0,1)}
-#back.pushed{transform:translateY(calc(16*var(--u) + env(safe-area-inset-top,0px))) scale(.92);border-radius:calc(36*var(--u))}
+#back.pushed{transform:translateY(calc(14*var(--u) + env(safe-area-inset-top,0px))) scale(var(--push-s,.9303));border-radius:calc(49*var(--u))}
+body.bare #back.pushed{border-radius:calc(38*var(--u))}
 #back.drag{transition:none}
 #tint{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:opacity}
 body.bare{background:var(--screen)}   /* the shake slides the screen a few px; the edge it uncovers is the same colour */
@@ -52,12 +53,12 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #gear:active{transform:scale(.92)}
 #gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* settings: a bottom sheet over a dimmed screen. It rises on the sheet curve, follows a downward drag, and leaves by
-   a drag, the round close button, a tap on the dimmed screen, or Escape. The game is paused while it is up. */
+   a drag, the round close button, a tap on the dimmed screen, or Escape. The game runs in slow motion behind it. */
 #scrim{position:absolute;inset:0;z-index:3;background:rgba(5,5,7,.44);opacity:0;transition:opacity .35s ease}
 #scrim.open{opacity:1}
 #sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;gap:calc(10*var(--u));
   padding:calc(10*var(--u)) calc(16*var(--u)) calc(20*var(--u) + env(safe-area-inset-bottom,0px));
-  border-radius:calc(34*var(--u)) calc(34*var(--u)) 0 0;background:#24242f;color:var(--ink);
+  border-radius:calc(34*var(--u)) calc(34*var(--u)) 0 0;background:var(--sh,#24242f);color:var(--ink);
   transform:translateY(110%);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
 #sheet.open{transform:translateY(0)}
 #sheet.drag,#scrim.drag{transition:none}
@@ -67,20 +68,20 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 .grab{align-self:center;width:calc(40*var(--u));height:calc(5*var(--u));border-radius:999px;background:rgba(255,255,255,.22)}
 #sheet h2{margin:calc(8*var(--u)) calc(6*var(--u)) calc(4*var(--u));font:900 calc(24*var(--u))/1.1 var(--font-display);letter-spacing:0}
 #sheet .row{display:flex;align-items:center;justify-content:space-between;gap:calc(16*var(--u));width:100%;min-height:calc(60*var(--u));
-  padding:calc(14*var(--u)) calc(18*var(--u));border:0;border-radius:calc(20*var(--u));background:#30303d;color:var(--ink);
+  padding:calc(14*var(--u)) calc(18*var(--u));border:0;border-radius:calc(20*var(--u));background:var(--sh-row,#30303d);color:var(--ink);
   font:900 calc(18*var(--u))/1.2 var(--font-display);cursor:pointer;text-align:left;transition:transform .12s ease,background .12s ease}
-#sheet .row:active{transform:scale(.98);background:#383846}
+#sheet .row:active{transform:scale(.98);background:var(--sh-hi,#383846)}
 #sheet .row:disabled{opacity:.45;cursor:default}
-#sheet .row:disabled:active{transform:none;background:#30303d}
+#sheet .row:disabled:active{transform:none;background:var(--sh-row,#30303d)}
 .chev{flex:none;width:calc(10*var(--u));height:calc(16*var(--u));color:var(--muted)}
-.tog{position:relative;flex:none;width:calc(50*var(--u));height:calc(30*var(--u));border-radius:999px;background:#4a4a58;transition:background .2s ease}
+.tog{position:relative;flex:none;width:calc(50*var(--u));height:calc(30*var(--u));border-radius:999px;background:var(--sh-tog,#4a4a58);transition:background .2s ease}
 .tog::after{content:"";position:absolute;left:calc(3*var(--u));top:calc(3*var(--u));width:calc(24*var(--u));height:calc(24*var(--u));border-radius:50%;
   background:var(--ink);transition:transform .25s cubic-bezier(.32,.72,0,1)}
 #sheet .row[aria-pressed="true"] .tog{background:#3ecf6e}
 #sheet .row[aria-pressed="true"] .tog::after{transform:translateX(calc(20*var(--u)))}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 #sheet-close{align-self:center;display:grid;place-items:center;width:calc(54*var(--u));height:calc(54*var(--u));margin-top:calc(8*var(--u));padding:0;border:0;
-  border-radius:50%;background:#30303d;color:var(--muted);cursor:pointer;transition:transform .12s ease}
+  border-radius:50%;background:var(--sh-row,#30303d);color:var(--muted);cursor:pointer;transition:transform .12s ease}
 #sheet-close:active{transform:scale(.92)}
 #sheet-close svg{width:calc(18*var(--u));height:calc(18*var(--u))}
 #lab{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-wrap:wrap;justify-content:center;gap:calc(8*var(--u));
@@ -1089,7 +1090,7 @@ function drawFanfare() {
   const c = COLORS[fanfare.c], x = fanfare.x, y = fanfare.y, b = fanfare.b, rs = b ? b.r * b.scale : 40;
   ctx.save();
   ctx.fillStyle = `rgba(14,14,24,${(0.62 * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // dim the field
-  if (fanfare.t < 0.14) { ctx.fillStyle = `rgba(255,255,255,${(0.26 * (1 - fanfare.t / 0.14) * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H); }   // a blink of light
+  if (!REDUCED && fanfare.t < 0.14) { ctx.fillStyle = `rgba(255,255,255,${(0.26 * (1 - fanfare.t / 0.14) * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H); }   // a blink of light
   // beams: two fans turning against each other, additive, in the new colour and white. They shoot out of the blob
   // over the first third of a second and fade toward their tips; no two are the same width.
   ctx.globalCompositeOperation = 'lighter';
@@ -1775,7 +1776,7 @@ let shakeCss = '', dangerCss = '';
 let scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
-const LIMIT_WASH = 64, limitEdge = [null, null], limitWash = [null, null]; let limitY = -1;
+const LIMIT_WASH = 64, limitEdge = [null, null], limitWash = [null, null]; let limitY = -1, limitH = -1;
 const FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
@@ -1783,7 +1784,8 @@ const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel 
 const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z');   // 16x32 laurel branch from the Figma frame (Squish 19:114)
 
 // The phone scales as one piece: --u is one design pixel. On a narrow or touch screen the shell drops away.
-let bare = false;
+let bare = false, uPx = 1, pushS = 0.9303;
+const PUSH_GAP = 14;   // design units between the screen's edge and the game while the settings sheet is up
 function fitShell() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -1791,6 +1793,7 @@ function fitShell() {
   document.body.classList.toggle('bare', bare);
   const u = bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
+  uPx = u;
 }
 let cursorS = 0;
 function setCursor() {   // the same grey ball with a light core, as a cursor image at the field's scale
@@ -1818,6 +1821,8 @@ function resize() {
   const pw = Math.round(CW * DPR), ph = Math.round(CH * DPR), grew = canvas.width !== pw || canvas.height !== ph;
   if (grew) { canvas.width = pw; canvas.height = ph; }
   S = CW / W; setCursor();
+  pushS = Math.max(0.8, 1 - 2 * PUSH_GAP * uPx / (screenEl.clientWidth || 402 * uPx));   // so the side gaps equal the top one
+  backEl.style.setProperty('--push-s', pushS.toFixed(4));
   H = Math.max(560, Math.min(CH / S, 820));
   OX = 0; OY = 0;
   layout();
@@ -1873,7 +1878,7 @@ function draw() {
   let shx = 0, shy = 0;
   if (shake > 0) { const k = shake * Math.exp(-shakeT * 12); shx = Math.sin(shakeT * 95) * k; shy = Math.cos(shakeT * 83) * k; }
   const stx = Math.round(shx * S * 4) / 4, sty = Math.round(shy * S * 4) / 4, srot = Math.round(tilt * 50) / 50;
-  const st = (stx || sty || srot) ? `translate(${stx}px,${sty}px) rotate(${srot}deg)` : '';
+  const st = (!sheetOpen && (stx || sty || srot)) ? `translate(${stx}px,${sty}px) rotate(${srot}deg)` : '';   // no shake or tilt under the settings sheet
   if (st !== shakeCss) { shakeCss = st; screenEl.style.transform = st; }
   // the wordmark is the score: it rolls up and bumps with a merge
   const sv = Math.round(shown);
@@ -1907,7 +1912,12 @@ function draw() {
     }
     // the screen behind the field: a base that only follows the biggest blob, and the glow colour laid over it
     // (a mix toward the glow colour by k is that colour at alpha k: the same picture, without repainting the screen)
-    if (ti !== fxTop) backEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
+    if (ti !== fxTop) {
+      backEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
+      // the settings sheet is cut from the same cloth: its surface, rows and switch tracks carry the screen's tint
+      sheetEl.style.setProperty('--sh', mixHex(36, 36, 47, tc, 0.11)); sheetEl.style.setProperty('--sh-row', mixHex(48, 48, 61, tc, 0.14));
+      sheetEl.style.setProperty('--sh-hi', mixHex(56, 56, 70, tc, 0.16)); sheetEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.18));
+    }
     if (glow.c !== fxC) tintEl.style.background = `linear-gradient(rgba(${gc.r},${gc.g},${gc.b},.32),rgba(${gc.r},${gc.g},${gc.b},.06) 60%)`;
     const to = ga.toFixed(3); if (to !== tintCss) { tintCss = to; tintEl.style.opacity = to; }
     // the score and the gear: the solid colour that their ink, added to the screen behind them, comes to
@@ -1969,22 +1979,25 @@ function draw() {
 
   // the limit: an edge of light with a wash below it, fading in as the pile comes close; red and beating once the
   // pile is past it and the countdown runs. It stays out of the way of a fanfare.
-  if (!over && (lineA > 0.02 || count > 0) && (count > 0 || fanfareEnv() <= 0)) {
+  const limitFe = count > 0 ? 0 : fanfareEnv();   // a fanfare takes the idle line out and brings it back with its own envelope
+  if (!over && (lineA > 0.02 || count > 0) && limitFe < 1) {
     const hot = count > 0, k = hot ? 1 : 0;
-    if (limitY !== DANGER_Y) {   // four small gradients, rebuilt only when the layout changes
-      limitY = DANGER_Y;
+    const washH = Math.max(0, Math.min(LIMIT_WASH, TRAY_Y - TRAY_R - 8 - DANGER_Y));   // the wash stops short of the shelf
+    if (limitY !== DANGER_Y || limitH !== washH) {   // four small gradients, rebuilt only when the layout changes
+      limitY = DANGER_Y; limitH = washH;
       for (let q = 0; q < 2; q++) {
         const col = q ? '255,77,94' : '244,241,234';
         const e = ctx.createLinearGradient(WALL_L, 0, WALL_R, 0);
         e.addColorStop(0, `rgba(${col},0)`); e.addColorStop(0.16, `rgba(${col},1)`); e.addColorStop(0.84, `rgba(${col},1)`); e.addColorStop(1, `rgba(${col},0)`);
-        const w = ctx.createLinearGradient(0, DANGER_Y, 0, DANGER_Y + LIMIT_WASH);
+        const w = ctx.createLinearGradient(0, DANGER_Y, 0, DANGER_Y + Math.max(1, washH));
         w.addColorStop(0, `rgba(${col},${q ? 0.3 : 0.13})`); w.addColorStop(1, `rgba(${col},0)`);
         limitEdge[q] = e; limitWash[q] = w;
       }
     }
-    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), a = hot ? 0.7 + 0.3 * beat * beat : lineA;
-    ctx.globalAlpha = a; ctx.fillStyle = limitWash[k]; ctx.fillRect(WALL_L, DANGER_Y, WALL_R - WALL_L, LIMIT_WASH);
-    ctx.globalAlpha = a * 0.22; ctx.fillStyle = limitEdge[k]; ctx.fillRect(WALL_L, DANGER_Y - 4, WALL_R - WALL_L, 8);          // a soft halo
+    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), a = hot ? 0.7 + 0.3 * beat * beat : lineA * (1 - limitFe);
+    if (washH > 0) { ctx.globalAlpha = a; ctx.fillStyle = limitWash[k]; ctx.fillRect(WALL_L, DANGER_Y, WALL_R - WALL_L, washH); }
+    ctx.fillStyle = limitEdge[k];
+    ctx.globalAlpha = a * 0.22; ctx.fillRect(WALL_L, DANGER_Y - 4, WALL_R - WALL_L, 8);          // a soft halo
     ctx.globalAlpha = a * (hot ? 1 : 0.6); ctx.fillRect(WALL_L, DANGER_Y - (hot ? 1.5 : 1), WALL_R - WALL_L, hot ? 3 : 2);   // the edge itself
     ctx.globalAlpha = 1;
     if (hot) {   // the pill on the line: what to do, and how long is left
@@ -2023,7 +2036,9 @@ function draw() {
     if (show > t0) for (let t = t0 + flow - step; t < show; t += step) {
       const q = Math.min(1, Math.max(0, (t - t0) / (show - t0))), lead = t < t0 ? Math.max(0, (t - t0 + step) / step) : 1;   // the newest dot fades in near the shape
       ctx.globalAlpha = 0.95 * (1 - q * q) * lead;
-      ctx.beginPath(); ctx.arc(sx + ux * t, sy + uy * t, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
+      const v0 = SHOT * power, disc = v0 * v0 - 2 * G * uy * t; if (disc < 0) break;   // a light shot aimed down turns back before it gets this far
+      const tau = 2 * t / (v0 + Math.sqrt(disc)), bend = 0.5 * G * ux * tau * tau;   // seconds of flight to this dot; gravity (toward the ceiling) bends the path off the ray
+      ctx.beginPath(); ctx.arc(sx + ux * t + uy * bend, sy + uy * t - ux * bend, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
@@ -2099,16 +2114,17 @@ function setVib(v) {
   vibBtn.disabled = !CAN_VIB; vibBtn.setAttribute('aria-pressed', String(vib)); vibState.textContent = !CAN_VIB ? 'N/A' : vib ? 'On' : 'Off';
   if (CAN_VIB) { try { localStorage.setItem('udm_vib', v ? '1' : '0'); } catch (e) {} }
 }
-// The settings sheet. While it is up the game is paused (nothing counts down behind it) and the run is saved.
-let sheetOpen = false, paused = false, sheetTimer = 0;
+// The settings sheet. While it is up the game runs at a fifth of its speed behind it, and the run is saved.
+const SHEET_SLOW = 0.2;
+let sheetOpen = false, sheetTimer = 0;
 function showMenu(open) {
   if (open === sheetOpen) return;
-  sheetOpen = open; paused = open; gearBtn.setAttribute('aria-expanded', String(open));
+  sheetOpen = open; gearBtn.setAttribute('aria-expanded', String(open));
   clearTimeout(sheetTimer);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
   if (open) {
-    aiming = false; armed = false; sel = null; shake = 0; tilt = tiltV = 0; saveRun();   // (a shake frozen by the pause would leave the screen askew)
+    aiming = false; armed = false; sel = null; shake = 0; tilt = tiltV = 0; saveRun();   // (the screen holds still under the sheet: see draw())
     dragId = -1; dragMoved = false;
     sheetEl.hidden = false; scrimEl.hidden = false;
     void sheetEl.offsetHeight;   // lay it out below the screen first, so it rises from there
@@ -2144,8 +2160,8 @@ sheetEl.addEventListener('pointermove', e => {
   sheetEl.style.transform = `translateY(${dragDy.toFixed(1)}px)`;
   const p = Math.max(0, Math.min(1, dragDy / dragH));   // how far the sheet has been pulled away: the game comes forward with it
   scrimEl.style.opacity = String(1 - p);
-  backEl.style.transform = `translateY(calc(${(1 - p).toFixed(3)} * (16 * var(--u) + env(safe-area-inset-top, 0px)))) scale(${(0.92 + 0.08 * p).toFixed(4)})`;
-  backEl.style.borderRadius = `calc(${(36 * (1 - p)).toFixed(1)} * var(--u))`;
+  backEl.style.transform = `translateY(calc(${(1 - p).toFixed(3)} * (${PUSH_GAP} * var(--u) + env(safe-area-inset-top, 0px)))) scale(${(pushS + (1 - pushS) * p).toFixed(4)})`;
+  backEl.style.borderRadius = `calc(${((bare ? 38 : 49) * (1 - p)).toFixed(1)} * var(--u))`;
 });
 const endDrag = e => {
   if (e.pointerId !== dragId) return;
@@ -2199,7 +2215,7 @@ function frame(t) {
   const raw = (t - last) / 1000;
   try {
     const a = performance.now();
-    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; if (!paused) tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed); }   // t can predate a watchdog step: nothing to simulate
+    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); }   // t can predate a watchdog step: nothing to simulate
     const b = performance.now();
     draw();
     perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
@@ -2213,7 +2229,7 @@ setInterval(() => {
   const now = performance.now();
   if (document.hidden || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
-  if (dt > 0) { last = now; debt = 0; perfC.wd++; if (!paused) { try { tick(dt * labSpeed); } catch (e) { perfC.err++; } } }
+  if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); } catch (e) { perfC.err++; } }
 }, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
