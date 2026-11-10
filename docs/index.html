@@ -167,14 +167,14 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .waves g+g{animation-duration:11s;animation-direction:alternate-reverse}
 @keyframes sway{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
 #over .panel{gap:0;padding-top:calc(5*var(--u))}
-#over .obest{box-sizing:border-box;height:calc(48*var(--u));gap:calc(12*var(--u));padding:calc(2*var(--u));opacity:.7;color:var(--fin-k,#1e1e2a);animation:rise .4s .08s cubic-bezier(.2,.9,.3,1.2) both}
+#over .obest{box-sizing:border-box;height:calc(48*var(--u));gap:calc(12*var(--u));padding:calc(2*var(--u));opacity:1;color:var(--fin-k,#8f8fa3);animation:rise .4s .08s cubic-bezier(.2,.9,.3,1.2) both}
 #over .obest div{flex-direction:row;align-items:baseline;gap:calc(8*var(--u))}
-#over .obest span{font-size:calc(32*var(--u));color:var(--fin-k,#1e1e2a);opacity:.9}
+#over .obest span{font-size:calc(32*var(--u));color:var(--fin-k,#8f8fa3);opacity:1}
 #over .obest small{display:none}
 #over.best .obest{opacity:1}
 #over.best .obest,#over.best .obest span{color:var(--sw-on,#ffd24a)}
 #over .oblob{width:auto;height:auto;margin-top:calc(10*var(--u));animation:rise .4s .16s cubic-bezier(.2,.9,.3,1.2) both}
-#over .oblob b{color:var(--fin-n,#a6a6bc);opacity:.5;line-height:1.2}
+#over .oblob b{color:var(--fin-n,#e9e7ee);opacity:1;line-height:1.2}
 #over #again{display:grid;place-items:center;width:calc(338*var(--u));height:calc(85*var(--u));margin-top:calc(45*var(--u));padding:0;border-radius:calc(22*var(--u));
   background:var(--sh-row,rgba(30,30,42,.6));color:#fff;animation:rise .4s .24s cubic-bezier(.2,.9,.3,1.2) both}
 #over #again svg{width:calc(24*var(--u));height:calc(24*var(--u))}
@@ -185,20 +185,10 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #over.fx-conf .confetti i{display:block!important}
 .burst{display:none!important}   /* (the old keyframe burst: replaced by the canvas one) */
 #o-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
-#over .confetti{z-index:3}   /* confetti and the burst fly over everything on the ending screen (user) */
-.glow{position:absolute;inset:0;display:none;pointer-events:none;background:linear-gradient(0deg,var(--fin-g,#f3e3c8) 0%,rgba(255,255,255,0) 68%);animation:glowin .7s ease-out both}
-#over.fx-glow .glow{display:block}
-.glow i{position:absolute;bottom:0;transform-origin:50% 100%;border-radius:999px 999px 0 0;
-  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.8) 50%,rgba(255,255,255,0));-webkit-mask-image:linear-gradient(0deg,#000,rgba(0,0,0,0));mask-image:linear-gradient(0deg,#000,rgba(0,0,0,0));
-  animation:streak ease-out both,shimmer ease-in-out infinite alternate}   /* soft at the sides, fading out upward */
-@keyframes glowin{from{opacity:0;transform:translateY(30%)}}
-@keyframes streak{0%{transform:scaleY(0);opacity:0}35%{transform:scaleY(1.45);opacity:1}100%{transform:scaleY(1);opacity:.55}}
-@keyframes shimmer{from{opacity:.55}to{opacity:.25}}
-#over.fx-glow .oblob b{opacity:.8}
-@media (prefers-reduced-motion:reduce){.glow,.glow i{animation:none}}
+#over .confetti{display:none!important}   /* confetti and the burst fly over everything on the ending screen (user) */
 @media (prefers-reduced-motion:reduce){.waves g,#over #again{animation:none}}
-#again:active{animation:none;transform:scale(.95)}
-#revive-yes:active{animation:none;transform:scale(.94)}
+
+
 #revive{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(0,0,0,.78);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   animation:fade .28s ease both}
@@ -227,19 +217,17 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
 @media (prefers-reduced-motion:reduce){#over,#revive,.panel,.ring,.ring span.tick,.chance,#revive-yes,#revive .xbtn,#again,#over h1,.oblob,.oblob b,.obest{animation:none!important}.confetti,.burst{display:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
-/* pressing things (user: "clicking states can be cooler"): a press sinks at once and lights up, letting go springs back
-   past its size and settles; the play icon leans forward, a chevron nudges on, a switch's knob stretches under the finger */
-#again,#revive-yes,#sheet .row,#gear,#lab button{transition:transform .34s cubic-bezier(.3,1.75,.5,1),background .15s ease,filter .2s ease}
-#again:active,#revive-yes:active,#gear:active,#lab button:active{transform:scale(.92);filter:brightness(1.2);transition-duration:.06s,.06s,.06s}
-#sheet .row:active{transform:scale(.96);filter:brightness(1.25);transition-duration:.06s,.06s,.06s}
-#sheet .row:disabled:active{transform:none;filter:none}
-#over #again svg,#sheet .row .chev{transition:transform .34s cubic-bezier(.3,1.75,.5,1)}
-#over #again:active svg{transform:translateX(calc(6*var(--u))) scale(1.18);transition-duration:.06s}
-#sheet .row:active .chev{transform:translateX(calc(5*var(--u)));transition-duration:.06s}
+/* pressing things: a quick small sink on the element's own scale (so it never fights an entrance or a breathing
+   animation), and an easy settle back */
+#again,#revive-yes,#sheet .row,#gear,#lab button{transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
+#again:active,#revive-yes:active,#gear:active,#lab button:active{scale:.95;transition-duration:.07s}
+#sheet .row:active{scale:.975;transform:none;transition-duration:.07s}
+#sheet .row:disabled:active{scale:1}
+#over #again:active{background:var(--sh-hi,rgba(30,30,42,.75))}
 .tog::after{transition:transform .25s cubic-bezier(.32,.72,0,1),background .2s ease,width .18s ease}
-#sheet .row:active .tog::after{width:calc(31*var(--u))}
-#sheet .row[aria-pressed="true"]:active .tog::after{transform:translateX(calc(17*var(--u)))}
-@media (prefers-reduced-motion:reduce){#again,#revive-yes,#sheet .row,#gear,#lab button,#over #again svg,#sheet .row .chev{transition:none}}
+#sheet .row:active .tog::after{width:calc(30*var(--u))}
+#sheet .row[aria-pressed="true"]:active .tog::after{transform:translateX(calc(18*var(--u)))}
+@media (prefers-reduced-motion:reduce){#again,#revive-yes,#sheet .row,#gear,#lab button{transition:none}}
 </style>
 
 <div id="phone">
@@ -273,7 +261,6 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     <div id="over" hidden>
       <div class="confetti" id="o-confetti" aria-hidden="true" hidden><i style="left:92.7%;width:calc(11.6*var(--u));height:calc(30.2*var(--u));background:#fece00;--r:18deg;--sx:32px;animation-duration:2.71s;animation-delay:0.08s"></i><i style="left:53.1%;width:calc(11.9*var(--u));height:calc(35.4*var(--u));background:#ff7300;--r:163deg;--sx:4px;animation-duration:3.13s;animation-delay:1.24s"></i><i style="left:47.4%;width:calc(11.3*var(--u));height:calc(11.3*var(--u));background:#fea1cd;--r:307deg;--sx:-12px;animation-duration:2.92s;animation-delay:0.15s"></i><i style="left:35.8%;width:calc(14.7*var(--u));height:calc(14.7*var(--u));background:#00a3fe;--r:64deg;--sx:43px;animation-duration:2.31s;animation-delay:0.73s"></i><i style="left:11.4%;width:calc(8.9*var(--u));height:calc(8.9*var(--u));background:#2ecc40;--r:224deg;--sx:25px;animation-duration:2.24s;animation-delay:0.97s"></i><i style="left:59.1%;width:calc(10.1*var(--u));height:calc(10.1*var(--u));background:#a06bff;--r:127deg;--sx:-17px;animation-duration:2.97s;animation-delay:1.14s"></i><i style="left:62.6%;width:calc(7.8*var(--u));height:calc(22.4*var(--u));background:#ff4d5e;--r:137deg;--sx:45px;animation-duration:2.92s;animation-delay:0.29s"></i><i style="left:49.3%;width:calc(11.6*var(--u));height:calc(30.0*var(--u));background:#19c6b6;--r:63deg;--sx:-6px;animation-duration:2.40s;animation-delay:0.00s"></i><i style="left:14.5%;width:calc(14.1*var(--u));height:calc(14.1*var(--u));background:#fece00;--r:195deg;--sx:22px;animation-duration:3.60s;animation-delay:0.59s"></i><i style="left:50.4%;width:calc(10.2*var(--u));height:calc(28.8*var(--u));background:#ff7300;--r:173deg;--sx:26px;animation-duration:3.73s;animation-delay:0.52s"></i><i style="left:27.7%;width:calc(9.7*var(--u));height:calc(9.7*var(--u));background:#fea1cd;--r:342deg;--sx:19px;animation-duration:2.45s;animation-delay:0.08s"></i><i style="left:21.1%;width:calc(11.1*var(--u));height:calc(30.7*var(--u));background:#00a3fe;--r:183deg;--sx:23px;animation-duration:2.81s;animation-delay:0.53s"></i><i style="left:20.4%;width:calc(8.0*var(--u));height:calc(23.0*var(--u));background:#2ecc40;--r:244deg;--sx:18px;animation-duration:2.85s;animation-delay:0.43s"></i><i style="left:10.1%;width:calc(10.7*var(--u));height:calc(10.7*var(--u));background:#a06bff;--r:139deg;--sx:-3px;animation-duration:3.38s;animation-delay:1.38s"></i><i style="left:68.6%;width:calc(9.9*var(--u));height:calc(9.9*var(--u));background:#ff4d5e;--r:211deg;--sx:-38px;animation-duration:3.36s;animation-delay:1.32s"></i><i style="left:5.7%;width:calc(14.8*var(--u));height:calc(14.8*var(--u));background:#19c6b6;--r:269deg;--sx:-6px;animation-duration:3.79s;animation-delay:1.46s"></i><i style="left:81.2%;width:calc(8.4*var(--u));height:calc(23.9*var(--u));background:#fece00;--r:355deg;--sx:41px;animation-duration:2.15s;animation-delay:1.41s"></i><i style="left:92.4%;width:calc(11.9*var(--u));height:calc(26.7*var(--u));background:#ff7300;--r:300deg;--sx:13px;animation-duration:3.06s;animation-delay:0.60s"></i><i style="left:13.5%;width:calc(7.1*var(--u));height:calc(14.3*var(--u));background:#fea1cd;--r:275deg;--sx:-37px;animation-duration:2.72s;animation-delay:0.79s"></i><i style="left:55.4%;width:calc(9.5*var(--u));height:calc(9.5*var(--u));background:#00a3fe;--r:182deg;--sx:-8px;animation-duration:3.01s;animation-delay:0.09s"></i><i style="left:44.2%;width:calc(9.9*var(--u));height:calc(9.9*var(--u));background:#2ecc40;--r:65deg;--sx:22px;animation-duration:3.37s;animation-delay:0.69s"></i><i style="left:58.7%;width:calc(11.6*var(--u));height:calc(24.1*var(--u));background:#a06bff;--r:55deg;--sx:31px;animation-duration:2.73s;animation-delay:1.02s"></i><i style="left:34.3%;width:calc(10.2*var(--u));height:calc(10.2*var(--u));background:#ff4d5e;--r:246deg;--sx:-18px;animation-duration:2.12s;animation-delay:1.26s"></i><i style="left:76.3%;width:calc(12.8*var(--u));height:calc(12.8*var(--u));background:#19c6b6;--r:192deg;--sx:-19px;animation-duration:2.45s;animation-delay:1.53s"></i><i style="left:32.5%;width:calc(8.2*var(--u));height:calc(8.2*var(--u));background:#fece00;--r:187deg;--sx:-40px;animation-duration:2.99s;animation-delay:1.46s"></i><i style="left:98.9%;width:calc(11.6*var(--u));height:calc(23.3*var(--u));background:#ff7300;--r:88deg;--sx:-6px;animation-duration:3.69s;animation-delay:0.39s"></i><i style="left:33.1%;width:calc(11.7*var(--u));height:calc(25.1*var(--u));background:#fea1cd;--r:12deg;--sx:4px;animation-duration:2.41s;animation-delay:1.09s"></i><i style="left:5.9%;width:calc(11.5*var(--u));height:calc(11.5*var(--u));background:#00a3fe;--r:313deg;--sx:-4px;animation-duration:2.13s;animation-delay:0.82s"></i><i style="left:39.6%;width:calc(10.3*var(--u));height:calc(10.3*var(--u));background:#2ecc40;--r:205deg;--sx:33px;animation-duration:3.76s;animation-delay:1.00s"></i><i style="left:94.0%;width:calc(7.1*var(--u));height:calc(15.5*var(--u));background:#a06bff;--r:210deg;--sx:28px;animation-duration:3.28s;animation-delay:1.17s"></i><i style="left:5.4%;width:calc(10.3*var(--u));height:calc(22.9*var(--u));background:#ff4d5e;--r:326deg;--sx:5px;animation-duration:2.73s;animation-delay:1.39s"></i><i style="left:0.4%;width:calc(12.5*var(--u));height:calc(12.5*var(--u));background:#19c6b6;--r:147deg;--sx:30px;animation-duration:3.65s;animation-delay:1.26s"></i><i style="left:97.9%;width:calc(11.9*var(--u));height:calc(23.8*var(--u));background:#fece00;--r:85deg;--sx:3px;animation-duration:3.58s;animation-delay:0.66s"></i><i style="left:84.8%;width:calc(13.8*var(--u));height:calc(13.8*var(--u));background:#ff7300;--r:174deg;--sx:-21px;animation-duration:2.54s;animation-delay:0.61s"></i><i style="left:40.9%;width:calc(10.6*var(--u));height:calc(30.0*var(--u));background:#fea1cd;--r:43deg;--sx:20px;animation-duration:2.81s;animation-delay:1.06s"></i><i style="left:88.3%;width:calc(9.4*var(--u));height:calc(9.4*var(--u));background:#00a3fe;--r:275deg;--sx:-3px;animation-duration:2.81s;animation-delay:0.54s"></i><i style="left:22.9%;width:calc(8.6*var(--u));height:calc(20.9*var(--u));background:#2ecc40;--r:250deg;--sx:-39px;animation-duration:3.52s;animation-delay:1.56s"></i><i style="left:60.8%;width:calc(8.3*var(--u));height:calc(8.3*var(--u));background:#a06bff;--r:312deg;--sx:-29px;animation-duration:3.44s;animation-delay:0.57s"></i><i style="left:36.4%;width:calc(7.8*var(--u));height:calc(21.8*var(--u));background:#ff4d5e;--r:6deg;--sx:-8px;animation-duration:2.79s;animation-delay:0.78s"></i><i style="left:70.5%;width:calc(10.5*var(--u));height:calc(10.5*var(--u));background:#19c6b6;--r:28deg;--sx:5px;animation-duration:2.91s;animation-delay:0.96s"></i><i style="left:90.7%;width:calc(8.2*var(--u));height:calc(19.9*var(--u));background:#fece00;--r:312deg;--sx:-19px;animation-duration:2.84s;animation-delay:0.29s"></i><i style="left:85.4%;width:calc(10.4*var(--u));height:calc(29.7*var(--u));background:#ff7300;--r:275deg;--sx:42px;animation-duration:2.34s;animation-delay:1.10s"></i><i style="left:20.3%;width:calc(10.9*var(--u));height:calc(10.9*var(--u));background:#fea1cd;--r:263deg;--sx:39px;animation-duration:2.40s;animation-delay:0.78s"></i><i style="left:32.3%;width:calc(9.0*var(--u));height:calc(18.5*var(--u));background:#00a3fe;--r:92deg;--sx:41px;animation-duration:2.14s;animation-delay:0.47s"></i></div>
       <svg class="waves" viewBox="0 0 1000 1400" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><g><path d="M446 1375L384 1346L322 1317L261 1287L200 1255L141 1222L82 1188L23 1152L-35 1116L-93 1080L-152 1046L-213 1015L-275 988L-341 965L-409 950L-481 941L-555 941L-632 948L-711 963L-791 986L-870 1013L-949 1044L-1026 1074L-960 850L-882 837L-802 824L-722 814L-643 808L-565 807L-491 814L-419 828L-352 849L-288 876L-227 908L-170 945L-115 985L-61 1027L-8 1070L46 1113L100 1155L155 1196L211 1235L269 1271L327 1306L387 1340L447 1372ZM455 1361L403 1316L353 1270L302 1224L251 1179L199 1135L145 1093L90 1053L32 1016L-28 982L-91 952L-157 926L-223 902L-291 881L-359 861L-427 840L-493 818L-556 791L-616 758L-671 717L-720 667L-763 606L-798 535L-654 351L-635 431L-605 502L-567 564L-521 616L-470 661L-414 700L-354 734L-292 766L-230 797L-167 829L-105 862L-45 897L12 935L68 976L120 1020L171 1066L220 1114L267 1162L314 1212L361 1261L408 1310L457 1359ZM467 1350L429 1293L390 1238L349 1183L306 1130L262 1077L217 1026L170 976L124 926L78 875L34 823L-7 769L-45 711L-78 651L-105 586L-127 517L-143 445L-152 370L-157 293L-158 215L-157 137L-157 61L-160 -13L58 -96L44 -21L27 57L10 136L-5 216L-16 295L-20 373L-18 449L-8 522L8 592L31 658L59 720L92 780L128 838L167 894L207 950L247 1005L287 1060L326 1117L363 1173L400 1231L435 1289L470 1348ZM482 1343L460 1278L438 1214L415 1149L393 1085L372 1020L353 955L336 888L323 821L312 753L305 684L300 615L297 546L294 476L290 407L283 339L271 272L251 207L223 143L184 82L134 24L72 -29L-2 -77L224 -135L283 -76L331 -14L367 51L391 117L405 185L411 253L411 321L405 390L397 459L388 529L381 599L375 669L373 738L374 808L379 876L388 944L401 1012L415 1078L432 1144L449 1210L467 1276L485 1342ZM498 1340L497 1272L497 1204L498 1135L500 1067L503 999L507 931L510 863L513 795L512 726L508 658L500 590L485 522L464 454L436 387L401 322L360 258L313 195L263 135L212 75L162 17L116 -42L76 -101L306 -148L329 -82L360 -17L395 49L432 115L468 181L501 249L529 318L552 387L568 456L578 525L581 594L580 663L574 730L566 798L555 866L544 933L533 1000L523 1068L515 1136L509 1204L504 1272L502 1340ZM515 1342L532 1276L550 1210L567 1144L582 1077L595 1010L605 943L612 875L616 806L616 736L614 667L609 597L603 528L599 459L596 390L598 322L607 254L623 187L648 121L684 57L730 -5L788 -64L855 -119L1078 -49L997 -7L926 42L865 95L815 152L776 213L747 276L726 341L711 408L702 475L695 544L689 612L684 681L677 750L668 818L656 886L641 953L624 1019L604 1084L583 1149L561 1213L539 1278L518 1343ZM530 1348L564 1289L596 1228L626 1167L655 1106L683 1043L710 981L738 918L767 857L799 796L834 738L873 681L917 627L965 576L1019 528L1076 483L1137 441L1199 401L1261 362L1322 322L1379 280L1430 234L1473 181L1645 340L1589 381L1528 415L1461 444L1392 472L1321 499L1250 527L1181 558L1115 593L1053 632L996 675L944 722L896 773L853 827L814 882L778 940L743 999L709 1058L675 1117L641 1176L606 1235L570 1293L533 1350ZM543 1359L592 1311L641 1263L689 1215L739 1169L790 1123L843 1080L897 1038L953 998L1010 960L1067 922L1125 885L1182 847L1237 807L1289 763L1337 714L1381 659L1417 597L1447 528L1469 452L1482 369L1486 281L1483 189L1653 349L1638 436L1617 517L1589 593L1554 661L1512 721L1465 773L1413 818L1357 857L1298 891L1237 922L1174 951L1111 979L1048 1008L986 1039L926 1072L867 1108L810 1146L755 1186L701 1228L649 1272L597 1316L545 1361ZM553 1372L614 1341L675 1311L736 1281L798 1252L860 1224L921 1194L982 1163L1042 1129L1099 1092L1154 1051L1207 1005L1257 954L1303 899L1346 840L1386 777L1424 713L1460 649L1497 586L1536 526L1579 472L1628 424L1685 385L1823 574L1758 598L1699 633L1646 676L1596 725L1548 777L1501 832L1453 887L1404 940L1353 990L1299 1037L1243 1078L1185 1116L1125 1149L1063 1178L1000 1204L936 1228L872 1251L808 1274L744 1297L680 1322L617 1347L554 1375Z" fill="rgba(255,255,255,.16)"/></g><g><path d="M447 1372L387 1340L327 1308L267 1276L206 1245L144 1215L81 1189L17 1165L-49 1144L-116 1127L-184 1113L-253 1101L-322 1090L-390 1080L-458 1067L-525 1052L-590 1031L-652 1002L-712 966L-767 919L-818 862L-864 795L-903 718L-828 581L-798 665L-762 741L-718 806L-669 861L-614 906L-556 942L-494 971L-430 995L-365 1015L-298 1033L-231 1051L-164 1069L-98 1090L-33 1113L31 1138L93 1167L154 1198L213 1231L272 1265L331 1301L389 1336L448 1370ZM460 1355L414 1305L366 1256L317 1209L268 1162L217 1116L166 1071L115 1026L64 979L16 932L-30 881L-73 827L-112 770L-146 708L-175 643L-200 574L-221 503L-238 430L-253 356L-268 283L-286 213L-308 146L-337 84L-202 7L-182 73L-171 144L-163 218L-158 294L-153 370L-145 447L-133 521L-116 594L-93 663L-66 728L-33 790L5 848L46 903L90 955L136 1005L183 1054L231 1103L279 1151L326 1201L372 1251L417 1302L461 1354ZM478 1344L452 1281L426 1218L401 1155L376 1091L353 1027L333 962L315 896L300 829L287 761L276 693L265 625L254 557L242 490L225 423L203 359L174 296L137 236L90 180L33 128L-34 80L-111 39L-195 3L-52 -59L24 -14L92 36L150 90L199 148L237 210L266 273L287 339L300 405L309 473L314 542L318 611L322 680L326 749L334 818L343 886L356 953L372 1020L391 1086L412 1151L434 1215L457 1279L480 1343ZM499 1340L499 1272L499 1204L501 1135L504 1067L507 999L510 931L512 863L511 795L506 726L497 658L483 590L463 523L437 456L405 390L369 325L330 262L289 199L248 138L210 76L177 13L153 -51L138 -118L292 -146L295 -78L309 -11L331 55L360 120L391 186L424 252L455 318L483 386L506 454L525 522L537 591L545 660L547 728L546 796L541 864L535 932L527 1000L520 1068L513 1136L507 1204L503 1272L501 1340ZM520 1343L543 1279L565 1215L587 1150L606 1085L624 1019L638 952L650 884L659 816L667 747L673 679L679 610L687 542L698 475L714 408L736 343L765 280L803 219L850 161L907 107L972 57L1043 11L1120 -31L1260 38L1175 70L1096 107L1023 149L958 197L903 249L856 306L819 365L789 427L766 492L747 557L732 624L719 691L707 759L693 826L679 893L662 960L642 1025L621 1090L598 1154L573 1218L547 1281L522 1344ZM539 1354L581 1301L623 1247L663 1192L703 1137L743 1081L783 1026L825 972L868 919L915 869L965 822L1018 777L1075 736L1135 698L1198 664L1262 631L1327 600L1391 568L1453 534L1510 496L1562 452L1607 400L1643 338L1743 457L1698 512L1646 556L1588 592L1525 621L1459 647L1390 670L1321 694L1252 719L1185 747L1120 778L1059 814L1001 853L947 896L896 942L848 991L802 1041L758 1094L715 1146L672 1199L629 1252L585 1304L540 1355ZM552 1370L611 1336L671 1303L730 1270L791 1239L853 1209L915 1182L979 1156L1043 1132L1107 1108L1171 1083L1234 1058L1296 1029L1356 996L1413 957L1466 911L1515 858L1560 797L1599 729L1632 654L1660 574L1682 490L1701 405L1795 530L1765 609L1732 687L1695 760L1654 829L1607 890L1556 943L1502 989L1444 1028L1383 1059L1320 1086L1255 1108L1190 1127L1124 1146L1057 1164L992 1183L926 1204L862 1227L798 1253L736 1280L674 1310L614 1341L553 1372Z" fill="rgba(255,255,255,.1)"/></g></svg>
-      <div class="glow" aria-hidden="true"><i style="left:2.4%;width:16.5%;height:62%;animation-delay:0.15s,1.97s;animation-duration:.9s,3.2s"></i><i style="left:18.5%;width:9.9%;height:54%;animation-delay:0.16s,1.00s;animation-duration:.9s,2.9s"></i><i style="left:33.0%;width:15.4%;height:58%;animation-delay:0.15s,1.61s;animation-duration:.9s,3.3s"></i><i style="left:49.8%;width:8.0%;height:91%;animation-delay:0.06s,2.03s;animation-duration:.9s,3.7s"></i><i style="left:62.6%;width:13.2%;height:91%;animation-delay:0.08s,1.65s;animation-duration:.9s,3.0s"></i><i style="left:75.2%;width:17.4%;height:59%;animation-delay:0.07s,2.37s;animation-duration:.9s,3.0s"></i><i style="left:93.4%;width:10.7%;height:71%;animation-delay:0.05s,2.23s;animation-duration:.9s,3.6s"></i></div>
       <canvas id="o-fx" aria-hidden="true"></canvas>
       <div class="panel" tabindex="-1" role="dialog" aria-labelledby="over-title">
         <h1 id="over-title" class="sr">Game over</h1>
@@ -1685,13 +1672,15 @@ function frameLogic(dt) {
       oNew.textContent = nb ? 'New best' : 'Best'; overEl.classList.toggle('best', nb); overBest = nb; oConf.hidden = false;
       oScore.style.fontSize = `calc(${Math.min(56, Math.round(330 / (0.8 * Math.max(3, String(score).length))))} * var(--u))`; setFin();
       overEl.hidden = false; againBtn.parentNode.focus({ preventScroll: true });
+      pieces.length = 0; rainAcc = 0; rainOn = false; cannonLeft = 0; burstLast = performance.now();
     }
     if (!overEl.hidden && !overDone) {   // the score counts up to its number, to rising ticks, and lands with a chord
       const k = REDUCED || score === 0 ? (overT > 0.7 ? 1 : 0) : Math.min(1, (overT - 0.7) / 1.1), v = k <= 0 ? 0 : Math.round(score * (1 - Math.pow(1 - k, 3)));
       if (v !== overN) { overN = v; oScore.textContent = String(v); }
       const step = Math.floor(k * 14);
       if (step > overTick && k < 1) { overTick = step; sfxCount(k); buzz(5); oScore.classList.remove('tick'); void oScore.offsetWidth; oScore.classList.add('tick'); }
-      if (k >= 1) { overDone = true; overEl.classList.add('counted'); if (overBest || (finFx & 8)) launchBurst(); sfxDone(overBest); buzz(overBest ? [30, 50, 30, 50, 80] : 30); }
+      if (k >= 1) { overDone = true; overEl.classList.add('counted'); if (overBest || (finFx & 8)) launchBurst();
+        if (!REDUCED && (overBest || (finFx & 4)) && fxSize()) { cannonLeft = 300; rainOn = true; rainAcc = 0; if (!pieces.length) burstLast = performance.now(); } sfxDone(overBest); buzz(overBest ? [30, 50, 30, 50, 80] : 30); }
     }
   }
   juiceStep(dt); frameFx(dt);
@@ -2012,7 +2001,7 @@ const gearBtn = document.getElementById('gear'), sheetEl = document.getElementBy
 const reviveEl = document.getElementById('revive'), reviveYes = document.getElementById('revive-yes'), reviveNo = document.getElementById('revive-no');
 const oConf = document.getElementById('o-confetti');
 // what the ending screen has switched on (tried in the merge lab, remembered): 1 gradient, 2 waves, 4 confetti, 8 burst
-let finFx = 0; try { finFx = (+localStorage.getItem('udm_fin') | 0) & 30; } catch (e) {}   // (16: the glow from below)
+let finFx = 0; try { finFx = (+localStorage.getItem('udm_fin') | 0) & 14; } catch (e) {}
 // The burst: pieces with real motion, drawn on a canvas of their own over the ending screen.
 const fxCv = document.getElementById('o-fx'), fxCtx = fxCv && fxCv.getContext ? fxCv.getContext('2d') : null;
 const BURST_COL = ['#fece00', '#ff7300', '#fea1cd', '#00a3fe', '#2ecc40', '#a06bff', '#ff4d5e', '#19c6b6', '#f4f1ea'];
@@ -2027,36 +2016,54 @@ function burstVolley(n, power) {
 }
 function launchBurst() {
   if (!fxCtx || REDUCED) return;
-  const r = overEl.getBoundingClientRect(), q = oScore.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
-  if (!r.width) return;
-  fxCv.width = Math.round(r.width * dpr); fxCv.height = Math.round(r.height * dpr); fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  burstU = r.width / 402; burstX = q.left + q.width / 2 - r.left; burstY = q.top + q.height / 2 - r.top;
-  pieces.length = 0; burstVolley(80, 1050 * burstU); burstMore = 0.11; burstLast = performance.now();
+  if (!fxSize()) return;
+  const r = overEl.getBoundingClientRect(), q = oScore.getBoundingClientRect();
+  burstX = q.left + q.width / 2 - r.left; burstY = q.top + q.height / 2 - r.top;
+  if (!pieces.length && !rainOn) burstLast = performance.now(); burstVolley(80, 1050 * burstU); burstMore = 0.11;
+}
+let rainOn = false, rainAcc = 0, cfW = 0, cfH = 0, cannonLeft = 0;
+function fxSize() {   // the canvas takes the ending screen's size
+  if (!fxCtx) return false;
+  const r = overEl.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1); if (!r.width) return false;
+  if (fxCv.width !== Math.round(r.width * dpr) || fxCv.height !== Math.round(r.height * dpr)) { fxCv.width = Math.round(r.width * dpr); fxCv.height = Math.round(r.height * dpr); }
+  fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0); cfW = r.width; cfH = r.height; burstU = r.width / 402; return true;
+}
+function cannonPiece() {   // one small paper bit, fired up from the bottom centre
+  const th = -1.5708 + (Math.random() + Math.random() - 1) * 0.5, sp = (1400 + Math.random() * 2100) * burstU, w = (3.5 + Math.random() * 4) * burstU;
+  pieces.push({ x: cfW / 2 + (Math.random() - 0.5) * 46 * burstU, y: cfH + 12 * burstU, vx: Math.cos(th) * sp, vy: Math.sin(th) * sp, vt: (55 + Math.random() * 105) * burstU,
+    w, h: w * (1.3 + Math.random() * 1.3), rd: w * 0.2, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 12, ph: Math.random() * 6.28, vph: 5 + Math.random() * 9,
+    sway: (30 + Math.random() * 90) * burstU, c: BURST_COL[(Math.random() * BURST_COL.length) | 0], t: 0, life: 5.5 + Math.random() * 2.5, streak: true });
 }
 function drawBurst() {
-  if (!pieces.length || !fxCtx) return;
+  if (!fxCtx || (!pieces.length && !rainOn)) return;
+  const clear = () => { fxCtx.save(); fxCtx.setTransform(1, 0, 0, 1, 0, 0); fxCtx.clearRect(0, 0, fxCv.width, fxCv.height); fxCtx.restore(); };
+  if (overEl.hidden) { rainOn = false; pieces.length = 0; clear(); return; }   // the screen went away: nothing left hanging
   const now = performance.now(), dt = Math.min(0.05, (now - burstLast) / 1000); burstLast = now;
-  if (burstMore > 0) { burstMore -= dt; if (burstMore <= 0) burstVolley(50, 760 * burstU); }   // the second volley, a beat later
-  const W2 = fxCv.width, H2 = fxCv.height, drag = Math.exp(-dt * 2.6), g = 1150 * burstU;
-  fxCtx.save(); fxCtx.setTransform(1, 0, 0, 1, 0, 0); fxCtx.clearRect(0, 0, W2, H2); fxCtx.restore();
-  let live = 0;
+  if (burstMore > 0) { burstMore -= dt; if (burstMore <= 0) burstVolley(50, 760 * burstU); }   // the burst's second volley, a beat later
+  if (rainOn) { rainAcc += dt * 950; while (rainAcc >= 1 && cannonLeft > 0) { rainAcc -= 1; cannonLeft--; cannonPiece(); } if (cannonLeft <= 0) rainOn = false; }   // the cannon empties in a third of a second
+  const drag = Math.exp(-dt * 2.6), g = 1150 * burstU;
+  clear();
+  let n = 0;
   for (let i = 0; i < pieces.length; i++) {
-    const p = pieces[i]; if (p.t >= p.life) continue;
+    const p = pieces[i];
     p.t += dt; p.vx *= drag; p.vy = p.vy * drag + g * dt * (0.55 + 0.45 * Math.min(1, p.t / 0.5));   // it brakes hard in the air, then gravity takes it
-    if (p.vy > 300 * burstU) p.vy = 300 * burstU;                                                   // and it falls like paper, not like a stone
+    const vt = p.vt || 300 * burstU; if (p.vy > vt) p.vy = vt;                                       // and it falls like paper, not like a stone
     p.x += (p.vx + Math.sin(p.ph * 0.5) * p.sway * Math.min(1, p.t)) * dt; p.y += p.vy * dt; p.rot += p.vr * dt; p.ph += p.vph * dt;
-    if (p.t >= p.life) continue; live++;
-    const k = p.t / p.life, fl = Math.cos(p.ph);   // the flutter: it turns edge-on and back
-    fxCtx.save(); fxCtx.globalAlpha = k > 0.8 ? (1 - k) / 0.2 : 1; fxCtx.translate(p.x, p.y); fxCtx.rotate(p.rot); fxCtx.scale(1, 0.25 + 0.75 * Math.abs(fl));
+    if (p.t >= p.life || p.y > cfH + 40) continue;
+    pieces[n++] = p;
+    const k = p.t / p.life, fl = Math.cos(p.ph), v2 = p.streak ? Math.sqrt(p.vx * p.vx + p.vy * p.vy) / burstU : 0;
+    fxCtx.save(); fxCtx.globalAlpha = (k > 0.8 ? (1 - k) / 0.2 : 1) * (p.a || 1); fxCtx.translate(p.x, p.y);
+    if (v2 > 420) { fxCtx.rotate(Math.atan2(p.vy, p.vx) + 1.5708); fxCtx.scale(0.8, 1 + Math.min(3.2, (v2 - 420) / 520)); }   // still going fast: drawn out along its path
+    else { fxCtx.rotate(p.rot); fxCtx.scale(1, 0.22 + 0.78 * Math.abs(fl)); }                                               // the flutter: it turns edge-on and back
     fxCtx.fillStyle = p.c; fxCtx.beginPath();
-    if (fxCtx.roundRect) fxCtx.roundRect(-p.w / 2, -p.h / 2, p.w, p.h, p.w / 2); else fxCtx.rect(-p.w / 2, -p.h / 2, p.w, p.h);
+    if (fxCtx.roundRect) fxCtx.roundRect(-p.w / 2, -p.h / 2, p.w, p.h, p.rd || p.w / 2); else fxCtx.rect(-p.w / 2, -p.h / 2, p.w, p.h);
     fxCtx.fill(); fxCtx.restore();
   }
-  if (!live) { pieces.length = 0; fxCtx.save(); fxCtx.setTransform(1, 0, 0, 1, 0, 0); fxCtx.clearRect(0, 0, W2, H2); fxCtx.restore(); }
+  pieces.length = n;
 }
 function setFin() {
   const c = overEl.classList;
-  c.toggle('fx-waves', !!(finFx & 2)); c.toggle('fx-conf', !!(finFx & 4)); c.toggle('fx-burst', !!(finFx & 8)); c.toggle('fx-glow', !!(finFx & 16));
+  c.toggle('fx-waves', !!(finFx & 2)); c.toggle('fx-conf', !!(finFx & 4)); c.toggle('fx-burst', !!(finFx & 8));
 }
 const ringLeft = document.getElementById('ring-left'), ringN = document.getElementById('ring-n'), oWhy = document.getElementById('o-why'), oNew = document.getElementById('o-new');
 const vibBtn = document.getElementById('vib'), vibState = document.getElementById('vib-state');
@@ -2208,8 +2215,7 @@ function draw() {
       screenEl.style.setProperty('--sh', mixHex(53, 53, 67, tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(39, 39, 52, tc, 0.04));
       screenEl.style.setProperty('--sh-hi', mixHex(33, 33, 45, tc, 0.04)); screenEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.07));
       screenEl.style.setProperty('--card', mixHex(36, 36, 47, tc, 0.04));
-      screenEl.style.setProperty('--fin-n', mixHex(166, 166, 188, tc, 0.5)); screenEl.style.setProperty('--fin-k', mixHex(30, 30, 42, tc, 0.3));   // the ending screen's score and best: the HUD's own tinted inks
-      screenEl.style.setProperty('--fin-g', mixHex(255, 247, 230, tc, 0.4));   // the glow from below: a pale tint of the board's colour
+      screenEl.style.setProperty('--fin-n', mixHex(240, 238, 244, tc, 0.22)); screenEl.style.setProperty('--fin-k', mixHex(140, 140, 160, tc, 0.3));   // the ending screen's score and best: the HUD's own tinted inks
       screenEl.style.setProperty('--fin-w1', mixHex(20, 18, 30, tc, 0.88)); screenEl.style.setProperty('--fin-w2', mixHex(255, 255, 255, tc, 0.6));   // the waves' ground
       screenEl.style.setProperty('--sw-on', mixHex(53, 53, 67, tc, 0.82));
       screenEl.style.setProperty('--sw-knob', 0.2126 * tc.r + 0.7152 * tc.g + 0.0722 * tc.b > 150 ? tc.ink : '#fff');   // a dark knob on a light track (yellow, lime, pink)   // a switch that is on wears the biggest blob's colour
@@ -2549,7 +2555,7 @@ if (MERGE_LAB) {   // the lab's controls: a button per tier, the whole run of th
   const bar = document.createElement('div'); bar.id = 'lab';
   let h = '';
   for (let L = 2; L <= 13; L++) h += `<button type="button" data-l="${L}">${Math.pow(2, L)}</button>`;
-  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button><button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Play ending</button>' + [['Waves', 2], ['Glow', 16], ['Confetti', 4], ['Burst', 8]].map(q => `<button type="button" data-fin="${q[1]}" aria-pressed="${!!(finFx & q[1])}">${q[0]}</button>`).join('');
+  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button><button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Play ending</button>' + [['Waves', 2], ['Confetti', 4], ['Burst', 8]].map(q => `<button type="button" data-fin="${q[1]}" aria-pressed="${!!(finFx & q[1])}">${q[0]}</button>`).join('');
   backEl.appendChild(bar);
   bar.addEventListener('click', e => {
     const t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
