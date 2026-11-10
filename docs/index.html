@@ -429,14 +429,19 @@ let sparkI = 0;
 let hitStop = 0, scoreBump = 0;
 // Fanfare for a big tier (1024 and up): the field freezes for a beat and dims, rays in the new colour spin out
 // of the blob, which pulses on top under a glow while sparkles pour out of it.
-const FANFARE_LEVEL = 10;
+const FANFARE_LEVEL = 8;    // from 256 up, growing with the tier (fanfare.big: 0 at 256, 1 from 4096)
+const FAN_NAMES = ['Discs', 'Wave', 'Jelly', 'Drops', 'Flood'];
+let fanStyle = 1;
+try { const v = localStorage.getItem('udm_fan'); if (v !== null && v !== '') fanStyle = Math.max(0, Math.min(FAN_NAMES.length - 1, +v | 0)); } catch (e) {}
+const drops = []; for (let i = 0; i < 28; i++) drops.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 4, c: 0 });
+let dropI = 0;
 // Hit glow: every merge lights the field and the screen behind it up in the new colour (more for a bigger
 // result), fading back over a second; the biggest blob on the board leaves a faint standing tint.
 const glow = { c: 0, a: 0 };
 let fieldPaint = null, fxTop = -1, fxC = -1, fxA = -1, fxH = 0, tintCss = '0', hudCss = '', gearCss = '', hudT = 0.17;
 const mixRgb = (r0, g0, b0, c, k) => [r0 + (c.r - r0) * k, g0 + (c.g - g0) * k, b0 + (c.b - b0) * k];
 const mixHex = (r0, g0, b0, c, k) => `rgb(${Math.round(r0 + (c.r - r0) * k)},${Math.round(g0 + (c.g - g0) * k)},${Math.round(b0 + (c.b - b0) * k)})`;
-const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0 };
+const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0, big: 0 };
 
 try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; vib = localStorage.getItem('udm_vib') !== '0'; } catch (e) {}
 const CAN_VIB = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
@@ -1078,14 +1083,29 @@ function finishMerge(a, b) {
   sfxMerge(nb.level, combo); buzz(Math.min(28, 8 + nb.level * 2));
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
-    fanfare.t = 0; fanfare.life = 1.25 + 0.1 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
+    const big = Math.min(1, (nb.level - FANFARE_LEVEL) / 4);
+    fanfare.t = 0; fanfare.life = 0.95 + 0.45 * big; fanfare.big = big; fanfare.x = x; fanfare.y = y; fanfare.b = nb;
     fanfare.c = cidx(nb.level); fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
     if (!REDUCED) {
-      kick = 0.9;   // no freeze and no wash of the whole screen: the game keeps moving
-      nb.landX = x; nb.landY = y; ripple(nb, 110);   // the pile takes the shock: everything near it wobbles
+      kick = 0.35 + 0.55 * big;   // no freeze and no wash of the whole screen: the game keeps moving
+      nb.landX = x; nb.landY = y; ripple(nb, 55 + 60 * big);   // the pile takes the shock: everything near it wobbles
+      if (fanStyle === 2) {   // jelly: the new blob is puffed outward and springs back, nothing is drawn
+        const g = 3.2 + 2.6 * big;
+        for (let k = 0; k < nb.n; k++) { nb.vx[k] += (nb.x[k] - nb.cx) * g; nb.vy[k] += (nb.y[k] - nb.cy) * g; }
+        ripple(nb, 50 + 40 * big);
+      } else if (fanStyle === 3) {   // drops: round flat drops of the new colour fly off and fall back toward the ceiling
+        const n = 9 + Math.round(13 * big);
+        for (let q = 0; q < n; q++) {
+          const d = drops[dropI]; dropI = (dropI + 1) % drops.length;
+          const th = Math.random() * 6.283, v = 150 + Math.random() * (190 + 160 * big);
+          d.t = 0; d.life = 0.55 + Math.random() * 0.45; d.r = 3.5 + Math.random() * (5 + 5 * big); d.c = fanfare.c;
+          d.x = x + Math.cos(th) * nb.r * 0.7; d.y = y + Math.sin(th) * nb.r * 0.7; d.vx = Math.cos(th) * v; d.vy = Math.sin(th) * v + 60;
+        }
+      }
     }
-    // three rising pings on top of the merge chime, then the thump
-    setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
+    if (nb.level >= 10) {   // three rising pings on top of the chord for the really big ones
+      setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
+    }
   }
   if (kick > 0) kickShake(kick);
 }
@@ -1143,6 +1163,11 @@ function juiceStep(dt) {
   for (let i = 0; i < flares.length; i++) { const f = flares[i]; if (f.t < f.life) { juiceLive++; f.t += dt; } }
   if (scoreBump > 0) scoreBump = Math.max(0, scoreBump - dt * 3.2);
   if (glow.a > 0) glow.a = Math.max(0, glow.a - dt * (glow.a > 0.5 ? 1.1 : 0.7));
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i]; if (d.t >= d.life) continue;
+    juiceLive++; d.t += dt; d.vx *= Math.exp(-dt * 1.6); d.vy = d.vy * Math.exp(-dt * 1.6) - 520 * dt; d.x += d.vx * dt; d.y += d.vy * dt;
+    if (d.y < CEIL + d.r) { d.y = CEIL + d.r; d.vy = 0; d.vx *= 0.8; }   // it lands on the ceiling and stays there until it is gone
+  }
   if (fanfare.t < fanfare.life) {
     juiceLive++; fanfare.t += dt; fanfare.rot += dt * 0.9;
     const b = fanfare.b; if (b && !b.dead) { fanfare.x = b.cx; fanfare.y = b.cy; }
@@ -1158,13 +1183,31 @@ function drawFanfare() {
   const env = fanfareEnv(); if (env <= 0) return;
   const c = COLORS[fanfare.c], x = fanfare.x, y = fanfare.y, b = fanfare.b, rs = b ? b.r * b.scale : 40;
   ctx.save();
-  // three flat discs of the new colour, a tenth of a second apart, each easing out to its place around the blob, the
-  // wider the darker; they sit on the field under the blobs and fade together
-  for (let q = 0; q < 3; q++) {
-    const tt = (fanfare.t - q * 0.1) / 0.6; if (tt <= 0) continue;
-    const k = REDUCED ? 1 : 1 - Math.pow(1 - Math.min(1, tt), 3), end = rs * (q === 0 ? 3.5 : q === 1 ? 2.6 : 1.8), sh = q === 0 ? 0.34 : q === 1 ? 0.5 : 0.68;
-    ctx.fillStyle = `rgba(${Math.round(c.r * sh)},${Math.round(c.g * sh)},${Math.round(c.b * sh)},${env.toFixed(3)})`;
-    ctx.beginPath(); ctx.arc(x, y, rs * 0.9 + (end - rs * 0.9) * k, 0, 6.2832); ctx.fill();
+  const big = fanfare.big, t = fanfare.t, sh = v => `${Math.round(c.r * v)},${Math.round(c.g * v)},${Math.round(c.b * v)}`;
+  if (fanStyle === 0) {
+    // discs: three flat discs of the new colour, a tenth of a second apart, each easing out to its place, the wider the darker
+    const m = 0.62 + 0.38 * big;
+    for (let q = 0; q < 3; q++) {
+      const tt = (t - q * 0.1) / 0.6; if (tt <= 0) continue;
+      const k = REDUCED ? 1 : 1 - Math.pow(1 - Math.min(1, tt), 3), end = rs * (1 + m * (q === 0 ? 2.5 : q === 1 ? 1.6 : 0.8));
+      ctx.fillStyle = `rgba(${sh(q === 0 ? 0.34 : q === 1 ? 0.5 : 0.68)},${env.toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(x, y, rs * 0.9 + (end - rs * 0.9) * k, 0, 6.2832); ctx.fill();
+    }
+  } else if (fanStyle === 1) {
+    // wave: two thick hoops roll out from the blob and thin to nothing, like a ring on water
+    for (let q = 0; q < 2; q++) {
+      const tt = (t - q * 0.16) / (0.7 + 0.25 * big); if (tt <= 0 || tt >= 1) continue;
+      const k = 1 - Math.pow(1 - tt, 2.4), lw = rs * (0.5 - 0.14 * q) * Math.pow(1 - tt, 1.3);
+      ctx.strokeStyle = `rgba(${sh(q ? 0.55 : 0.78)},${(Math.min(1, (1 - tt) * 1.6) * env).toFixed(3)})`; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.arc(x, y, rs * 0.85 + rs * (1.5 + 1.5 * big) * k, 0, 6.2832); ctx.stroke();
+    }
+  } else if (fanStyle === 4) {
+    // flood: the field fills from the ceiling in the new colour, a slow swell along its edge, and drains away again
+    const k = 1 - Math.pow(1 - Math.min(1, t / 0.4), 3), depth = (H - CEIL) * (0.3 + 0.3 * big) * k * env, y0 = CEIL + depth;
+    ctx.fillStyle = `rgba(${sh(0.5)},${(0.9 * Math.min(1, env * 1.5)).toFixed(3)})`;
+    ctx.beginPath(); ctx.moveTo(WALL_L, CEIL); ctx.lineTo(WALL_L, y0);
+    for (let px = WALL_L; px <= WALL_R + 1; px += 12) ctx.lineTo(px, y0 + (7 + 5 * big) * Math.sin(px * 0.035 + t * 7) * Math.min(1, depth / 30));
+    ctx.lineTo(WALL_R, CEIL); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
 }
@@ -1197,6 +1240,11 @@ function panelPath() {
 function drawJuice() {
   if (!juiceLive) return;
   ctx.save();
+  for (let i = 0; i < drops.length; i++) {   // the drops of a big merge: flat, round, shrinking as they go
+    const d = drops[i]; if (d.t >= d.life) continue;
+    const c = COLORS[d.c], k = d.t / d.life;
+    ctx.fillStyle = c.hex; ctx.beginPath(); ctx.arc(d.x, d.y, d.r * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4), 0, 6.2832); ctx.fill();
+  }
   // rings: a thinning hoop of the new colour, out and gone
   ctx.lineCap = 'round';
   for (let i = 0; i < rings.length; i++) {
@@ -2343,12 +2391,17 @@ if (MERGE_LAB) {   // the lab's controls: a button per tier, the whole run of th
   const bar = document.createElement('div'); bar.id = 'lab';
   let h = '';
   for (let L = 2; L <= 13; L++) h += `<button type="button" data-l="${L}">${Math.pow(2, L)}</button>`;
-  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button><button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Game over</button>';
+  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button>' + FAN_NAMES.map((n, i) => `<button type="button" data-fx="${i}" aria-pressed="${i === fanStyle}">${n}</button>`).join('') + '<button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Game over</button>';
   backEl.appendChild(bar);
   bar.addEventListener('click', e => {
     const t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
     initAudio();
     if (t.dataset.l) { labQueue.length = 0; labMerge(+t.dataset.l); }
+    else if (t.dataset.fx) {
+      fanStyle = +t.dataset.fx; try { localStorage.setItem('udm_fan', String(fanStyle)); } catch (err) {}
+      bar.querySelectorAll('[data-fx]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.fx === fanStyle)));
+      labQueue.length = 0; labMerge(10);
+    }
     else if (t.dataset.card) { if (!over) { labQueue.length = 0; reviveUsed = t.dataset.card === 'over'; lose(); } }
     else if (t.dataset.all) { labQueue = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; labWait = 0; }
     else { labSpeed = labSpeed === 1 ? 0.25 : 1; t.setAttribute('aria-pressed', String(labSpeed !== 1)); }
