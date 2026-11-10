@@ -55,14 +55,37 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#484859);will-change:transform}
 #gear svg{width:100%;height:100%}
 #gear:active{transform:scale(.92)}
-#gear:focus-visible,#menu button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-#menu{position:absolute;right:calc(18*var(--u));top:calc(118*var(--u));z-index:3;display:flex;flex-direction:column;gap:calc(2*var(--u));min-width:calc(176*var(--u));
-  padding:calc(6*var(--u));border-radius:calc(18*var(--u));background:#2a2a37;box-shadow:0 calc(12*var(--u)) calc(32*var(--u)) rgba(0,0,0,.45);animation:rise .22s cubic-bezier(.2,.9,.3,1.2) both}
-body.bare #menu{top:calc(64*var(--u) + env(safe-area-inset-top,0px))}
-#menu button{display:flex;align-items:center;justify-content:space-between;gap:calc(16*var(--u));width:100%;padding:calc(11*var(--u)) calc(14*var(--u));border:0;border-radius:calc(12*var(--u));
-  background:transparent;color:var(--ink);font:900 calc(16*var(--u))/1.2 var(--font-display);cursor:pointer;text-align:left}
-#menu button:hover{background:rgba(255,255,255,.06)}
-#menu button span{color:var(--muted);font-size:calc(14*var(--u))}
+#gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+/* settings: a bottom sheet over a dimmed screen. It rises on the sheet curve, follows a downward drag, and leaves by
+   a drag, the round close button, a tap on the dimmed screen, or Escape. The game is paused while it is up. */
+#scrim{position:absolute;inset:0;z-index:3;background:rgba(5,5,7,.58);opacity:0;transition:opacity .35s ease}
+#scrim.open{opacity:1}
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;gap:calc(10*var(--u));
+  padding:calc(10*var(--u)) calc(16*var(--u)) calc(20*var(--u) + env(safe-area-inset-bottom,0px));
+  border-radius:calc(34*var(--u)) calc(34*var(--u)) 0 0;background:#24242f;color:var(--ink);
+  transform:translateY(110%);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
+#sheet.open{transform:translateY(0)}
+#sheet.drag,#scrim.drag{transition:none}
+#sheet::after{content:"";position:absolute;left:0;right:0;top:100%;height:calc(80*var(--u));background:inherit}   /* nothing shows under it when it is pulled up */
+.grab{align-self:center;width:calc(40*var(--u));height:calc(5*var(--u));border-radius:999px;background:rgba(255,255,255,.22)}
+#sheet h2{margin:calc(8*var(--u)) calc(6*var(--u)) calc(4*var(--u));font:900 calc(24*var(--u))/1.1 var(--font-display);letter-spacing:0}
+#sheet .row{display:flex;align-items:center;justify-content:space-between;gap:calc(16*var(--u));width:100%;min-height:calc(60*var(--u));
+  padding:calc(14*var(--u)) calc(18*var(--u));border:0;border-radius:calc(20*var(--u));background:#30303d;color:var(--ink);
+  font:900 calc(18*var(--u))/1.2 var(--font-display);cursor:pointer;text-align:left;transition:transform .12s ease,background .12s ease}
+#sheet .row:active{transform:scale(.98);background:#383846}
+#sheet .row:disabled{opacity:.45;cursor:default}
+#sheet .row:disabled:active{transform:none;background:#30303d}
+.chev{flex:none;width:calc(10*var(--u));height:calc(16*var(--u));color:var(--muted)}
+.tog{position:relative;flex:none;width:calc(50*var(--u));height:calc(30*var(--u));border-radius:999px;background:#4a4a58;transition:background .2s ease}
+.tog::after{content:"";position:absolute;left:calc(3*var(--u));top:calc(3*var(--u));width:calc(24*var(--u));height:calc(24*var(--u));border-radius:50%;
+  background:var(--ink);transition:transform .25s cubic-bezier(.32,.72,0,1)}
+#sheet .row[aria-pressed="true"] .tog{background:#3ecf6e}
+#sheet .row[aria-pressed="true"] .tog::after{transform:translateX(calc(20*var(--u)))}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#sheet-close{align-self:center;display:grid;place-items:center;width:calc(54*var(--u));height:calc(54*var(--u));margin-top:calc(8*var(--u));padding:0;border:0;
+  border-radius:50%;background:#30303d;color:var(--muted);cursor:pointer;transition:transform .12s ease}
+#sheet-close:active{transform:scale(.92)}
+#sheet-close svg{width:calc(18*var(--u));height:calc(18*var(--u))}
 #stage{position:absolute;left:0;right:0;top:calc(130*var(--u));bottom:0}
 body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
@@ -98,11 +121,9 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .ghost{padding:calc(8*var(--u)) calc(16*var(--u));border:0;background:transparent;color:var(--muted);font:900 calc(15*var(--u)) var(--font-display);cursor:pointer}
 .ghost:hover{color:var(--ink)}
 #revive-yes:focus-visible,.ghost:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-#menu button:disabled{opacity:.45;cursor:default}
-#menu button:disabled:hover{background:transparent}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
-@media (prefers-reduced-motion:reduce){#over,#revive,.panel,#menu{animation:none}}
+@media (prefers-reduced-motion:reduce){#over,#revive,.panel{animation:none}#sheet,#scrim,.tog,.tog::after{transition:none}}
 </style>
 
 <div id="phone">
@@ -118,12 +139,16 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     </div>
     <header id="hud">
       <h1 id="brand" aria-label="Score">0</h1>
-      <button id="gear" type="button" aria-label="Settings" aria-haspopup="menu" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
+      <button id="gear" type="button" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
-    <div id="menu" role="menu" hidden>
-      <button id="restart" type="button" role="menuitem">Replay</button>
-      <button id="sound" type="button" role="menuitem" aria-pressed="false">Sound <span id="sound-state">On</span></button>
-      <button id="vib" type="button" role="menuitem" aria-pressed="false">Vibration <span id="vib-state">On</span></button>
+    <div id="scrim" hidden></div>
+    <div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="sheet-title">Settings</h2>
+      <button id="restart" class="row" type="button"><span>Replay</span><svg class="chev" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M2 2l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="sound" class="row" type="button" aria-pressed="false"><span>Sound</span><span class="tog" aria-hidden="true"></span><span class="sr" id="sound-state">On</span></button>
+      <button id="vib" class="row" type="button" aria-pressed="false"><span>Vibration</span><span class="tog" aria-hidden="true"></span><span class="sr" id="vib-state">On</span></button>
+      <button id="sheet-close" type="button" aria-label="Close settings"><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
     </div>
     <div id="stage">
       <canvas id="c" aria-label="Upside Down Merge play field"></canvas>
@@ -1311,9 +1336,6 @@ function drawTutorial() {
   const appear = cl(t / 0.3), press = cl((t - 0.3) / 0.15), dq = cl((t - 0.5) / 0.75), drag = 1 - (1 - dq) * (1 - dq) * (1 - dq), rel = cl((t - 1.65) / 0.28);
   const fy = y0 + TUT_PULL * drag, live = appear * (1 - rel);
   ctx.save();
-  // the caption, above the shelf and above the aim dots
-  ctx.globalAlpha = 0.9 * cl(tutT / 0.4); ctx.fillStyle = '#f4f1ea'; ctx.font = FONT_TUT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('Pull back and let go', LX, TRAY_Y - 150);   // clear of the dots that rise from the shape
   if (drag > 0.02 && rel < 1) {
     // the aim, as the real one looks: dots leaving the shape upward, more of them the further the pull
     ctx.fillStyle = '#f4f1ea';
@@ -1687,7 +1709,7 @@ const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const stage = document.getElementById('stage');
 const overEl = document.getElementById('over'), oScore = document.getElementById('o-score'), oBest = document.getElementById('o-best');
 const againBtn = document.getElementById('again'), restartBtn = document.getElementById('restart'), soundBtn = document.getElementById('sound');
-const gearBtn = document.getElementById('gear'), menuEl = document.getElementById('menu'), soundState = document.getElementById('sound-state');
+const gearBtn = document.getElementById('gear'), sheetEl = document.getElementById('sheet'), scrimEl = document.getElementById('scrim'), sheetClose = document.getElementById('sheet-close'), soundState = document.getElementById('sound-state');
 const reviveEl = document.getElementById('revive'), reviveYes = document.getElementById('revive-yes'), reviveNo = document.getElementById('revive-no');
 const ringLeft = document.getElementById('ring-left'), ringN = document.getElementById('ring-n'), oWhy = document.getElementById('o-why'), oNew = document.getElementById('o-new');
 const vibBtn = document.getElementById('vib'), vibState = document.getElementById('vib-state');
@@ -1697,7 +1719,7 @@ let shakeCss = '', dangerCss = '';
 let scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
-const FONT_TUT = '900 16px ' + FONT, FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
+const FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
 const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
@@ -2007,10 +2029,59 @@ function setVib(v) {
   vibBtn.disabled = !CAN_VIB; vibBtn.setAttribute('aria-pressed', String(vib)); vibState.textContent = !CAN_VIB ? 'N/A' : vib ? 'On' : 'Off';
   if (CAN_VIB) { try { localStorage.setItem('udm_vib', v ? '1' : '0'); } catch (e) {} }
 }
-function showMenu(open) { menuEl.hidden = !open; gearBtn.setAttribute('aria-expanded', String(open)); }
-gearBtn.addEventListener('click', () => { initAudio(); showMenu(menuEl.hidden); });
-window.addEventListener('pointerdown', e => { if (!menuEl.hidden && !menuEl.contains(e.target) && !gearBtn.contains(e.target)) showMenu(false); }, true);
-window.addEventListener('keydown', e => { if (e.key === 'Escape' && !menuEl.hidden) { showMenu(false); gearBtn.focus(); } });
+// The settings sheet. While it is up the game is paused (nothing counts down behind it) and the run is saved.
+let sheetOpen = false, paused = false, sheetTimer = 0;
+function showMenu(open) {
+  if (open === sheetOpen) return;
+  sheetOpen = open; paused = open; gearBtn.setAttribute('aria-expanded', String(open));
+  clearTimeout(sheetTimer);
+  sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); sheetEl.style.transform = ''; scrimEl.style.opacity = '';
+  if (open) {
+    aiming = false; armed = false; sel = null; saveRun();
+    sheetEl.hidden = false; scrimEl.hidden = false;
+    void sheetEl.offsetHeight;   // lay it out below the screen first, so it rises from there
+    sheetEl.classList.add('open'); scrimEl.classList.add('open');
+    restartBtn.focus({ preventScroll: true });
+  } else {
+    sheetEl.classList.remove('open'); scrimEl.classList.remove('open');
+    sheetTimer = setTimeout(() => { if (!sheetOpen) { sheetEl.hidden = true; scrimEl.hidden = true; } }, REDUCED ? 0 : 520);
+  }
+}
+gearBtn.addEventListener('click', () => { initAudio(); showMenu(!sheetOpen); });
+scrimEl.addEventListener('click', () => showMenu(false));
+sheetClose.addEventListener('click', () => showMenu(false));
+// Drag: the sheet follows the finger down (pulling up barely gives). Let go past a quarter of its height, or with a
+// quick flick, and it leaves; otherwise it settles back. A drag is never a tap on a row.
+let dragId = -1, dragY0 = 0, dragDy = 0, dragPy = 0, dragPt = 0, dragV = 0, dragMoved = false, dragH = 1;
+sheetEl.addEventListener('pointerdown', e => {
+  if (!sheetOpen || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  dragId = e.pointerId; dragY0 = dragPy = e.clientY; dragPt = performance.now(); dragDy = 0; dragV = 0; dragMoved = false; dragH = sheetEl.offsetHeight || 1;
+});
+sheetEl.addEventListener('pointermove', e => {
+  if (e.pointerId !== dragId) return;
+  const dy = e.clientY - dragY0, now = performance.now();
+  if (!dragMoved) {
+    if (Math.abs(dy) < 6) return;
+    dragMoved = true; sheetEl.classList.add('drag'); scrimEl.classList.add('drag');
+    try { sheetEl.setPointerCapture(dragId); } catch (err) {}
+  }
+  if (now > dragPt) { dragV = dragV * 0.5 + 0.5 * (e.clientY - dragPy) / (now - dragPt); dragPy = e.clientY; dragPt = now; }   // px per ms, lately
+  dragDy = dy > 0 ? dy : dy * 0.12;
+  sheetEl.style.transform = `translateY(${dragDy.toFixed(1)}px)`;
+  scrimEl.style.opacity = String(Math.max(0, Math.min(1, 1 - Math.max(0, dragDy) / dragH)));
+});
+const endDrag = e => {
+  if (e.pointerId !== dragId) return;
+  dragId = -1;
+  if (!dragMoved) return;
+  sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag');
+  if (dragDy > dragH * 0.25 || (dragDy > 20 && dragV > 0.45)) showMenu(false);
+  else { sheetEl.style.transform = ''; scrimEl.style.opacity = ''; }
+};
+sheetEl.addEventListener('pointerup', endDrag);
+sheetEl.addEventListener('pointercancel', endDrag);
+sheetEl.addEventListener('click', e => { if (dragMoved) { dragMoved = false; e.preventDefault(); e.stopPropagation(); } }, true);
+window.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) { showMenu(false); gearBtn.focus(); } });
 soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); });
 vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); });
 reviveYes.addEventListener('click', () => { initAudio(); revive(); });
@@ -2049,7 +2120,7 @@ function frame(t) {
   const raw = (t - last) / 1000;
   try {
     const a = performance.now();
-    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; tick(raw > 0.1 ? 0.1 : pace(raw)); }   // t can predate a watchdog step: nothing to simulate
+    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; if (!paused) tick(raw > 0.1 ? 0.1 : pace(raw)); }   // t can predate a watchdog step: nothing to simulate
     const b = performance.now();
     draw();
     perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
@@ -2063,7 +2134,7 @@ setInterval(() => {
   const now = performance.now();
   if (document.hidden || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
-  if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt); } catch (e) { perfC.err++; } }
+  if (dt > 0) { last = now; debt = 0; perfC.wd++; if (!paused) { try { tick(dt); } catch (e) { perfC.err++; } } }
 }, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
