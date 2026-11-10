@@ -76,6 +76,13 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
   border-radius:50%;background:#30303d;color:var(--muted);cursor:pointer;transition:transform .12s ease}
 #sheet-close:active{transform:scale(.92)}
 #sheet-close svg{width:calc(18*var(--u));height:calc(18*var(--u))}
+#lab{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-wrap:wrap;justify-content:center;gap:calc(8*var(--u));
+  padding:calc(12*var(--u)) calc(14*var(--u)) calc(18*var(--u) + env(safe-area-inset-bottom,0px))}
+#lab button{padding:calc(9*var(--u)) calc(14*var(--u));border:0;border-radius:999px;background:#30303d;color:var(--ink);
+  font:900 calc(15*var(--u))/1 var(--font-display);font-variant-numeric:tabular-nums;cursor:pointer;transition:transform .12s ease}
+#lab button:active{transform:scale(.94)}
+#lab button[aria-pressed="true"],#lab button[data-all]{background:var(--ink);color:#17171c}
+#lab button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 #stage{position:absolute;left:0;right:0;top:calc(130*var(--u));bottom:0}
 body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
@@ -337,6 +344,10 @@ let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 const REVIVE_TIME = 6, REVIVE_BAND = 120, LINE_NEAR = 110;
 let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, count = 0, tickAt = -9, countPop = 0, ringShown = -1, bestAtStart = 0;
 let vib = true;
+// The merge lab (open the game with ?merges): a row of buttons, one per tier; each drops two blobs that meet and
+// merge, with everything a real merge shows. Nothing here loads, saves, scores a best or can be lost.
+const MERGE_LAB = /[?&]merges\b/.test(location.search);
+let labSpeed = 1, labQueue = [], labWait = 0.6;
 let time = 0, acc = 0, shake = 0, shakeT = 0, shakeHeat = 0;
 // every shake heats up; while hot, new shakes land softer (spamming shots cannot keep the screen rattling)
 function kickShake(k) { k /= 1 + shakeHeat; shakeHeat = Math.min(3, shakeHeat + 1); if (k > shake) { shake = k; shakeT = 0; } }
@@ -970,7 +981,21 @@ function finishMerge(a, b) {
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
     fanfare.c = cidx(nb.level); fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
-    if (!REDUCED) { hitStop = Math.max(hitStop, 0.25); kick = 0.9; glow.a = 1; }
+    if (!REDUCED) {
+      hitStop = Math.max(hitStop, 0.25); kick = 0.9; glow.a = 1;
+      const ci = cidx(nb.level);
+      for (let q = 0; q < 3; q++) {   // shock rings, one after another
+        const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;
+        rg.t = -q * 0.12; rg.life = 0.62 + q * 0.14; rg.x = x; rg.y = y; rg.r0 = nb.r * 0.9; rg.r1 = nb.r * (2.3 + q * 0.95); rg.c = ci;
+      }
+      for (let q = 0; q < 34; q++) {  // confetti in the new colour, with its comet trails
+        const bt = bits[bitI]; bitI = (bitI + 1) % bits.length;
+        const th = Math.random() * 6.283, v = 240 + Math.random() * 460;
+        bt.t = 0; bt.tt = 0; bt.life = 0.9 + Math.random() * 0.7; bt.x = x + Math.cos(th) * nb.r * 0.5; bt.y = y + Math.sin(th) * nb.r * 0.5;
+        bt.vx = Math.cos(th) * v; bt.vy = Math.sin(th) * v; bt.r = 3 + Math.random() * 4.2; bt.c = ci; bt.a = Math.random() * 6.283; bt.spin = (Math.random() - 0.5) * 16;
+        for (let k = 0; k < TRAIL; k++) { bt.tx[k] = bt.x; bt.ty[k] = bt.y; }
+      }
+    }
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
   }
@@ -1055,14 +1080,20 @@ function drawFanfare() {
   const c = COLORS[fanfare.c], x = fanfare.x, y = fanfare.y, b = fanfare.b, rs = b ? b.r * b.scale : 40;
   ctx.save();
   ctx.fillStyle = `rgba(14,14,24,${(0.62 * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // dim the field
-  // rays: two fans of wedges turning against each other, additive, in the new colour and white
+  if (fanfare.t < 0.14) { ctx.fillStyle = `rgba(255,255,255,${(0.26 * (1 - fanfare.t / 0.14) * fanfare.k).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H); }   // a blink of light
+  // beams: two fans turning against each other, additive, in the new colour and white. They shoot out of the blob
+  // over the first third of a second and fade toward their tips; no two are the same width.
   ctx.globalCompositeOperation = 'lighter';
+  const grow = Math.min(1, fanfare.t / 0.34), R = 150 + 520 * (1 - Math.pow(1 - grow, 3));
   for (let set = 0; set < 2; set++) {
-    const n = set ? 9 : 14, w = set ? 0.07 : 0.11, rot = set ? -fanfare.rot * 0.7 + 0.4 : fanfare.rot;
-    ctx.fillStyle = set ? `rgba(255,255,255,${(0.07 * env).toFixed(3)})` : `rgba(${c.r},${c.g},${c.b},${(0.2 * env).toFixed(3)})`;
+    const n = set ? 7 : 11, rot = set ? -fanfare.rot * 0.7 + 0.4 : fanfare.rot, al = ((set ? 0.2 : 0.5) * env).toFixed(3);
+    const bg = ctx.createRadialGradient(x, y, rs * 0.5, x, y, R);
+    bg.addColorStop(0, set ? `rgba(255,255,255,${al})` : `rgba(${c.r},${c.g},${c.b},${al})`);
+    bg.addColorStop(1, set ? 'rgba(255,255,255,0)' : `rgba(${c.r},${c.g},${c.b},0)`);
+    ctx.fillStyle = bg;
     for (let i = 0; i < n; i++) {
-      const a0 = rot + i * 6.283 / n, a1 = a0 + w;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a0) * 1200, y + Math.sin(a0) * 1200); ctx.lineTo(x + Math.cos(a1) * 1200, y + Math.sin(a1) * 1200); ctx.closePath(); ctx.fill();
+      const w = (set ? 0.085 : 0.14) * (0.65 + 0.7 * ((i * 7 + set * 3) % 5) / 4), a0 = rot + i * 6.283 / n - w / 2, a1 = a0 + w;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a0) * R, y + Math.sin(a0) * R); ctx.lineTo(x + Math.cos(a1) * R, y + Math.sin(a1) * R); ctx.closePath(); ctx.fill();
     }
   }
   const g = ctx.createRadialGradient(x, y, rs * 0.6, x, y, rs * 3.2);   // glow behind the blob
@@ -1112,7 +1143,7 @@ function drawJuice() {
   // rings: a thinning hoop of the new colour, out and gone
   ctx.lineCap = 'round';
   for (let i = 0; i < rings.length; i++) {
-    const rg = rings[i]; if (rg.t >= rg.life) continue;
+    const rg = rings[i]; if (rg.t >= rg.life || rg.t < 0) continue;   // (a negative time is a ring still waiting its turn)
     const k = rg.t / rg.life, e = 1 - (1 - k) * (1 - k), r = rg.r0 + (rg.r1 - rg.r0) * e;
     ctx.globalAlpha = (1 - k) * 0.9; ctx.lineWidth = 4 * (1 - k) + 0.6; ctx.strokeStyle = COLORS[rg.c].hex;
     ctx.beginPath(); ctx.arc(rg.x, rg.y, r, 0, 6.2832); ctx.stroke();
@@ -1201,11 +1232,11 @@ function reset() {
 const SAVE_KEY = 'udm_save', SAVE_V = 1;
 let saveT = 0, saveDirty = true;
 let bestDirty = false;
-function flushBest() { if (!bestDirty) return; bestDirty = false; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
-function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+function flushBest() { if (!bestDirty || MERGE_LAB) return; bestDirty = false; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
+function clearSave() { if (MERGE_LAB) return; try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 function saveRun() {
   flushBest();
-  if (over || !blobs.length) return;
+  if (over || !blobs.length || MERGE_LAB) return;
   const bl = [];
   let moving = false;
   for (let i = 0; i < blobs.length; i++) {
@@ -1225,6 +1256,7 @@ function saveRun() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), blobs: bl })); } catch (e) {}
 }
 function loadRun() {
+  if (MERGE_LAB) return false;
   let d = null;
   try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { d = null; }
   if (!d || d.v !== SAVE_V || !Array.isArray(d.blobs) || !d.blobs.length || d.blobs.length > 80 || !Array.isArray(d.order) || d.order.length !== COLORS.length) return false;
@@ -1313,13 +1345,32 @@ function tutBlob() {   // the shelf shape the hand demonstrates on: stays the sa
   for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (b.tray && !b.dead && !b.entering && b.state === 0) { tutB = b; break; } }
   return tutB;
 }
+function labMerge(L) {   // L: the tier that comes out (2 is the "4")
+  for (let i = 0; i < blobs.length; i++) blobs[i].dead = true;
+  fanfare.t = 9; fanfare.b = null; glow.a = 0; hitStop = 0; combo = 0; comboIdle = 0; over = false; dangerT = 0; score = shown = 0; shake = 0; tilt = tiltV = 0;
+  for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
+  peak = L - 1; runSizeScale = sizeTarget(); sizeDirty = false;   // the size the board has when this merge happens in a run
+  const a = makeBlob(L - 1), b = makeBlob(L - 1), r = a.r;
+  if (4 * r + 100 <= WALL_R - WALL_L) {   // side by side, closing in
+    const cy = CEIL + Math.max(150, r + 90);
+    placeBlob(a, LX - r - 42, cy, Math.random() * 6.28, 1, 0, 1, 1, 190, 0); placeBlob(b, LX + r + 42, cy, Math.random() * 6.28, 1, 0, 1, 1, -190, 0);
+  } else {                                // too wide for that: one above the other
+    placeBlob(a, LX, CEIL + r + 6, Math.random() * 6.28, 1, 0, 1, 1, 0, 0); placeBlob(b, LX, CEIL + 3 * r + 70, Math.random() * 6.28, 1, 0, 1, 1, 0, -230);
+  }
+  a.launched = b.launched = true; blobs.push(a, b);
+}
+function stepLab(dt) {
+  if (!labQueue.length) return;
+  labWait -= dt;
+  if (labWait <= 0) { const L = labQueue.shift(); labMerge(L); labWait = L >= FANFARE_LEVEL ? 4 : 2.3; }
+}
 function stepTutorial(dt) {
-  if (tutDone) return;
+  if (tutDone || MERGE_LAB) return;
   if (over || aiming || !tutBlob()) { tutT = -0.9; return; }   // it starts over, after a breath, once the player lets go without shooting
   tutT += dt;
 }
 function drawTutorial() {
-  if (tutDone || over || aiming || tutT < 0) return;
+  if (tutDone || MERGE_LAB || over || aiming || tutT < 0) return;
   const b = tutBlob(); if (!b) return;
   const cl = v => v < 0 ? 0 : v > 1 ? 1 : v;
   const t = REDUCED ? 1.4 : tutT % TUT_PERIOD, x0 = b.cx, y0 = b.cy, rs = b.r * b.scale, col = colorFor(b.level).hex;
@@ -1365,7 +1416,8 @@ function fire(b) {
 }
 
 function frameLogic(dt) {
-  if (!over) {
+  if (MERGE_LAB) stepLab(dt);
+  if (!over && !MERGE_LAB) {
     let count = trayCount();
     for (let s = 0; s < 2; s++) {
       if (count < TRAY_MAX && gateT[s] < 1) gateT[s] = Math.min(1, gateT[s] + dt / GATE_TIME);
@@ -1392,7 +1444,8 @@ function frameLogic(dt) {
   musicTick();
 
   // danger line: the pile grows downward; lose only if it stays past the line
-  if (!over) {
+  if (MERGE_LAB) { dangerT = 0; lineA = 0; count = 0; }
+  else if (!over) {
     // only a settled blob counts: in the pile for a while, not merging, and nearly at rest (something flying
     // through the line is not danger). `low` is how far down the settled pile reaches.
     let low = -1e9;
@@ -1709,6 +1762,7 @@ let shakeCss = '', dangerCss = '';
 let scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
+const LIMIT_WASH = 64, limitEdge = [null, null], limitWash = [null, null]; let limitY = -1;
 const FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
@@ -1864,7 +1918,7 @@ function draw() {
 
   // best score, cut into the panel: the screen colour shows through it and the blobs pass over it (Figma 19:114:
   // the number between two laurel branches, 24 above the bottom, row 48 tall, gap 12)
-  if (best > 0) {
+  if (best > 0 && !MERGE_LAB) {
     // ("plus darker": an ink of 145,145,160 multiplied into the panel's 53,53,67 lands on the screen's 30,30,42)
     const by = H - 48;
     ctx.globalAlpha = BEST_ALPHA;
@@ -1900,13 +1954,26 @@ function draw() {
   }
   ctx.restore();
 
-  // the danger line: faint and dashed as the pile comes close, red and counting once the pile is past it
-  if (!over && (lineA > 0.02 || count > 0)) {
-    const hot = count > 0;
-    ctx.globalAlpha = hot ? 0.95 : 0.55 * lineA; ctx.strokeStyle = hot ? '#ff4d5e' : '#f4f1ea'; ctx.lineWidth = hot ? 3 : 2; ctx.lineCap = 'round';
-    ctx.setLineDash([9, 10]); ctx.lineDashOffset = -time * (hot ? 30 : 12);
-    ctx.beginPath(); ctx.moveTo(WALL_L + 16, DANGER_Y); ctx.lineTo(WALL_R - 16, DANGER_Y); ctx.stroke();
-    ctx.setLineDash([]); ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
+  // the limit: an edge of light with a wash below it, fading in as the pile comes close; red and beating once the
+  // pile is past it and the countdown runs. It stays out of the way of a fanfare.
+  if (!over && (lineA > 0.02 || count > 0) && (count > 0 || fanfareEnv() <= 0)) {
+    const hot = count > 0, k = hot ? 1 : 0;
+    if (limitY !== DANGER_Y) {   // four small gradients, rebuilt only when the layout changes
+      limitY = DANGER_Y;
+      for (let q = 0; q < 2; q++) {
+        const col = q ? '255,77,94' : '244,241,234';
+        const e = ctx.createLinearGradient(WALL_L, 0, WALL_R, 0);
+        e.addColorStop(0, `rgba(${col},0)`); e.addColorStop(0.16, `rgba(${col},1)`); e.addColorStop(0.84, `rgba(${col},1)`); e.addColorStop(1, `rgba(${col},0)`);
+        const w = ctx.createLinearGradient(0, DANGER_Y, 0, DANGER_Y + LIMIT_WASH);
+        w.addColorStop(0, `rgba(${col},${q ? 0.3 : 0.13})`); w.addColorStop(1, `rgba(${col},0)`);
+        limitEdge[q] = e; limitWash[q] = w;
+      }
+    }
+    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), a = hot ? 0.7 + 0.3 * beat * beat : lineA;
+    ctx.globalAlpha = a; ctx.fillStyle = limitWash[k]; ctx.fillRect(WALL_L, DANGER_Y, WALL_R - WALL_L, LIMIT_WASH);
+    ctx.globalAlpha = a * 0.22; ctx.fillStyle = limitEdge[k]; ctx.fillRect(WALL_L, DANGER_Y - 4, WALL_R - WALL_L, 8);          // a soft halo
+    ctx.globalAlpha = a * (hot ? 1 : 0.6); ctx.fillRect(WALL_L, DANGER_Y - (hot ? 1.5 : 1), WALL_R - WALL_L, hot ? 3 : 2);   // the edge itself
+    ctx.globalAlpha = 1;
     if (hot) {   // the pill on the line: what to do, and how long is left
       const sc = 1 + 0.3 * countPop * countPop, w = 196, h = 38;
       ctx.save(); ctx.translate(LX, Math.min(DANGER_Y, TRAY_Y - TRAY_R - 30)); ctx.scale(sc, sc);
@@ -2110,7 +2177,7 @@ function frame(t) {
   const raw = (t - last) / 1000;
   try {
     const a = performance.now();
-    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; if (!paused) tick(raw > 0.1 ? 0.1 : pace(raw)); }   // t can predate a watchdog step: nothing to simulate
+    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; if (!paused) tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed); }   // t can predate a watchdog step: nothing to simulate
     const b = performance.now();
     draw();
     perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
@@ -2130,6 +2197,21 @@ window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
+if (MERGE_LAB) {   // the lab's controls: a button per tier, the whole run of them, and slow motion
+  const bar = document.createElement('div'); bar.id = 'lab';
+  let h = '';
+  for (let L = 2; L <= 13; L++) h += `<button type="button" data-l="${L}">${Math.pow(2, L)}</button>`;
+  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button>';
+  screenEl.appendChild(bar);
+  bar.addEventListener('click', e => {
+    const t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
+    initAudio();
+    if (t.dataset.l) { labQueue.length = 0; labMerge(+t.dataset.l); }
+    else if (t.dataset.all) { labQueue = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; labWait = 0; }
+    else { labSpeed = labSpeed === 1 ? 0.25 : 1; t.setAttribute('aria-pressed', String(labSpeed !== 1)); }
+  });
+  labQueue = [10];   // opens on the 1024
+}
 if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
 last = performance.now();
 requestAnimationFrame(frame);
