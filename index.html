@@ -1279,8 +1279,57 @@ function pickTray(x, y, maxDist) {
   return bd <= maxDist ? bestB : null;
 }
 
+let tutDone = false, tutT = -0.9, tutB = null;
+try { tutDone = localStorage.getItem('udm_tut') === '1'; } catch (e) {}
+const TUT_PERIOD = 2.7, TUT_PULL = 84;
+function tutBlob() {   // the shelf shape the hand demonstrates on: stays the same one while it is there
+  if (tutB && !tutB.dead && tutB.tray && !tutB.entering && tutB.state === 0) return tutB;
+  tutB = null;
+  for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (b.tray && !b.dead && !b.entering && b.state === 0) { tutB = b; break; } }
+  return tutB;
+}
+function stepTutorial(dt) {
+  if (tutDone) return;
+  if (over || aiming || !tutBlob()) { tutT = -0.9; return; }   // it starts over, after a breath, once the player lets go without shooting
+  tutT += dt;
+}
+function drawTutorial() {
+  if (tutDone || over || aiming || tutT < 0) return;
+  const b = tutBlob(); if (!b) return;
+  const cl = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const t = REDUCED ? 1.4 : tutT % TUT_PERIOD, x0 = b.cx, y0 = b.cy, rs = b.r * b.scale, col = colorFor(b.level).hex;
+  const appear = cl(t / 0.3), press = cl((t - 0.3) / 0.15), dq = cl((t - 0.5) / 0.75), drag = 1 - (1 - dq) * (1 - dq) * (1 - dq), rel = cl((t - 1.65) / 0.28);
+  const fy = y0 + TUT_PULL * drag, live = appear * (1 - rel);
+  ctx.save();
+  // the caption, above the shelf and above the aim dots
+  ctx.globalAlpha = 0.9 * cl(tutT / 0.4); ctx.fillStyle = '#f4f1ea'; ctx.font = FONT_TUT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('Pull back and let go', LX, TRAY_Y - 150);   // clear of the dots that rise from the shape
+  if (drag > 0.02 && rel < 1) {
+    // the aim, as the real one looks: dots leaving the shape upward, more of them the further the pull
+    ctx.fillStyle = '#f4f1ea';
+    for (let i = 0; i < 7; i++) {
+      const q = i / 7, a = 0.95 * (1 - q * q) * cl(drag * 7 - i) * (1 - rel);
+      if (a <= 0.01) continue;
+      ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(x0, y0 - rs - 12 - i * 13, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
+    }
+    // the pull itself: a faint dashed line from the shape to the fingertip
+    ctx.globalAlpha = 0.4 * live; ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.setLineDash([2, 7]);
+    ctx.beginPath(); ctx.moveTo(x0, y0 + rs + 4); ctx.lineTo(x0, fy - 14); ctx.stroke(); ctx.setLineDash([]); ctx.lineCap = 'butt';
+  }
+  if (rel > 0 && !REDUCED) {   // let go: a ghost of the shape flies off the way the dots pointed
+    const e = cl((t - 1.65) / 0.55), ee = 1 - (1 - e) * (1 - e);
+    if (e < 1) { ctx.globalAlpha = 0.55 * (1 - e); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0, y0 - 240 * ee, rs * (1 - 0.15 * e), 0, 6.2832); ctx.fill(); }
+  }
+  if (live > 0.01) {   // the fingertip: a soft halo and a solid dot, a touch smaller while pressed
+    ctx.fillStyle = '#f4f1ea';
+    ctx.globalAlpha = 0.22 * live; ctx.beginPath(); ctx.arc(x0, fy, 23 - 4 * press + 9 * rel, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 0.95 * live; ctx.beginPath(); ctx.arc(x0, fy, 12.5 - 1.5 * press, 0, 6.2832); ctx.fill();
+  }
+  ctx.restore();
+}
 function fire(b) {
   if (!b || !b.tray || b.dead || over) return;
+  if (!tutDone) { tutDone = true; try { localStorage.setItem('udm_tut', '1'); } catch (e) {} }
   initAudio();
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
@@ -1303,6 +1352,7 @@ function frameLogic(dt) {
     }
   }
   comboIdle += dt; if (comboIdle > 1.8) combo = 0;
+  stepTutorial(dt);
 
   const righting = Math.exp(-dt * 3.2);
   for (let i = 0; i < blobs.length; i++) {
@@ -1637,7 +1687,7 @@ let shakeCss = '', dangerCss = '';
 let scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
-const FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
+const FONT_TUT = '900 16px ' + FONT, FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
 const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
@@ -1846,6 +1896,8 @@ function draw() {
     }
   }
 
+  drawTutorial();
+
   // trajectory: a straight ray from the grabbed shape to the first thing it would reach (ceiling, wall or
   // blob), drawn as evenly spaced dots with a faint ghost of the shape at the end. Pure geometry, no
   // simulation, so it follows the finger with no lag.
@@ -2021,6 +2073,7 @@ window.__udm = { blobs, tick, draw, reset,
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   pickLevel, popBlob, setPeak: v => { peak = v; }, saveRun, loadRun, clearSave, lose, revive, endRun, setDanger: v => { dangerT = v; },
   lose2: () => ({ over, offer, ended, reviveUsed, count, lineA, dangerT }),
+  tut: v => { if (v !== undefined) { tutDone = !v; tutT = 0; try { if (v) localStorage.removeItem('udm_tut'); } catch (e) {} } return { tutDone, tutT }; },
   perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
