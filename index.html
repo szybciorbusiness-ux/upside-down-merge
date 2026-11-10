@@ -137,6 +137,17 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .confetti i{position:absolute;top:-6%;border-radius:999px;opacity:0;animation:confall linear infinite}
 @keyframes confall{0%{opacity:1;transform:translate(0,0) rotate(var(--r))}85%{opacity:1}100%{opacity:0;transform:translate(var(--sx),112vh) rotate(calc(var(--r) + 300deg))}}
 @keyframes blobin{from{opacity:0;transform:scale(.5)}}
+#over:not(.best) .confetti i:not(:nth-child(4n)){display:none}   /* a sprinkle for any run, the downpour for a record */
+.burst{position:absolute;left:50%;top:50%;width:0;height:0}
+.burst i{position:absolute;left:0;top:0;border-radius:999px;opacity:0}
+#over.counted .burst i{animation:burst cubic-bezier(.12,.75,.3,1) both}
+#over.counted:not(.best) .burst i:nth-child(2n){display:none}
+#over.counted .oblob{animation:punch .5s cubic-bezier(.2,1.5,.4,1)}
+#over.counted.best .obest{animation:slam .55s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes burst{0%{opacity:1;transform:translate(-50%,-50%) scale(.2)}55%{opacity:1;transform:translate(calc(var(--dx) - 50%),calc(var(--dy) - 50%)) rotate(var(--r)) scale(1)}
+  100%{opacity:0;transform:translate(calc(var(--dx)*1.12 - 50%),calc(var(--dy) + 150*var(--u) - 50%)) rotate(calc(var(--r) + 220deg)) scale(.85)}}
+@keyframes punch{0%{transform:scale(1)}30%{transform:scale(1.16)}100%{transform:scale(1)}}
+@keyframes slam{0%{transform:scale(1.9);opacity:0}60%{opacity:1}100%{transform:scale(1)}}
 @keyframes wob{0%,100%{transform:rotate(-2deg) scale(1.02,.98)}50%{transform:rotate(2deg) scale(.98,1.03)}}
 #again:active{animation:none;transform:scale(.95)}
 #revive-yes:active{animation:none;transform:scale(.94)}
@@ -167,7 +178,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #revive-yes:focus-visible,.xbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
-@media (prefers-reduced-motion:reduce){#over,#revive,.panel,.ring,.ring span.tick,.chance,#revive-yes,#revive .xbtn,#again,#over h1,.oblob,.oblob svg,.obest{animation:none}.confetti{display:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
+@media (prefers-reduced-motion:reduce){#over,#revive,.panel,.ring,.ring span.tick,.chance,#revive-yes,#revive .xbtn,#again,#over h1,.oblob,.oblob svg,.obest{animation:none!important}.confetti,.burst{display:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
 </style>
 
 <div id="phone">
@@ -203,7 +214,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
       <div class="panel" tabindex="-1" role="dialog" aria-labelledby="over-title">
         <h1 id="over-title">Game over</h1>
         <p class="reason" id="o-why">The pile stayed past the line.</p>
-        <div class="oblob"><svg viewBox="0 0 200 152" aria-hidden="true"><path d="M96 4c40-6 84 10 98 44 12 30-2 68-36 88-32 18-80 20-116 4C12 126-6 92 6 58 18 26 58 10 96 4z" fill="currentColor"/></svg><span class="sr">Score</span><b id="o-score">0</b></div>
+        <div class="oblob"><div class="burst" aria-hidden="true"><i style="width:calc(11.2*var(--u));height:calc(11.2*var(--u));background:#fece00;--dx:calc(6*var(--u));--dy:calc(149*var(--u));--r:257deg;animation-delay:0.07s;animation-duration:1.25s"></i><i style="width:calc(8.9*var(--u));height:calc(8.9*var(--u));background:#ff7300;--dx:calc(-41*var(--u));--dy:calc(-178*var(--u));--r:176deg;animation-delay:0.01s;animation-duration:1.57s"></i><i style="width:calc(8.6*var(--u));height:calc(19.5*var(--u));background:#fea1cd;--dx:calc(-9*var(--u));--dy:calc(127*var(--u));--r:15deg;animation-delay:0.03s;animation-duration:1.39s"></i><i style="width:calc(10.4*var(--u));height:calc(10.4*var(--u));background:#00a3fe;--dx:calc(120*var(--u));--dy:calc(-278*var(--u));--r:277deg;animation-delay:0.02s;animation-duration:1.15s"></i><i style="width:calc(11.2*var(--u));height:calc(11.2*var(--u));background:#2ecc40;--dx:calc(-144*var(--u));--dy:calc(200*var(--u));--r:117deg;animation-delay:0.01s;animation-duration:1.61s"></i><i style="width:calc(14.5*var(--u));height:calc(14.5*var(--u));background:#a06bff;--dx:calc(-54*var(--u));--dy:calc(91*var(--u));--r:26deg;animation-delay:0.04s;animation-duration:1.38s"></i><i style="width:calc(6.9*var(--u));height:calc(17.2*var(--u));background:#ff4d5e;--dx:calc(-234*var(--u));--dy:calc(-220*var(--u));--r:52deg;animation-delay:0.05s;animation-duration:1.44s"></i><i style="width:calc(7.1*var(--u));height:calc(14.7*var(--u));background:#19c6b6;--dx:calc(130*var(--u));--dy:calc(-80*var(--u));--r:222deg;animation-delay:0.04s;animation-duration:1.14s"></i><i style="width:calc(8.1*var(--u));height:calc(8.1*var(--u));background:#fece00;--dx:calc(-62*var(--u));--dy:calc(81*var(--u));--r:10deg;animation-delay:0.07s;animation-duration:1.35s"></i><i style="width:calc(8.2*var(--u));height:calc(19.0*var(--u));background:#ff7300;--dx:calc(144*var(--u));--dy:calc(-31*var(--u));--r:260deg;animation-delay:0.03s;animation-duration:1.46s"></i><i style="width:calc(14.7*var(--u));height:calc(14.7*var(--u));background:#fea1cd;--dx:calc(-282*var(--u));--dy:calc(-143*var(--u));--r:28deg;animation-delay:0.08s;animation-duration:1.34s"></i><i style="width:calc(15.0*var(--u));height:calc(15.0*var(--u));background:#00a3fe;--dx:calc(-76*var(--u));--dy:calc(125*var(--u));--r:97deg;animation-delay:0.05s;animation-duration:1.43s"></i><i style="width:calc(14.3*var(--u));height:calc(14.3*var(--u));background:#2ecc40;--dx:calc(112*var(--u));--dy:calc(70*var(--u));--r:15deg;animation-delay:0.07s;animation-duration:1.43s"></i><i style="width:calc(7.6*var(--u));height:calc(7.6*var(--u));background:#a06bff;--dx:calc(126*var(--u));--dy:calc(-201*var(--u));--r:325deg;animation-delay:0.01s;animation-duration:1.50s"></i><i style="width:calc(12.0*var(--u));height:calc(12.0*var(--u));background:#ff4d5e;--dx:calc(216*var(--u));--dy:calc(16*var(--u));--r:143deg;animation-delay:0.05s;animation-duration:1.20s"></i><i style="width:calc(8.1*var(--u));height:calc(22.9*var(--u));background:#19c6b6;--dx:calc(40*var(--u));--dy:calc(149*var(--u));--r:335deg;animation-delay:0.05s;animation-duration:1.48s"></i><i style="width:calc(10.4*var(--u));height:calc(10.4*var(--u));background:#fece00;--dx:calc(-16*var(--u));--dy:calc(-146*var(--u));--r:165deg;animation-delay:0.06s;animation-duration:1.35s"></i><i style="width:calc(9.3*var(--u));height:calc(25.7*var(--u));background:#ff7300;--dx:calc(-237*var(--u));--dy:calc(17*var(--u));--r:342deg;animation-delay:0.07s;animation-duration:1.43s"></i><i style="width:calc(7.5*var(--u));height:calc(18.2*var(--u));background:#fea1cd;--dx:calc(-168*var(--u));--dy:calc(-258*var(--u));--r:197deg;animation-delay:0.07s;animation-duration:1.56s"></i><i style="width:calc(7.7*var(--u));height:calc(19.0*var(--u));background:#00a3fe;--dx:calc(-10*var(--u));--dy:calc(-241*var(--u));--r:117deg;animation-delay:0.04s;animation-duration:1.30s"></i><i style="width:calc(7.2*var(--u));height:calc(19.3*var(--u));background:#2ecc40;--dx:calc(226*var(--u));--dy:calc(78*var(--u));--r:287deg;animation-delay:0.05s;animation-duration:1.25s"></i><i style="width:calc(6.2*var(--u));height:calc(16.2*var(--u));background:#a06bff;--dx:calc(256*var(--u));--dy:calc(-167*var(--u));--r:36deg;animation-delay:0.03s;animation-duration:1.54s"></i><i style="width:calc(7.5*var(--u));height:calc(21.4*var(--u));background:#ff4d5e;--dx:calc(-125*var(--u));--dy:calc(234*var(--u));--r:256deg;animation-delay:0.01s;animation-duration:1.46s"></i><i style="width:calc(6.1*var(--u));height:calc(16.4*var(--u));background:#19c6b6;--dx:calc(103*var(--u));--dy:calc(-155*var(--u));--r:279deg;animation-delay:0.04s;animation-duration:1.57s"></i><i style="width:calc(9.9*var(--u));height:calc(29.5*var(--u));background:#fece00;--dx:calc(87*var(--u));--dy:calc(70*var(--u));--r:338deg;animation-delay:0.06s;animation-duration:1.61s"></i><i style="width:calc(9.2*var(--u));height:calc(23.2*var(--u));background:#ff7300;--dx:calc(94*var(--u));--dy:calc(180*var(--u));--r:285deg;animation-delay:0.02s;animation-duration:1.54s"></i><i style="width:calc(6.5*var(--u));height:calc(15.6*var(--u));background:#fea1cd;--dx:calc(-265*var(--u));--dy:calc(-50*var(--u));--r:302deg;animation-delay:0.00s;animation-duration:1.28s"></i><i style="width:calc(7.5*var(--u));height:calc(7.5*var(--u));background:#00a3fe;--dx:calc(105*var(--u));--dy:calc(79*var(--u));--r:25deg;animation-delay:0.01s;animation-duration:1.21s"></i><i style="width:calc(8.4*var(--u));height:calc(22.4*var(--u));background:#2ecc40;--dx:calc(44*var(--u));--dy:calc(142*var(--u));--r:146deg;animation-delay:0.00s;animation-duration:1.22s"></i><i style="width:calc(6.7*var(--u));height:calc(18.1*var(--u));background:#a06bff;--dx:calc(-99*var(--u));--dy:calc(-171*var(--u));--r:106deg;animation-delay:0.05s;animation-duration:1.59s"></i><i style="width:calc(9.5*var(--u));height:calc(20.6*var(--u));background:#ff4d5e;--dx:calc(-31*var(--u));--dy:calc(148*var(--u));--r:101deg;animation-delay:0.00s;animation-duration:1.69s"></i><i style="width:calc(8.4*var(--u));height:calc(8.4*var(--u));background:#19c6b6;--dx:calc(199*var(--u));--dy:calc(46*var(--u));--r:4deg;animation-delay:0.07s;animation-duration:1.69s"></i><i style="width:calc(14.6*var(--u));height:calc(14.6*var(--u));background:#fece00;--dx:calc(-99*var(--u));--dy:calc(135*var(--u));--r:306deg;animation-delay:0.00s;animation-duration:1.66s"></i><i style="width:calc(7.7*var(--u));height:calc(16.6*var(--u));background:#ff7300;--dx:calc(-96*var(--u));--dy:calc(-271*var(--u));--r:226deg;animation-delay:0.05s;animation-duration:1.25s"></i><i style="width:calc(12.6*var(--u));height:calc(12.6*var(--u));background:#fea1cd;--dx:calc(271*var(--u));--dy:calc(-17*var(--u));--r:18deg;animation-delay:0.01s;animation-duration:1.50s"></i><i style="width:calc(6.5*var(--u));height:calc(18.5*var(--u));background:#00a3fe;--dx:calc(59*var(--u));--dy:calc(-284*var(--u));--r:239deg;animation-delay:0.07s;animation-duration:1.47s"></i><i style="width:calc(8.6*var(--u));height:calc(23.7*var(--u));background:#2ecc40;--dx:calc(163*var(--u));--dy:calc(-2*var(--u));--r:44deg;animation-delay:0.02s;animation-duration:1.34s"></i><i style="width:calc(13.3*var(--u));height:calc(13.3*var(--u));background:#a06bff;--dx:calc(-273*var(--u));--dy:calc(-106*var(--u));--r:5deg;animation-delay:0.06s;animation-duration:1.14s"></i><i style="width:calc(7.8*var(--u));height:calc(21.1*var(--u));background:#ff4d5e;--dx:calc(-109*var(--u));--dy:calc(-139*var(--u));--r:15deg;animation-delay:0.08s;animation-duration:1.45s"></i><i style="width:calc(9.2*var(--u));height:calc(24.8*var(--u));background:#19c6b6;--dx:calc(-77*var(--u));--dy:calc(-140*var(--u));--r:222deg;animation-delay:0.02s;animation-duration:1.33s"></i><i style="width:calc(9.3*var(--u));height:calc(25.8*var(--u));background:#fece00;--dx:calc(174*var(--u));--dy:calc(-196*var(--u));--r:173deg;animation-delay:0.01s;animation-duration:1.61s"></i><i style="width:calc(14.0*var(--u));height:calc(14.0*var(--u));background:#ff7300;--dx:calc(146*var(--u));--dy:calc(-88*var(--u));--r:28deg;animation-delay:0.05s;animation-duration:1.51s"></i><i style="width:calc(9.7*var(--u));height:calc(28.2*var(--u));background:#fea1cd;--dx:calc(-150*var(--u));--dy:calc(22*var(--u));--r:237deg;animation-delay:0.05s;animation-duration:1.25s"></i><i style="width:calc(6.5*var(--u));height:calc(15.9*var(--u));background:#00a3fe;--dx:calc(303*var(--u));--dy:calc(-28*var(--u));--r:14deg;animation-delay:0.02s;animation-duration:1.21s"></i><i style="width:calc(8.3*var(--u));height:calc(21.5*var(--u));background:#2ecc40;--dx:calc(-132*var(--u));--dy:calc(-71*var(--u));--r:9deg;animation-delay:0.04s;animation-duration:1.54s"></i><i style="width:calc(9.2*var(--u));height:calc(9.2*var(--u));background:#a06bff;--dx:calc(-86*var(--u));--dy:calc(159*var(--u));--r:230deg;animation-delay:0.04s;animation-duration:1.20s"></i></div><svg viewBox="0 0 200 152" aria-hidden="true"><path d="M96 4c40-6 84 10 98 44 12 30-2 68-36 88-32 18-80 20-116 4C12 126-6 92 6 58 18 26 58 10 96 4z" fill="currentColor"/></svg><span class="sr">Score</span><b id="o-score">0</b></div>
         <div class="obest"><svg class="" viewBox="0 0 16 32" aria-hidden="true"><path d="M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z" fill="currentColor"/></svg><div><span id="o-best">0</span><small id="o-new">Best</small></div><svg class="flip" viewBox="0 0 16 32" aria-hidden="true"><path d="M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z" fill="currentColor"/></svg></div>
         <button id="again" type="button">Play again</button>
       </div>
@@ -444,7 +455,7 @@ const SCORE_W = 21, SCORE_Z = 0.3, SCORE_KICK = 5.2;   // the score's spring: ho
 // Fanfare for a big tier (1024 and up): the field freezes for a beat and dims, rays in the new colour spin out
 // of the blob, which pulses on top under a glow while sparkles pour out of it.
 const FANFARE_LEVEL = 8;    // from 256 up, growing with the tier (fanfare.big: 0 at 256, 1 from 4096)
-let overN = 0;
+let overN = 0, overTick = 0, overDone = true, overBest = false;
 function mergePop(x, y, nb, c) {
   const ci = cidx(nb.level), chain = Math.min(6, c - 1);
   if (REDUCED || c < 2) return;   // a lone merge is quiet: the pop belongs to chains
@@ -1580,16 +1591,19 @@ function frameLogic(dt) {
   } else {
     overT += dt;
     if (overT > 0.45 && overEl.hidden) {
-      overN = 0; oScore.textContent = '0'; oBest.textContent = best.toLocaleString();
+      overN = 0; overTick = 0; overDone = false; overEl.classList.remove('counted'); oScore.textContent = '0'; oBest.textContent = best.toLocaleString();
       oWhy.textContent = 'The pile stayed past the line.';
       const nb = score > 0 && score >= best && score > bestAtStart;
-      oNew.textContent = nb ? 'New best' : 'Best'; overEl.classList.toggle('best', nb); oConf.hidden = !nb;
+      oNew.textContent = nb ? 'New best' : 'Best'; overEl.classList.toggle('best', nb); overBest = nb; oConf.hidden = false;
       oScore.style.fontSize = `calc(${Math.min(58, Math.round(300 / (0.8 * Math.max(4, score.toLocaleString().length))))} * var(--u))`;
-      overEl.hidden = false; overEl.firstElementChild.focus({ preventScroll: true });
+      overEl.hidden = false; againBtn.parentNode.focus({ preventScroll: true });
     }
-    if (!overEl.hidden && overN !== score) {   // the score counts up to its number
-      const k = REDUCED ? 1 : Math.min(1, (overT - 0.6) / 0.9), v = k <= 0 ? 0 : Math.round(score * (1 - Math.pow(1 - k, 3)));
+    if (!overEl.hidden && !overDone) {   // the score counts up to its number, to rising ticks, and lands with a chord
+      const k = REDUCED || score === 0 ? (overT > 0.6 ? 1 : 0) : Math.min(1, (overT - 0.6) / 1.15), v = k <= 0 ? 0 : Math.round(score * (1 - Math.pow(1 - k, 3)));
       if (v !== overN) { overN = v; oScore.textContent = v.toLocaleString(); }
+      const step = Math.floor(k * 14);
+      if (step > overTick && k < 1) { overTick = step; sfxCount(k); buzz(5); }
+      if (k >= 1) { overDone = true; overEl.classList.add('counted'); sfxDone(overBest); buzz(overBest ? [30, 50, 30, 50, 80] : 30); }
     }
   }
   juiceStep(dt); frameFx(dt);
@@ -1859,6 +1873,15 @@ function sfxOver() {             // the run is over: four slow falling notes
   if (!audible()) return; const t = actx.currentTime;
   [440, 349.2, 293.7, 220].forEach((f, i) => note(f, t + i * 0.24, 0.12, 1.6, i === 3 ? 1.1 : 0));
 }
+function sfxCount(k) {            // the finish screen's score counting up: soft ticks that climb an octave
+  if (!audible()) return;
+  note(392 * Math.pow(2, k), actx.currentTime, 0.055, 0.5, 0);
+}
+function sfxDone(best) {          // the score lands: two bright notes, or the whole rising chord and the drum for a record
+  if (!audible()) return; const t = actx.currentTime;
+  if (best) { [523.3, 659.3, 784, 1046.5, 1318.5].forEach((f, i) => note(f, t + i * 0.085, 0.13, 1, i === 4 ? 1.2 : 0)); sfxBoom(0.7, t + 0.34); }
+  else { note(523.3, t, 0.11, 1, 0); note(784, t + 0.1, 0.12, 1, 0.7); }
+}
 function sfxUi(up) {             // the settings sheet and its switches: a small drop, rising for open or on, falling for close or off
   if (!audible()) return;
   voice(up ? 280 : 420, up ? 440 : 270, 0.08, actx.currentTime, [[0.014, 0.04], [0.05, 0.03], [0.1, 0]]);
@@ -1892,7 +1915,6 @@ let shakeCss = '', dangerCss = '';
 let scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
-const LIMIT_WASH = 64, limitEdge = [null, null], limitWash = [null, null]; let limitY = -1, limitH = -1;
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
 const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
@@ -2098,29 +2120,19 @@ function draw() {
   }
   ctx.restore();
 
-  // the limit: an edge of light with a wash below it, fading in as the pile comes close; red and beating once the
+  // the limit: a drifting row of dots, fading in as the pile comes close; coral and beating once the
   // pile is past it and the countdown runs. It stays out of the way of a fanfare.
   const idleA = lineA * (1 - fanfareEnv()) * (1 - hotA);   // a fanfare takes the idle line out and brings it back with its own envelope
   if (!over && (idleA > 0.02 || hotA > 0.02)) {
-    const washH = Math.max(0, Math.min(LIMIT_WASH, TRAY_Y - TRAY_R - 8 - DANGER_Y));   // the wash stops short of the shelf
-    if (limitY !== DANGER_Y || limitH !== washH) {   // four small gradients, rebuilt only when the layout changes
-      limitY = DANGER_Y; limitH = washH;
-      for (let q = 0; q < 2; q++) {
-        const col = q ? '255,77,94' : '244,241,234';
-        const e = ctx.createLinearGradient(WALL_L, 0, WALL_R, 0);
-        e.addColorStop(0, `rgba(${col},0)`); e.addColorStop(0.16, `rgba(${col},1)`); e.addColorStop(0.84, `rgba(${col},1)`); e.addColorStop(1, `rgba(${col},0)`);
-        const w = ctx.createLinearGradient(0, DANGER_Y, 0, DANGER_Y + Math.max(1, washH));
-        w.addColorStop(0, `rgba(${col},${q ? 0.3 : 0.1})`); w.addColorStop(1, `rgba(${col},0)`);
-        limitEdge[q] = e; limitWash[q] = w;
+    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), gap = 13;
+    for (let k = 0; k < 2; k++) {   // the quiet row and the red one cross-fade
+      const a = k ? hotA * (0.78 + 0.22 * beat * beat) : idleA * 0.6; if (a < 0.02) continue;
+      const off = REDUCED ? 0 : (time * (k ? 30 : 11)) % gap, rr = k ? 2.3 + 0.8 * beat * beat : 1.7;
+      ctx.fillStyle = k ? '#ff4d5e' : '#f4f1ea';
+      for (let px = WALL_L - gap + off; px < WALL_R + gap; px += gap) {
+        const e = Math.min(1, Math.min(px - WALL_L, WALL_R - px) / 44); if (e <= 0) continue;   // thinning out toward the walls
+        ctx.globalAlpha = a * e; ctx.beginPath(); ctx.arc(px, DANGER_Y, rr * (0.55 + 0.45 * e), 0, 6.2832); ctx.fill();
       }
-    }
-    const beat = Math.max(0, Math.sin(dangerPh * 6.2832));
-    for (let k = 0; k < 2; k++) {   // the quiet line and the red one cross-fade
-      const a = k ? hotA * (0.7 + 0.3 * beat * beat) : idleA; if (a < 0.02) continue;
-      if (washH > 0) { ctx.globalAlpha = a; ctx.fillStyle = limitWash[k]; ctx.fillRect(WALL_L, DANGER_Y, WALL_R - WALL_L, washH); }
-      ctx.fillStyle = limitEdge[k];
-      ctx.globalAlpha = a * 0.22; ctx.fillRect(WALL_L, DANGER_Y - 4, WALL_R - WALL_L, 8);          // a soft halo
-      ctx.globalAlpha = a * (k ? 1 : 0.5); ctx.fillRect(WALL_L, DANGER_Y - (k ? 1.5 : 1), WALL_R - WALL_L, k ? 3 : 2);   // the edge itself
     }
     ctx.globalAlpha = 1;
     if (hotA > 0.02 && countShown > 0) {   // the countdown, on the line: a ring that drains around the seconds left
