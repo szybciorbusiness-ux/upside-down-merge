@@ -10,6 +10,7 @@ const dir = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.argv[2] || 4630);
 const head = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
   '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' +
+  '<link rel="icon" type="image/png" href="assets/icon-192.png"><link rel="apple-touch-icon" href="assets/icon-180.png">' +
   '<style>html,body{margin:0}[hidden]{display:none!important}</style></head><body>';
 const types = { '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 

@@ -13,6 +13,13 @@ const head = `<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Sling squishy numbered blobs up at the ceiling. Matching numbers merge and chain.">
 <meta name="theme-color" content="#0c0c0f">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="manifest" href="assets/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Merge">
 <style>html,body{margin:0}[hidden]{display:none!important}</style>
 </head>
 <body>
