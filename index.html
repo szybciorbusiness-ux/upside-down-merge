@@ -310,7 +310,7 @@ let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 // Losing, step by step: the line shows as the pile nears it; past it a 3-2-1 counts down on the line; at zero the run
 // stops and a revive is offered once (a ring timer); declined or timed out, the game-over card says why.
 const REVIVE_TIME = 6, REVIVE_BAND = 120, LINE_NEAR = 110;
-let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, count = 0, countPop = 0, ringShown = -1, bestAtStart = 0;
+let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, count = 0, countLow = 4, countPop = 0, ringShown = -1, bestAtStart = 0;
 let vib = true;
 let time = 0, acc = 0, shake = 0, shakeT = 0, shakeHeat = 0;
 // every shake heats up; while hot, new shakes land softer (spamming shots cannot keep the screen rattling)
@@ -1163,7 +1163,7 @@ function reset() {
     blobs.push(b); x += r * 2 + gap;
   }
   overEl.hidden = true; reviveEl.hidden = true;
-  reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; count = 0; countPop = 0; ringShown = -1; bestAtStart = best;
+  reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; count = 0; countLow = 4; countPop = 0; ringShown = -1; bestAtStart = best;
   saveT = 0; saveDirty = true; clearSave();
 }
 
@@ -1195,7 +1195,7 @@ function saveRun() {
     bl.push(e);
   }
   saveDirty = moving;   // keep saving while the board is still moving, then once more at rest
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, blobs: bl })); } catch (e) {}
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), blobs: bl })); } catch (e) {}
 }
 function loadRun() {
   let d = null;
@@ -1211,11 +1211,12 @@ function loadRun() {
   reset();                                        // a clean slate: pools, flags, cards
   blobs.length = 0;
   runOrder = d.order.slice();
-  score = shown = Math.max(0, +d.score || 0); peak = Math.max(0, Math.min(24, d.peak | 0)); reviveUsed = !!d.revive;
+  score = shown = isFinite(+d.score) && +d.score > 0 ? +d.score : 0; peak = Math.max(0, Math.min(24, d.peak | 0)); reviveUsed = !!d.revive;
   runSizeScale = sizeTarget(); sizeDirty = false;
+  dangerT = isFinite(+d.danger) ? Math.max(0, Math.min(DANGER_HOLD, +d.danger)) : 0;
   openQ = Array.isArray(d.openQ) ? d.openQ.filter(l => Number.isInteger(l) && l >= 1 && l <= 12).slice(0, 3) : [];
   for (const e of d.blobs) {
-    const x = +e[1], y = +e[2], vx = +e[3] || 0, vy = +e[4] || 0, f = e[5] | 0, a = +e[6] || 0;
+    const x = +e[1], y = +e[2], vx = +e[3] || 0, vy = +e[4] || 0, f = e[5] | 0, a = isFinite(+e[6]) ? +e[6] : 0;
     const q = e[8];   // its own pebble shape, if the save has a sane one
     const shOk = Array.isArray(q) && q.length === 7 && q.every(v => typeof v === 'number' && isFinite(v)) && Number.isInteger(q[6]) && q[6] >= 14 && q[6] <= MAXN &&
       q[0] >= 0 && q[0] < 0.2 && q[1] >= 0 && q[1] < 0.2 && q[2] >= 0 && q[2] < 0.2;
@@ -1226,7 +1227,7 @@ function loadRun() {
       b.tray = true; b.scale = b.scaleT = ts; b.sq = b.sqT = 1; b.noMerge = 0.3;
     } else {
       const r = b.r, p = e[7], n = b.n;
-      const exact = Array.isArray(p) && p.length >= 16 && p.length % 2 === 0 && p.length <= 400 && p.every(v => typeof v === 'number' && isFinite(v));
+      const exact = Array.isArray(p) && p.length >= 16 && p.length % 2 === 0 && p.length <= 400 && p.every(v => typeof v === 'number' && Math.abs(v) < 1e5);
       const k = exact ? 1 : 0.9;
       placeBlob(b, clamp(x, WALL_L + r * 0.7, WALL_R - r * 0.7), clamp(y, CEIL + r * 0.7, FLOOR_Y - r), a, k, 0, 1, 1, clamp(vx, -V_MAX, V_MAX), clamp(vy, -V_MAX, V_MAX));
       if (exact) {
@@ -1248,8 +1249,8 @@ function loadRun() {
     }
     blobs.push(b);
   }
-  if (score > best) best = score;
-  bestAtStart = best;
+  if (score > best) { best = score; bestDirty = true; }
+  bestAtStart = typeof d.was === 'number' && d.was >= 0 && d.was <= best ? d.was : best;
   saveRun();
   return true;
 }
@@ -1331,11 +1332,13 @@ function frameLogic(dt) {
     dangerT = past ? dangerT + dt : dangerT > 0 ? Math.max(0, dangerT - dt * 3) : Math.min(0, dangerT + dt);
     warn = dangerT > 0.12;
     if (dangerT > 0) dangerPh += dt * (1.1 + 2.6 * Math.min(1, dangerT / DANGER_HOLD)); else dangerPh = 0;   // heartbeat, quickening
-    const c = dangerT > DANGER_GRACE ? Math.max(1, Math.ceil(DANGER_HOLD - dangerT)) : 0;   // 3, 2, 1
-    if (c !== count) { if (c > 0 && (count === 0 || c < count)) { countPop = 1; sfxTick(c); buzz(18); } count = c; }
+    const c = dangerT > DANGER_GRACE ? Math.max(1, Math.ceil(DANGER_HOLD - dangerT)) : dangerT > 0 && count > 0 ? 3 : 0;   // 3, 2, 1; once up it stays until the pile has really cleared
+    if (dangerT <= 0) countLow = 4;
+    if (c > 0 && c < countLow) { countLow = c; countPop = 1; sfxTick(c); buzz(18); }
+    count = c;
     if (countPop > 0) countPop = Math.max(0, countPop - dt * 4);
     if (dangerT >= DANGER_HOLD) lose();
-    saveT += dt; if (saveT >= 2) { saveT = 0; if (saveDirty) saveRun(); }
+    saveT += dt; if (saveT >= 2) { saveT = 0; if (saveDirty || dangerT > 0) saveRun(); }
   } else if (offer) {
     offerT += dt;
     const left = REVIVE_TIME - Math.max(0, offerT - 0.55);   // a beat to see the board, then the card and its timer
@@ -1357,6 +1360,7 @@ function frameLogic(dt) {
 }
 // The countdown ran out: the run stops. One revive per run is offered first.
 function lose() {
+  saveRun();   // the losing board with the countdown spent: a reload returns to this moment, not to before it
   over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countPop = 0;
   flushBest(); buzz([40, 60, 90]);
   if (!reviveUsed) { offer = true; offerT = 0; ringShown = -1; sfxStop(); } else endRun();
@@ -1371,9 +1375,11 @@ function revive() {
   dangerT = -1.5; dangerPh = 0; warn = false; count = 0;   // a moment's grace before the line counts again
   let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > top) top = blobs[i].level;
   const field = blobs.filter(b => !b.tray && !b.dead && b.level < top).sort((p, q) => q.maxY - p.maxY);
+  const stuck = blobs.filter(b => !b.tray && !b.dead && b.level === top && b.maxY > DANGER_Y - 40);   // a biggest blob that is itself at the line
+  const pins = b => stuck.some(t => b.cy < t.cy && Math.abs(b.cx - t.cx) < (b.r + t.r) * 0.9);        // what holds it down there (gravity is toward the ceiling)
   let n = 0;
   for (const b of field) {
-    if (n >= 3 && b.maxY < DANGER_Y - REVIVE_BAND) break;
+    if (n >= 3 && b.maxY < DANGER_Y - REVIVE_BAND && !pins(b)) continue;
     b.dead = true; n++;
     if (!REDUCED) for (let i = 0; i < 10; i++) {
       const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
@@ -1830,7 +1836,7 @@ function draw() {
     ctx.setLineDash([]); ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
     if (hot) {   // the pill on the line: what to do, and how long is left
       const sc = 1 + 0.3 * countPop * countPop, w = 196, h = 38;
-      ctx.save(); ctx.translate(LX, DANGER_Y); ctx.scale(sc, sc);
+      ctx.save(); ctx.translate(LX, Math.min(DANGER_Y, TRAY_Y - TRAY_R - 30)); ctx.scale(sc, sc);
       ctx.beginPath(); ctx.arc(-w / 2 + h / 2, 0, h / 2, 1.5708, 4.7124); ctx.arc(w / 2 - h / 2, 0, h / 2, -1.5708, 1.5708); ctx.closePath(); ctx.fillStyle = '#ff4d5e'; ctx.fill();
       ctx.fillStyle = '#17171c'; ctx.textBaseline = 'middle';
       ctx.font = FONT_PILL; ctx.textAlign = 'left'; ctx.fillText('Clear the line', -w / 2 + 18, 1);
@@ -1957,23 +1963,26 @@ againBtn.addEventListener('click', () => { initAudio(); reset(); });
 ['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
 
 /* ───────────────────────── boot ───────────────────────── */
-let last = 0, rafDone = 0, dtS = 1 / 60, debt = 0, outN = 0, frameErr = false;
+let last = 0, rafDone = 0, rafOk = 0, dtS = 1 / 60, debt = 0, outN = 0, frameErr = false;
 const perfC = { raf: 0, wd: 0, shed: 0, err: 0, maxGap: 0, tickMs: 0, drawMs: 0 };   // where the frames come from, for the test hook
 // Frame times arrive noisy (whole milliseconds on iOS, late callbacks in embedded views) although the display ticks
 // evenly: follow the learned period and pay the difference to real time back over a few frames, so every frame gets
 // the same number of physics steps. A hitch is followed exactly and teaches nothing; a new pace is learned once it lasts.
 function pace(raw) {
   const off = raw - dtS;
-  if (off > dtS * 0.25 || off < -dtS * 0.25) { if (++outN > 5) dtS += off * 0.25; debt = 0; return raw; }
+  if (off > dtS * 0.25 || off < -dtS * 0.25) { if (++outN >= 4) dtS += off * 0.25; return raw; }
   outN = 0; dtS += off * 0.08;
   debt += raw - dtS;
-  const pay = debt * 0.1; debt -= pay;
+  let pay = debt * 0.1; const cap = dtS * 0.1;
+  if (pay > cap) pay = cap; else if (pay < -cap) pay = -cap;
+  debt -= pay;
   return dtS + pay;
 }
 // The game draws once per animation frame and nowhere else. The next frame is asked for first, and nothing thrown
 // while stepping or drawing can stop the loop.
 function frame(t) {
   requestAnimationFrame(frame);
+  rafOk = performance.now() - rafDone < 60 ? rafOk + 1 : 0;   // frames in a row that followed the one before promptly
   const raw = (t - last) / 1000;
   try {
     const a = performance.now();
@@ -1989,7 +1998,7 @@ function frame(t) {
 // fires. Paused while the page is hidden.
 setInterval(() => {
   const now = performance.now();
-  if (document.hidden || now - rafDone < 120) return;
+  if (document.hidden || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
   if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt); } catch (e) { perfC.err++; } }
 }, 33);
