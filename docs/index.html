@@ -1659,17 +1659,17 @@ function frameLogic(dt) {
       overT = cashI < cash.length ? 0 : -0.1;
     }
     if (overT > 0.45 && overEl.hidden) {
-      overN = 0; overTick = 0; overDone = false; overEl.classList.remove('counted'); oScore.textContent = '0'; oBest.textContent = best.toLocaleString();
+      overN = 0; overTick = 0; overDone = false; overEl.classList.remove('counted'); oScore.textContent = '0'; oBest.textContent = String(best);
       oWhy.textContent = 'The pile stayed past the line.';
       const top = String(Math.pow(2, Math.max(1, peak))); oPeak.textContent = top; oPeak.style.fontSize = `calc(${Math.min(44, Math.round(150 / (0.8 * Math.max(3, top.length))))} * var(--u))`;
       const nb = score > 0 && score >= best && score > bestAtStart;
       oNew.textContent = nb ? 'New best' : 'Best'; overEl.classList.toggle('best', nb); overBest = nb; oConf.hidden = false;
-      oScore.style.fontSize = `calc(${Math.min(62, Math.round(300 / (0.8 * Math.max(3, score.toLocaleString().length))))} * var(--u))`;
+      oScore.style.fontSize = `calc(${Math.min(62, Math.round(300 / (0.8 * Math.max(3, String(score).length))))} * var(--u))`;
       overEl.hidden = false; againBtn.parentNode.focus({ preventScroll: true });
     }
     if (!overEl.hidden && !overDone) {   // the score counts up to its number, to rising ticks, and lands with a chord
       const k = REDUCED || score === 0 ? (overT > 1.2 ? 1 : 0) : Math.min(1, (overT - 1.2) / 1.1), v = k <= 0 ? 0 : Math.round(score * (1 - Math.pow(1 - k, 3)));
-      if (v !== overN) { overN = v; oScore.textContent = v.toLocaleString(); }
+      if (v !== overN) { overN = v; oScore.textContent = String(v); }
       const step = Math.floor(k * 14);
       if (step > overTick && k < 1) { overTick = step; sfxCount(k); buzz(5); oScore.classList.remove('tick'); void oScore.offsetWidth; oScore.classList.add('tick'); }
       if (k >= 1) { overDone = true; overEl.classList.add('counted'); sfxDone(overBest); buzz(overBest ? [30, 50, 30, 50, 80] : 30); }
@@ -2174,7 +2174,7 @@ function draw() {
     const by = H - 48;
     ctx.globalAlpha = BEST_ALPHA;
     ctx.font = '900 32px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    if (best !== bestN) { bestN = best; bestTxt = best.toLocaleString(); bestW = ctx.measureText(bestTxt).width; }
+    if (best !== bestN) { bestN = best; bestTxt = String(best); bestW = ctx.measureText(bestTxt).width; }
     const txt = bestTxt, tw = bestW;
     ctx.fillStyle = bestPaint; ctx.fillText(txt, LX, by + 1);
     ctx.fillStyle = bestPaintL;
