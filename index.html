@@ -161,7 +161,7 @@ const KD = 0.0045;            // deformation damping: about four visible wobbles
 const LIN_DAMP = 0.9993, ANG_DAMP = 0.9995;   // in free flight
 const LIN_TOUCH = 0.9997, ANG_TOUCH = 0.994;    // while touching something, so piles still come to rest
 const V_SLEEP2 = 1.0 * 1.0;    // rest threshold (acts like static friction)
-const MERGE_TIME = 0.2, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
+const MERGE_TIME = 0.12, CHAIN_DELAY = 0.26;   // a merging pair glides into one another over MERGE_TIME, then becomes one
 const V_MAX = 1500;
 const MAX_AIM = Math.PI;
 const AIM_FLOW = 95;
@@ -798,11 +798,11 @@ function finishMerge(a, b) {
   let A2 = 0;
   for (let i = 0; i < n; i++) { const j = i + 1 < n ? i + 1 : 0; A2 += nb.x[i] * nb.y[j] - nb.x[j] * nb.y[i]; }
   const onShelf = a.tray || b.tray;   // a shot merging into the shelf joins the shelf
-  nb.scale = Math.max(0.6, Math.min(1.6, Math.sqrt(Math.abs(A2) * 0.5 / nb.area0) * 0.86));   // born a touch small: it pops out of the join
+  nb.scale = Math.max(0.6, Math.min(1.6, Math.sqrt(Math.abs(A2) * 0.5 / nb.area0) * 1.25));   // born a touch big and stretched along the join, relaxing to size
   nb.scaleT = onShelf ? trayScale(nb) : 1; nb.anim = true; nb.animT = 0;
   nb.cx = x; nb.cy = y; nb.cs = 1; nb.sn = 0; nb.pa = 0; nb.la = 0; nb.vcx = nb.pvx = vx; nb.vcy = nb.pvy = vy;
   nb.maxY = maxY; nb.br = Math.sqrt(br2) + 1;
-  nb.flash = 1; nb.flashDur = Math.max(0.8, Math.min(1.5, 0.8 + 0.175 * (nb.level - 3)));   // bigger blobs stay white longer
+  nb.flash = 1; nb.flashDur = 0.22 + 0.015 * nb.level;   // a pale newborn for a few frames, like the reference
   nb.noMerge = CHAIN_DELAY; nb.young = YOUNG; nb.touched = true; nb.sinceTouch = 1;
   if (SKIN) {
     const k2 = Math.random() * 6.283, k3 = Math.random() * 6.283;
@@ -822,20 +822,18 @@ function finishMerge(a, b) {
   const pts = nb.value * (onShelf ? 1 : combo);
   score += pts;
   if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
-  const p = popups[popI]; popI = (popI + 1) % popups.length;
-  p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, x)); p.y = onShelf ? y - 62 : y + nb.r * 0.95; p.s = ''; p.v = pts; p.c = onShelf ? 0 : combo;   // beside the new blob, never over its number
   if (nb.level > peak) peak = nb.level;
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
-  const gl = Math.min(1, 0.22 + nb.level * 0.09 + (combo >= 2 ? 0.1 : 0));   // how hard the field lights up
+  const gl = Math.min(0.8, 0.14 + nb.level * 0.07 + (combo >= 2 ? 0.08 : 0));   // how much the screen takes the colour
   if (gl >= glow.a * 0.7) { glow.c = cidx(nb.level); glow.a = Math.max(glow.a, gl); }
-  let kick = REDUCED ? 0 : Math.min(1.5, 0.15 + nb.level * 0.06 + (combo >= 2 ? 0.45 + (combo - 2) * 0.2 : 0));   // every merge rocks the screen a little, chains a lot
+  let kick = 0;   // a merge does not shake the screen; only the big-blob fanfare does
   sfxMerge(nb.level, combo);
   if (combo >= 2) sfxCombo(nb.level, combo);
   if (nb.level >= FANFARE_LEVEL) {
     fanfare.t = 0; fanfare.life = 1.6 + 0.2 * (nb.level - FANFARE_LEVEL); fanfare.x = x; fanfare.y = y; fanfare.b = nb;
     fanfare.c = cidx(nb.level); fanfare.rot = Math.random() * 6.283; fanfare.sp = 0;
-    if (!REDUCED) { juiceMerge(x, y, nb, 6, a, b); hitStop = Math.max(hitStop, 0.55); kick = 2.2; glow.a = 1; }
+    if (!REDUCED) { hitStop = Math.max(hitStop, 0.25); kick = 0.9; glow.a = 1; }
     // three rising pings on top of the merge chime, then the thump
     setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
   }
@@ -863,15 +861,13 @@ function wallDouble(b) {
   let vx = b.vcx, vy = b.vcy; const vn = vx * b.wnx + vy * b.wny, want = DOUBLE_BOOST * b.wIn;
   if (vn < want) { vx += b.wnx * (want - vn); vy += b.wny * (want - vn); }   // it leaves the wall faster than it came: momentum
   placeBlob(nb, b.cx + b.wnx * off, b.cy + b.wny * off, b.pa, k, 0, 1, 1, vx, vy);   // born at the old size, pops up to the new
-  nb.scaleT = 1; nb.anim = true; nb.animT = 0; nb.flash = 1; nb.flashDur = 0.7;
+  nb.scaleT = 1; nb.anim = true; nb.animT = 0; nb.flash = 1; nb.flashDur = 0.3;
   nb.noMerge = 0.15; nb.young = 0;   // (no newborn speed cap: it keeps its momentum) nb.touched = true; nb.sinceTouch = 1; nb.freeT = 1;
   blobs.push(nb);
   score += nb.value; if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
   const ci = cidx(nb.level), hx = b.cx - b.wnx * rs, hy = b.cy - b.wny * rs;   // the point on the wall it hit
-  const p = popups[popI]; popI = (popI + 1) % popups.length;
-  p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, nb.cx + b.wnx * 30)); p.y = nb.cy - 10; p.s = '\u00d72'; p.col = ci; p.v = nb.value; p.c = 0;
   scoreBump = Math.max(scoreBump, 0.7);
-  sfxMerge(nb.level, 0); setTimeout(() => sfxCombo(nb.level, 3), 70); setTimeout(() => sfxCombo(nb.level, 5), 150);   // chime, then two rising pings
+  sfxMerge(nb.level, 0);
   if (0.45 >= glow.a * 0.7) { glow.c = ci; glow.a = Math.max(glow.a, 0.7); }   // the screen takes the new colour
   if (REDUCED) return;
   tiltV += -b.wnx * 24;                                                       // the screen leans a little with the hit
@@ -882,8 +878,6 @@ function popBlob(b) {
   b.dead = true;
   const x = b.cx, y = b.cy, ci = cidx(b.level);
   score += b.value; if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
-  const p = popups[popI]; popI = (popI + 1) % popups.length;
-  p.t = 0; p.x = Math.max(WALL_L + 58, Math.min(WALL_R - 58, x)); p.y = y; p.s = ''; p.v = b.value; p.c = 0;
   scoreBump = Math.max(scoreBump, 0.5); sfxPick();
   if (REDUCED) return;
   for (let i = 0; i < 14; i++) {
@@ -892,33 +886,10 @@ function popBlob(b) {
     sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
     sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
   }
-  kickShake(0.6);
+  kickShake(0.3);
 }
 function juiceMerge(x, y, nb, c, a, b) {
-  scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);
-  if (REDUCED) return;
-  const ci = cidx(nb.level);   // everything a merge throws off is the new blob's colour, nothing else
-  const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;                      // a ring of the new colour bursts out of the seam
-  rg.t = 0; rg.life = 0.32 + 0.04 * Math.min(4, c); rg.x = x; rg.y = y; rg.r0 = nb.r * 0.8; rg.r1 = nb.r * 1.8 + 14 * Math.min(5, c); rg.c = ci;
-  // sparkles leave the seam between the two parents, both ways along it
-  const sx = b.cx - a.cx, sy = b.cy - a.cy, L = Math.hypot(sx, sy) || 1, ux = sx / L, uy = sy / L, px = -uy, py = ux;
-  const ns = 8 + Math.min(10, nb.level * 2), half = Math.min(a.r, b.r) * 0.9;
-  for (let i = 0; i < ns; i++) {
-    const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
-    const o = (Math.random() - 0.5) * 2 * half, dir = Math.random() < 0.5 ? 1 : -1, v = 160 + Math.random() * 220 * (1 + 0.1 * c);
-    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
-    sp.x = x + px * o; sp.y = y + py * o;
-    sp.vx = ux * dir * v + px * (Math.random() - 0.5) * 60; sp.vy = uy * dir * v + py * (Math.random() - 0.5) * 60;
-  }
-  const nbits = c >= 2 ? Math.min(30, 4 + c * 5) : 3 + Math.min(7, nb.level);
-  for (let i = 0; i < nbits; i++) {                 // confetti bits with trails, more and faster the longer the chain
-    const b = bits[bitI]; bitI = (bitI + 1) % bits.length;
-    const th = Math.random() * 6.283, v = 160 + Math.random() * 280 + c * 25;
-    b.t = 0; b.tt = 0; b.life = 0.65 + Math.random() * 0.5; b.x = x; b.y = y; b.vx = Math.cos(th) * v; b.vy = Math.sin(th) * v;
-    b.r = 2.6 + Math.random() * 3.6; b.c = ci; b.a = Math.random() * 6.283; b.spin = (Math.random() - 0.5) * 14;
-    for (let k = 0; k < TRAIL; k++) { b.tx[k] = x; b.ty[k] = y; }
-  }
-  if (c >= 3) hitStop = Math.max(hitStop, 0.05 + Math.min(0.06, (c - 3) * 0.02));
+  scoreBump = Math.max(scoreBump, c >= 2 ? 1 : 0.5);   // no particles: the newborn's pale stretched shape is the whole effect
 }
 let juiceLive = 0;
 function juiceStep(dt) {
@@ -1287,9 +1258,9 @@ const audible = () => actx && !muted && actx.state === 'running';
 function sfxPick() {             // grabbing a shape: a tiny falling "pok"
   if (!audible()) return; const t = actx.currentTime, j = 0.85 + Math.random() * 0.4;
   const o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.setValueAtTime(1250 * j, t); o.frequency.exponentialRampToValueAtTime(440 * j, t + 0.016);
-  o.frequency.exponentialRampToValueAtTime(380 * j, t + 0.075);
-  env(g, t, [[0.006, 0.3], [0.028, 0.3], [0.078, 0]]);
+  o.frequency.setValueAtTime(900 * j, t); o.frequency.exponentialRampToValueAtTime(400 * j, t + 0.016);
+  o.frequency.exponentialRampToValueAtTime(330 * j, t + 0.075);
+  env(g, t, [[0.006, 0.24], [0.028, 0.22], [0.08, 0]]);
   o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.11);
 }
 function sfxShoot() {            // letting go: a rising "bwip", about 1.6 octaves in 80 ms
@@ -1299,11 +1270,13 @@ function sfxShoot() {            // letting go: a rising "bwip", about 1.6 octav
   env(g, t, [[0.022, 0.27], [0.045, 0.27], [0.08, 0.03], [0.1, 0.07], [0.14, 0]]);
   o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.18);
 }
-function sfxThump(v) {           // landing: barely there, a little body for heavy hits
+function sfxThump(v) {           // landing: a soft "pok", about 300 Hz and 200 ms, with a touch of noise; heavier hits add body
   if (!audible()) return; const t = actx.currentTime;
   if (t - lastThump < 0.07) return; lastThump = t;
-  tone(540 - v * 120, 380 - v * 90, t, 0.07, 0.02 + v * 0.045, 'sine');
-  if (v > 0.4) tone(165, 92, t, 0.15, 0.06 * v, 'sine');
+  const j = 0.92 + Math.random() * 0.16;
+  tone(340 * j, 250 * j, t, 0.16 + v * 0.1, 0.06 + v * 0.12, 'sine');
+  noise(t, 0.035, 0.03 + v * 0.04, 1400);
+  if (v > 0.35) tone(150, 95, t, 0.2, 0.08 * v, 'sine');
 }
 // Merge: one rising three-note chime of pure tones. Like a pitched sample, it plays lower AND slower
 // the bigger the new blob; the top note rings on and wavers.
@@ -1330,13 +1303,21 @@ function chimeNote(f, t0, vol, u, last) {
     o2.connect(g2); g2.connect(master); o2.start(t0); o2.stop(end);
   }
 }
+const BLOOP = [520, 470, 420, 370, 330, 295, 262, 235, 210, 188, 168];   // the merge "bloop" root per level: bigger blobs, lower
 function sfxMerge(level, combo) {
   if (!audible()) return; const t = actx.currentTime;
-  const root = ROOTS[Math.max(0, Math.min(ROOTS.length - 1, level - 2))];
-  const u = Math.min(3.6, 1.3 * 883 / root), gap = 0.039 * u, vol = Math.min(0.34, 0.25 + combo * 0.02);
-  chimeNote(root, t, vol, u, false);
-  chimeNote(root * 1.245, t + gap, vol, u, false);
-  chimeNote(root * 1.482, t + gap * 2, vol * 1.1, u, true);
+  const f = BLOOP[Math.max(0, Math.min(BLOOP.length - 1, level - 2))] * (0.97 + Math.random() * 0.06);
+  const vol = Math.min(0.42, 0.32 + combo * 0.02), ring = 0.55 + 0.03 * level;
+  const o = actx.createOscillator(), g = actx.createGain();                 // the drop: a sine that dips and bends up into its note
+  o.frequency.setValueAtTime(f * 0.72, t); o.frequency.exponentialRampToValueAtTime(f * 1.06, t + 0.07); o.frequency.exponentialRampToValueAtTime(f, t + 0.16);
+  env(g, t, [[0.008, vol], [0.09, vol * 0.55], [0.3, vol * 0.22], [ring, 0]]);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + ring + 0.05);
+  const o2 = actx.createOscillator(), g2 = actx.createGain(); o2.type = 'triangle';   // a little body an octave up, gone quickly
+  o2.frequency.setValueAtTime(f * 1.5, t); o2.frequency.exponentialRampToValueAtTime(f * 2.1, t + 0.07); o2.frequency.exponentialRampToValueAtTime(f * 2, t + 0.16);
+  env(g2, t, [[0.008, vol * 0.18], [0.12, vol * 0.05], [0.3, 0]]);
+  o2.connect(g2); g2.connect(master); o2.start(t); o2.stop(t + 0.35);
+  noise(t, 0.03, 0.05, 2200);                                               // the "plip" of the surface closing
+  if (f < 300) { const k = Math.min(0.4, (300 - f) / 300); tone(f * 2, f * 2, t, 0.3, vol * k, 'sine'); }   // small speakers keep the low ones
 }
 // Chain link: a bright ping that climbs with the combo, a soft whoosh for the flying bits, and from
 // the third link a low thump under the shake.
@@ -1345,26 +1326,12 @@ const COMBO_RATIO = [2, 2.25, 2.5, 3, 3.375, 4];   // octave, ninth, tenth, twel
 function sfxCombo(level, c) {
   if (!audible()) return; const t0 = actx.currentTime;
   if (t0 - lastCombo < 0.06) return; lastCombo = t0;        // two merges in one step: one ping
-  const root = ROOTS[Math.max(0, Math.min(ROOTS.length - 1, level - 2))], u = Math.min(3, 883 / root);
-  const f = Math.min(3200, root * COMBO_RATIO[Math.min(COMBO_RATIO.length - 1, c - 2)]), t = t0 + 0.078 * u;   // reads as the chime's fourth note
-  const lv = Math.min(1, root / 883) * 0.5 + 0.5;
-  for (const [m, v, d] of [[1, 0.07, 0.22], [1.5, 0.04, 0.16], [2, 0.025, 0.1]]) {
+  const root = BLOOP[Math.max(0, Math.min(BLOOP.length - 1, level - 2))] * 2;
+  const f = Math.min(3200, root * COMBO_RATIO[Math.min(COMBO_RATIO.length - 1, c - 2)]), t = t0 + 0.09;   // a soft ping above the bloop
+  const lv = 0.6;
+  for (const [m, v, d] of [[1, 0.05, 0.3], [2, 0.015, 0.12]]) {
     const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f * m;
     env(g, t, [[0.004, v * lv], [0.03, v * lv * 0.45], [d, 0]]); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
-  }
-  const n = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();     // whoosh, for the flying bits
-  n.buffer = noiseBuf; n.loop = true; bp.type = 'bandpass'; bp.Q.value = 1.2;
-  const tw = t0 + 0.04;
-  bp.frequency.setValueAtTime(600, tw); bp.frequency.exponentialRampToValueAtTime(3200, tw + 0.25);
-  env(ng, tw, [[0.05, 0.04 + Math.min(0.04, c * 0.008)], [0.3, 0]]);
-  n.connect(bp); bp.connect(ng); ng.connect(master); n.start(tw); n.stop(tw + 0.32);
-  if (c >= 3) {                                              // low thump under the shake
-    const tb = t0 + 0.05, o = actx.createOscillator(), g = actx.createGain();
-    o.frequency.setValueAtTime(110, tb); o.frequency.exponentialRampToValueAtTime(62, tb + 0.12);
-    env(g, tb, [[0.01, 0.2], [0.22, 0]]); o.connect(g); g.connect(master); o.start(tb); o.stop(tb + 0.25);
-    const o2 = actx.createOscillator(), g2 = actx.createGain(); o2.type = 'triangle';   // audible body for small speakers
-    o2.frequency.setValueAtTime(220, tb); o2.frequency.exponentialRampToValueAtTime(110, tb + 0.1);
-    env(g2, tb, [[0.005, 0.08], [0.12, 0]]); o2.connect(g2); g2.connect(master); o2.start(tb); o2.stop(tb + 0.15);
   }
 }
 // Backing track, written for this game: one soft chord and a bass note per bar, slow three-time.
@@ -1529,7 +1496,6 @@ function draw() {
     const shade = ctx.createLinearGradient(d.x, d.y, d.x + d.nx * amp, d.y + d.ny * amp);
     shade.addColorStop(0, mixHex(30, 30, 42, gc, 0.06 * ga)); shade.addColorStop(1, '#15151f');
     ctx.fillStyle = shade; ctx.fill();
-    ctx.globalAlpha = Math.min(1, amp / (d.r * 0.2)); ctx.lineWidth = 4; ctx.strokeStyle = COLORS[d.c].hex; ctx.lineJoin = 'round'; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
