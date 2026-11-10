@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="manifest" href="assets/manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Merge">
 <style>html,body{margin:0}[hidden]{display:none!important}</style>
@@ -225,10 +226,16 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #sheet .row:active .tog::after{width:calc(30*var(--u))}
 #sheet .row[aria-pressed="true"]:active .tog::after{transform:translateX(calc(18*var(--u)))}
 @media (prefers-reduced-motion:reduce){#again,#revive-yes,#sheet .row,#gear{transition:none}}
+#mark{position:absolute;left:50%;top:calc(32.5*var(--u));transform:translate(-50%,-50%);z-index:6;pointer-events:none;white-space:nowrap;text-align:center;
+  font:800 calc(14*var(--u))/.9 var(--font-display);text-transform:uppercase;color:#fff;opacity:.4;mix-blend-mode:plus-lighter}
+body.bare #mark{display:none;top:calc(env(safe-area-inset-top,0px)*.5 + 3px);font-size:14px}
+body.bare.island #mark{display:block}
+#sat{position:absolute;left:0;top:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none}
 </style>
 
 <div id="phone">
   <div id="screen">
+    <div id="mark" aria-hidden="true">Blob<br>Match</div><i id="sat" aria-hidden="true"></i>
     <div id="status" aria-hidden="true">
       <div><span id="clock">9:41</span></div>
       <div>
@@ -2102,6 +2109,7 @@ function fitShell() {
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   bare = vw < 560 || (coarse && vw < 900);
   document.body.classList.toggle('bare', bare);
+  const sat = document.getElementById('sat'); document.body.classList.toggle('island', !!sat && sat.offsetHeight >= 44);   // an island or notch to sit under
   const u = bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
   uPx = u;
