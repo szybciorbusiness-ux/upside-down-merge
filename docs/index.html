@@ -228,6 +228,19 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
 @media (prefers-reduced-motion:reduce){#over,#revive,.panel,.ring,.ring span.tick,.chance,#revive-yes,#revive .xbtn,#again,#over h1,.oblob,.oblob b,.obest{animation:none!important}.confetti,.burst{display:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
+/* pressing things (user: "clicking states can be cooler"): a press sinks at once and lights up, letting go springs back
+   past its size and settles; the play icon leans forward, a chevron nudges on, a switch's knob stretches under the finger */
+#again,#revive-yes,#sheet .row,#gear,#lab button{transition:transform .34s cubic-bezier(.3,1.75,.5,1),background .15s ease,filter .2s ease}
+#again:active,#revive-yes:active,#gear:active,#lab button:active{transform:scale(.92);filter:brightness(1.2);transition-duration:.06s,.06s,.06s}
+#sheet .row:active{transform:scale(.96);filter:brightness(1.25);transition-duration:.06s,.06s,.06s}
+#sheet .row:disabled:active{transform:none;filter:none}
+#over #again svg,#sheet .row .chev{transition:transform .34s cubic-bezier(.3,1.75,.5,1)}
+#over #again:active svg{transform:translateX(calc(6*var(--u))) scale(1.18);transition-duration:.06s}
+#sheet .row:active .chev{transform:translateX(calc(5*var(--u)));transition-duration:.06s}
+.tog::after{transition:transform .25s cubic-bezier(.32,.72,0,1),background .2s ease,width .18s ease}
+#sheet .row:active .tog::after{width:calc(31*var(--u))}
+#sheet .row[aria-pressed="true"]:active .tog::after{transform:translateX(calc(17*var(--u)))}
+@media (prefers-reduced-motion:reduce){#again,#revive-yes,#sheet .row,#gear,#lab button,#over #again svg,#sheet .row .chev{transition:none}}
 </style>
 
 <div id="phone">
@@ -2487,6 +2500,7 @@ window.addEventListener('pagehide', () => saveRun());
 restartBtn.addEventListener('click', () => { initAudio(); showMenu(false); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
 againBtn.addEventListener('click', () => { initAudio(); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
 // A touch going down is not a user gesture, and iOS may not count a drag's release: any tap or key wakes the audio.
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button:not(:disabled)')) buzz(6); }, { passive: true });   // every press of a button is felt
 ['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
 
 /* ───────────────────────── boot ───────────────────────── */
