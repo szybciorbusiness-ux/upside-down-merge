@@ -1230,6 +1230,25 @@ function panelPath() {
   ctx.moveTo(WALL_L, CEIL + r); ctx.arcTo(WALL_L, CEIL, WALL_L + r, CEIL, r); ctx.lineTo(WALL_R - r, CEIL); ctx.arcTo(WALL_R, CEIL, WALL_R, CEIL + r, r);
   ctx.lineTo(WALL_R, H - rb); ctx.arcTo(WALL_R, H, WALL_R - rb, H, rb); ctx.lineTo(WALL_L + rb, H); ctx.arcTo(WALL_L, H, WALL_L, H - rb, rb); ctx.closePath();
 }
+// The limit's dots, on the field under the blobs. Pale and slow while the pile is near, coral and beating once it is past.
+function drawLimit() {
+  const idleA = lineA * (1 - fanfareEnv()) * (1 - hotA);
+  if (over || (idleA <= 0.02 && hotA <= 0.02)) return;
+  const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), gap = 13;
+  for (let k = 0; k < 2; k++) {   // the quiet row and the red one cross-fade
+    const lvl = k ? hotA : lineA, a = k ? hotA * (0.7 + 0.2 * beat * beat) : idleA * 0.34; if (a < 0.012) continue;
+    const off = REDUCED ? 0 : (time * (k ? 30 : 11)) % gap, rr = k ? 2.2 + 0.7 * beat * beat : 1.6;
+    const soft = 1 - lvl;   // still out of focus: 1 as it starts to show, 0 once it is fully there
+    ctx.fillStyle = k ? '#ff4d5e' : '#f4f1ea';
+    for (let px = WALL_L - gap + off; px < WALL_R + gap; px += gap) {
+      const e = Math.min(1, Math.min(px - WALL_L, WALL_R - px) / 44); if (e <= 0) continue;   // thinning out toward the walls
+      const r = rr * (0.55 + 0.45 * e);
+      if (soft > 0.03) { ctx.globalAlpha = a * e * 0.3 * soft; ctx.beginPath(); ctx.arc(px, DANGER_Y, r * (1.6 + 3.2 * soft), 0, 6.2832); ctx.fill(); }   // the smudge
+      ctx.globalAlpha = a * e * (1 - 0.75 * soft); ctx.beginPath(); ctx.arc(px, DANGER_Y, r * (1 + 0.9 * soft), 0, 6.2832); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
 function drawJuice() {
   if (!juiceLive) return;
   ctx.save();
@@ -2107,7 +2126,7 @@ function draw() {
   // aim: the straight trajectory below (no band, no text)
   const showAim = aiming && armed && sel && !over;
 
-  drawFanfare();   // the big merge's discs lie on the field, under every blob
+  drawLimit();   // the limit's dots lie on the field: the blobs pass over them
   // blobs, then their numbers on top
   drawOrder.length = 0; for (let i = 0; i < blobs.length; i++) drawOrder.push(blobs[i]);
   drawOrder.sort(bySize);          // big first, so a small shape is never hidden under a big one
@@ -2124,16 +2143,6 @@ function draw() {
   // pile is past it and the countdown runs. It stays out of the way of a fanfare.
   const idleA = lineA * (1 - fanfareEnv()) * (1 - hotA);   // a fanfare takes the idle line out and brings it back with its own envelope
   if (!over && (idleA > 0.02 || hotA > 0.02)) {
-    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), gap = 13;
-    for (let k = 0; k < 2; k++) {   // the quiet row and the red one cross-fade
-      const a = k ? hotA * (0.78 + 0.22 * beat * beat) : idleA * 0.6; if (a < 0.02) continue;
-      const off = REDUCED ? 0 : (time * (k ? 30 : 11)) % gap, rr = k ? 2.3 + 0.8 * beat * beat : 1.7;
-      ctx.fillStyle = k ? '#ff4d5e' : '#f4f1ea';
-      for (let px = WALL_L - gap + off; px < WALL_R + gap; px += gap) {
-        const e = Math.min(1, Math.min(px - WALL_L, WALL_R - px) / 44); if (e <= 0) continue;   // thinning out toward the walls
-        ctx.globalAlpha = a * e; ctx.beginPath(); ctx.arc(px, DANGER_Y, rr * (0.55 + 0.45 * e), 0, 6.2832); ctx.fill();
-      }
-    }
     ctx.globalAlpha = 1;
     if (hotA > 0.02 && countShown > 0) {   // the countdown, on the line: a ring that drains around the seconds left
       const sc = (1 + 0.28 * countPop * countPop) * (0.7 + 0.3 * hotA), R = 21;
