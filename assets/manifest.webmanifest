@@ -1,6 +1,6 @@
 {
-  "name": "Upside Down Merge",
-  "short_name": "Merge",
+  "name": "Blob Match",
+  "short_name": "Blob Match",
   "start_url": "../",
   "scope": "../",
   "display": "standalone",

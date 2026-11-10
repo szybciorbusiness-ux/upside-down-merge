@@ -30,4 +30,4 @@ createServer(async (req, res) => {
   } catch (e) {
     res.writeHead(e.code === 'ENOENT' ? 404 : 500); res.end(String(e));
   }
-}).listen(port, () => console.log(`Upside Down Merge on http://localhost:${port}`));
+}).listen(port, () => console.log(`Blob Match on http://localhost:${port}`));

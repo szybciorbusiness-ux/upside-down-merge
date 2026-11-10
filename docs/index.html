@@ -12,11 +12,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Merge">
+<meta name="apple-mobile-web-app-title" content="Blob Match">
 <style>html,body{margin:0}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Upside Down Merge</title>
+<title>Blob Match</title>
 <style>
 /* The Squish shell: an iPhone 17 Pro around a 402x874 screen. Status bar, the "2048" wordmark, a gear, and
    one big rounded slate panel that is the play field. On a real phone the shell drops away and the screen
@@ -251,7 +251,7 @@ body.bare.island #mark{display:block}
       <button id="gear" type="button" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
     <div id="stage">
-      <canvas id="c" aria-label="Upside Down Merge play field"></canvas>
+      <canvas id="c" aria-label="Blob Match play field"></canvas>
     </div>
     <div id="danger" aria-hidden="true"></div>
     <div id="revive" hidden>
@@ -2455,9 +2455,9 @@ function showMenu(open) {
 }
 // More: the sheet drops and comes straight back as a second sheet of the same build (the legal pages), and back again.
 const DOCS = {
-  privacy: ['Privacy', 'Upside Down Merge keeps your best score, your current run and your sound and vibration choices on this device, in your browser\'s storage. Nothing is sent anywhere.\n\nThere are no accounts, no ads, no analytics and no tracking.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe page is served by GitHub Pages. Like any web host, it may log technical request data such as your IP address.'],
+  privacy: ['Privacy', 'Blob Match keeps your best score, your current run and your sound and vibration choices on this device, in your browser\'s storage. Nothing is sent anywhere.\n\nThere are no accounts, no ads, no analytics and no tracking.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe page is served by GitHub Pages. Like any web host, it may log technical request data such as your IP address.'],
   terms: ['Terms', 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run live only on your device. They can be lost if the browser\'s data is cleared, and they cannot be restored.\n\nNothing in the game costs money.'],
-  licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Upside Down Merge.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
+  licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Blob Match.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
 };
 const sheetViews = sheetEl.querySelectorAll('.view'), docTitle = document.getElementById('doc-title'), docBody = document.getElementById('doc-body');
 let sheetAt = 'main', viewTimer = 0, swapUntil = 0;
