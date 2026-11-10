@@ -35,7 +35,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-displ
 #phone{position:relative;width:calc(450*var(--u));height:calc(920*var(--u))}
 #bezel{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 #screen{position:absolute;left:calc(24*var(--u));top:calc(23*var(--u));width:calc(402*var(--u));height:calc(874*var(--u));
-  background:var(--screen);border-radius:calc(63*var(--u));overflow:hidden;will-change:transform}
+  background:#000;border-radius:calc(63*var(--u));overflow:hidden;will-change:transform}
+/* everything but the settings sheet. While the sheet is up it sits back: a little smaller, rounded, dropped from the top */
+#back{position:absolute;inset:0;overflow:hidden;background:var(--screen);transform-origin:50% 0;
+  transition:transform .5s cubic-bezier(.32,.72,0,1),border-radius .5s cubic-bezier(.32,.72,0,1)}
+#back.pushed{transform:translateY(calc(16*var(--u) + env(safe-area-inset-top,0px))) scale(.92);border-radius:calc(36*var(--u))}
+#back.drag{transition:none}
 #tint{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:opacity}
 body.bare{background:var(--screen)}   /* the shake slides the screen a few px; the edge it uncovers is the same colour */
 body.bare #phone{width:100vw;height:100dvh}
@@ -58,7 +63,7 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* settings: a bottom sheet over a dimmed screen. It rises on the sheet curve, follows a downward drag, and leaves by
    a drag, the round close button, a tap on the dimmed screen, or Escape. The game is paused while it is up. */
-#scrim{position:absolute;inset:0;z-index:3;background:rgba(5,5,7,.58);opacity:0;transition:opacity .35s ease}
+#scrim{position:absolute;inset:0;z-index:3;background:rgba(5,5,7,.44);opacity:0;transition:opacity .35s ease}
 #scrim.open{opacity:1}
 #sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;gap:calc(10*var(--u));
   padding:calc(10*var(--u)) calc(16*var(--u)) calc(20*var(--u) + env(safe-area-inset-bottom,0px));
@@ -66,6 +71,7 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
   transform:translateY(110%);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
 #sheet.open{transform:translateY(0)}
 #sheet.drag,#scrim.drag{transition:none}
+#sheet:focus{outline:none}
 #sheet::after{content:"";position:absolute;left:0;right:0;top:100%;height:calc(80*var(--u));background:inherit}   /* nothing shows under it when it is pulled up */
 .grab{align-self:center;width:calc(40*var(--u));height:calc(5*var(--u));border-radius:999px;background:rgba(255,255,255,.22)}
 #sheet h2{margin:calc(8*var(--u)) calc(6*var(--u)) calc(4*var(--u));font:900 calc(24*var(--u))/1.1 var(--font-display);letter-spacing:0}
@@ -130,11 +136,12 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #revive-yes:focus-visible,.ghost:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
-@media (prefers-reduced-motion:reduce){#over,#revive,.panel{animation:none}#sheet,#scrim,.tog,.tog::after{transition:none}}
+@media (prefers-reduced-motion:reduce){#over,#revive,.panel{animation:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
 </style>
 
 <div id="phone">
   <div id="screen">
+   <div id="back">
     <div id="tint" aria-hidden="true"></div>
     <div id="status" aria-hidden="true">
       <div><span id="clock">9:41</span></div>
@@ -148,15 +155,6 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
       <h1 id="brand" aria-label="Score">0</h1>
       <button id="gear" type="button" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
     </header>
-    <div id="scrim" hidden></div>
-    <div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
-      <div class="grab" aria-hidden="true"></div>
-      <h2 id="sheet-title">Settings</h2>
-      <button id="restart" class="row" type="button"><span>Replay</span><svg class="chev" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M2 2l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <button id="sound" class="row" type="button" aria-pressed="false"><span>Sound</span><span class="tog" aria-hidden="true"></span><span class="sr" id="sound-state">On</span></button>
-      <button id="vib" class="row" type="button" aria-pressed="false"><span>Vibration</span><span class="tog" aria-hidden="true"></span><span class="sr" id="vib-state">On</span></button>
-      <button id="sheet-close" type="button" aria-label="Close settings"><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
-    </div>
     <div id="stage">
       <canvas id="c" aria-label="Upside Down Merge play field"></canvas>
     </div>
@@ -181,6 +179,16 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
         </dl>
         <button id="again" type="button">Play again</button>
       </div>
+    </div>
+   </div>
+    <div id="scrim" hidden></div>
+    <div id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="sheet-title">Settings</h2>
+      <button id="restart" class="row" type="button"><span>Replay</span><svg class="chev" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M2 2l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="sound" class="row" type="button" aria-pressed="false"><span>Sound</span><span class="tog" aria-hidden="true"></span><span class="sr" id="sound-state">On</span></button>
+      <button id="vib" class="row" type="button" aria-pressed="false"><span>Vibration</span><span class="tog" aria-hidden="true"></span><span class="sr" id="vib-state">On</span></button>
+      <button id="sheet-close" type="button" aria-label="Close settings"><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
     </div>
   </div>
   <img id="bezel" src="assets/bezel.png" alt="" draggable="false">
@@ -1762,6 +1770,7 @@ const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const stage = document.getElementById('stage');
 const overEl = document.getElementById('over'), oScore = document.getElementById('o-score'), oBest = document.getElementById('o-best');
 const againBtn = document.getElementById('again'), restartBtn = document.getElementById('restart'), soundBtn = document.getElementById('sound');
+const backEl = document.getElementById('back');
 const gearBtn = document.getElementById('gear'), sheetEl = document.getElementById('sheet'), scrimEl = document.getElementById('scrim'), sheetClose = document.getElementById('sheet-close'), soundState = document.getElementById('sound-state');
 const reviveEl = document.getElementById('revive'), reviveYes = document.getElementById('revive-yes'), reviveNo = document.getElementById('revive-no');
 const ringLeft = document.getElementById('ring-left'), ringN = document.getElementById('ring-n'), oWhy = document.getElementById('o-why'), oNew = document.getElementById('o-new');
@@ -1904,7 +1913,7 @@ function draw() {
     }
     // the screen behind the field: a base that only follows the biggest blob, and the glow colour laid over it
     // (a mix toward the glow colour by k is that colour at alpha k: the same picture, without repainting the screen)
-    if (ti !== fxTop) screenEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
+    if (ti !== fxTop) backEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
     if (glow.c !== fxC) tintEl.style.background = `linear-gradient(rgba(${gc.r},${gc.g},${gc.b},.32),rgba(${gc.r},${gc.g},${gc.b},.06) 60%)`;
     const to = ga.toFixed(3); if (to !== tintCss) { tintCss = to; tintEl.style.opacity = to; }
     // the score and the gear: the solid colour that their ink, added to the screen behind them, comes to
@@ -2102,15 +2111,16 @@ function showMenu(open) {
   if (open === sheetOpen) return;
   sheetOpen = open; paused = open; gearBtn.setAttribute('aria-expanded', String(open));
   clearTimeout(sheetTimer);
-  sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); sheetEl.style.transform = ''; scrimEl.style.opacity = '';
+  sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
+  sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
   if (open) {
     aiming = false; armed = false; sel = null; saveRun();
     sheetEl.hidden = false; scrimEl.hidden = false;
     void sheetEl.offsetHeight;   // lay it out below the screen first, so it rises from there
-    sheetEl.classList.add('open'); scrimEl.classList.add('open');
-    restartBtn.focus({ preventScroll: true });
+    sheetEl.classList.add('open'); scrimEl.classList.add('open'); backEl.classList.add('pushed');
+    sheetEl.focus({ preventScroll: true });   // the sheet itself, so no row lights up before anyone has pressed a key
   } else {
-    sheetEl.classList.remove('open'); scrimEl.classList.remove('open');
+    sheetEl.classList.remove('open'); scrimEl.classList.remove('open'); backEl.classList.remove('pushed');
     sheetTimer = setTimeout(() => { if (!sheetOpen) { sheetEl.hidden = true; scrimEl.hidden = true; } }, REDUCED ? 0 : 520);
   }
 }
@@ -2119,7 +2129,7 @@ scrimEl.addEventListener('click', () => showMenu(false));
 sheetClose.addEventListener('click', () => showMenu(false));
 // Drag: the sheet follows the finger down (pulling up barely gives). Let go past a quarter of its height, or with a
 // quick flick, and it leaves; otherwise it settles back. A drag is never a tap on a row.
-let dragId = -1, dragY0 = 0, dragDy = 0, dragPy = 0, dragPt = 0, dragV = 0, dragMoved = false, dragH = 1;
+let dragId = -1, dragY0 = 0, dragDy = 0, dragPy = 0, dragPt = 0, dragV = 0, dragMoved = false, dragEat = false, dragH = 1;
 sheetEl.addEventListener('pointerdown', e => {
   if (!sheetOpen || (e.pointerType === 'mouse' && e.button !== 0)) return;
   dragId = e.pointerId; dragY0 = dragPy = e.clientY; dragPt = performance.now(); dragDy = 0; dragV = 0; dragMoved = false; dragH = sheetEl.offsetHeight || 1;
@@ -2129,25 +2139,29 @@ sheetEl.addEventListener('pointermove', e => {
   const dy = e.clientY - dragY0, now = performance.now();
   if (!dragMoved) {
     if (Math.abs(dy) < 6) return;
-    dragMoved = true; sheetEl.classList.add('drag'); scrimEl.classList.add('drag');
+    dragMoved = true; sheetEl.classList.add('drag'); scrimEl.classList.add('drag'); backEl.classList.add('drag');
     try { sheetEl.setPointerCapture(dragId); } catch (err) {}
   }
   if (now > dragPt) { dragV = dragV * 0.5 + 0.5 * (e.clientY - dragPy) / (now - dragPt); dragPy = e.clientY; dragPt = now; }   // px per ms, lately
   dragDy = dy > 0 ? dy : dy * 0.12;
   sheetEl.style.transform = `translateY(${dragDy.toFixed(1)}px)`;
-  scrimEl.style.opacity = String(Math.max(0, Math.min(1, 1 - Math.max(0, dragDy) / dragH)));
+  const p = Math.max(0, Math.min(1, dragDy / dragH));   // how far the sheet has been pulled away: the game comes forward with it
+  scrimEl.style.opacity = String(1 - p);
+  backEl.style.transform = `translateY(calc(${(1 - p).toFixed(3)} * (16 * var(--u) + env(safe-area-inset-top, 0px)))) scale(${(0.92 + 0.08 * p).toFixed(4)})`;
+  backEl.style.borderRadius = `calc(${(36 * (1 - p)).toFixed(1)} * var(--u))`;
 });
 const endDrag = e => {
   if (e.pointerId !== dragId) return;
   dragId = -1;
   if (!dragMoved) return;
-  sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag');
+  dragMoved = false; dragEat = true; setTimeout(() => { dragEat = false; }, 120);
+  sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   if (dragDy > dragH * 0.25 || (dragDy > 20 && dragV > 0.45)) showMenu(false);
-  else { sheetEl.style.transform = ''; scrimEl.style.opacity = ''; }
+  else { sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = ''; }
 };
 sheetEl.addEventListener('pointerup', endDrag);
 sheetEl.addEventListener('pointercancel', endDrag);
-sheetEl.addEventListener('click', e => { if (dragMoved) { dragMoved = false; e.preventDefault(); e.stopPropagation(); } }, true);
+sheetEl.addEventListener('click', e => { if (dragEat) { dragEat = false; e.preventDefault(); e.stopPropagation(); } }, true);
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) { showMenu(false); gearBtn.focus(); } });
 soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); });
 vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); });
@@ -2212,7 +2226,7 @@ if (MERGE_LAB) {   // the lab's controls: a button per tier, the whole run of th
   let h = '';
   for (let L = 2; L <= 13; L++) h += `<button type="button" data-l="${L}">${Math.pow(2, L)}</button>`;
   bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button>';
-  screenEl.appendChild(bar);
+  backEl.appendChild(bar);
   bar.addEventListener('click', e => {
     const t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
     initAudio();
