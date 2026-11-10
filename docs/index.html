@@ -71,7 +71,8 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
   border-radius:calc(54*var(--u)) calc(54*var(--u)) 0 0;background:var(--sh,#353543);color:var(--ink);
   transform:translateY(110%);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
 #sheet.open{transform:translateY(0)}
-#sheet.open.swap{transform:translateY(110%);transition:transform .24s cubic-bezier(.4,0,1,1)}   /* on its way down to come back as the other sheet */
+#sheet.fast{transition-duration:.24s}   /* between its two sets of rows the sheet moves quickly (user: "way faster") */
+#sheet.open.swap{transform:translateY(110%);transition:transform .12s cubic-bezier(.4,0,1,1)}   /* on its way down to come back as the other sheet */
 #sheet.drag,#scrim.drag{transition:none}
 #scrim:not(.open),#sheet:not(.open){pointer-events:none}   /* on its way out it takes no presses: the game is already running */
 #sheet:focus{outline:none}
@@ -2335,7 +2336,7 @@ function showMenu(open) {
   clearTimeout(sheetTimer);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
-  clearTimeout(viewTimer); sheetEl.classList.remove('swap'); swapUntil = 0;
+  clearTimeout(viewTimer); sheetEl.classList.remove('swap', 'fast'); swapUntil = 0;
   if (open) {
     setView('main');
     aiming = false; armed = false; sel = null; shake = 0; tilt = tiltV = 0; saveRun();   // (the screen holds still under the sheet: see draw())
@@ -2367,8 +2368,8 @@ function goView(v) {
   if (!sheetOpen || v === sheetAt || sheetEl.classList.contains('swap') || dragMoved) return;
   sfxUi(v !== 'main'); clearTimeout(viewTimer);
   if (REDUCED) { setView(v); sheetEl.focus({ preventScroll: true }); return; }
-  sheetEl.classList.add('swap'); swapUntil = performance.now() + 450;   // no presses until the other sheet has nearly arrived
-  viewTimer = setTimeout(() => { setView(v); void sheetEl.offsetHeight; sheetEl.classList.remove('swap'); sheetEl.focus({ preventScroll: true }); }, 250);
+  sheetEl.classList.add('swap', 'fast'); swapUntil = performance.now() + 280;   // no presses until the other sheet has nearly arrived
+  viewTimer = setTimeout(() => { setView(v); void sheetEl.offsetHeight; sheetEl.classList.remove('swap'); sheetEl.focus({ preventScroll: true }); }, 125);
 }
 document.getElementById('more').addEventListener('click', () => goView('more'));
 sheetEl.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) goView(b.dataset.go); });
