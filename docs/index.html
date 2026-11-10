@@ -320,7 +320,7 @@ let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 // Losing, step by step: the line shows as the pile nears it; past it a 3-2-1 counts down on the line; at zero the run
 // stops and a revive is offered once (a ring timer); declined or timed out, the game-over card says why.
 const REVIVE_TIME = 6, REVIVE_BAND = 120, LINE_NEAR = 110;
-let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, count = 0, countLow = 4, countPop = 0, ringShown = -1, bestAtStart = 0;
+let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, count = 0, tickAt = -9, countPop = 0, ringShown = -1, bestAtStart = 0;
 let vib = true;
 let time = 0, acc = 0, shake = 0, shakeT = 0, shakeHeat = 0;
 // every shake heats up; while hot, new shakes land softer (spamming shots cannot keep the screen rattling)
@@ -1173,7 +1173,7 @@ function reset() {
     blobs.push(b); x += r * 2 + gap;
   }
   overEl.hidden = true; reviveEl.hidden = true;
-  reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; count = 0; countLow = 4; countPop = 0; ringShown = -1; bestAtStart = best;
+  reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; count = 0; tickAt = -9; countPop = 0; ringShown = -1; bestAtStart = best;
   saveT = 0; saveDirty = true; clearSave();
 }
 
@@ -1343,8 +1343,7 @@ function frameLogic(dt) {
     warn = dangerT > 0.12;
     if (dangerT > 0) dangerPh += dt * (1.1 + 2.6 * Math.min(1, dangerT / DANGER_HOLD)); else dangerPh = 0;   // heartbeat, quickening
     const c = dangerT > DANGER_GRACE ? Math.max(1, Math.ceil(DANGER_HOLD - dangerT)) : dangerT > 0 && count > 0 ? 3 : 0;   // 3, 2, 1; once up it stays until the pile has really cleared
-    if (dangerT <= 0) countLow = 4;
-    if (c > 0 && c < countLow) { countLow = c; countPop = 1; sfxTick(c); buzz(18); }
+    if (c > 0 && (count === 0 || c < count) && time - tickAt > 0.5) { tickAt = time; countPop = 1; sfxTick(c); buzz(18); }
     count = c;
     if (countPop > 0) countPop = Math.max(0, countPop - dt * 4);
     if (dangerT >= DANGER_HOLD) lose();
@@ -1386,7 +1385,7 @@ function revive() {
   let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > top) top = blobs[i].level;
   const field = blobs.filter(b => !b.tray && !b.dead && b.level < top).sort((p, q) => q.maxY - p.maxY);
   const stuck = blobs.filter(b => !b.tray && !b.dead && b.level === top && b.maxY > DANGER_Y - 40);   // a biggest blob that is itself at the line
-  const pins = b => stuck.some(t => b.cy < t.cy && Math.abs(b.cx - t.cx) < (b.r + t.r) * 0.9);        // what holds it down there (gravity is toward the ceiling)
+  const pins = b => stuck.some(t => b.cy < t.cy && b.maxY > t.cy - t.r - REVIVE_BAND && Math.abs(b.cx - t.cx) < (b.r + t.r) * 0.9);   // what rests on it (gravity is toward the ceiling)
   let n = 0;
   for (const b of field) {
     if (n >= 3 && b.maxY < DANGER_Y - REVIVE_BAND && !pins(b)) continue;
