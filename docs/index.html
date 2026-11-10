@@ -112,6 +112,9 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #lab button[aria-pressed="true"],#lab button[data-all]{background:var(--ink);color:#17171c}
 #lab button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 #stage{position:absolute;left:0;right:0;top:calc(130*var(--u));bottom:0}
+#gains{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:visible}
+.gain{position:absolute;left:0;top:0;opacity:0;white-space:nowrap;font:900 20px/1 var(--font-display);color:#f4f1ea;will-change:transform,opacity;
+  -webkit-text-stroke:.12em rgba(23,23,28,.5);paint-order:stroke fill;transform-origin:0 0}
 body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
 /* danger: a red vignette over the whole screen that beats faster the closer the pile is to losing */
@@ -174,6 +177,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     <div id="stage">
       <canvas id="c" aria-label="Upside Down Merge play field"></canvas>
     </div>
+    <div id="gains" aria-hidden="true"><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span><span class="gain"></span></div>
     <div id="danger" aria-hidden="true"></div>
     <div id="revive" hidden>
       <div class="panel" tabindex="-1" role="dialog" aria-label="Revive" aria-describedby="revive-desc">
@@ -430,9 +434,6 @@ let hitStop = 0, scoreBump = 0;
 // Fanfare for a big tier (1024 and up): the field freezes for a beat and dims, rays in the new colour spin out
 // of the blob, which pulses on top under a glow while sparkles pour out of it.
 const FANFARE_LEVEL = 8;    // from 256 up, growing with the tier (fanfare.big: 0 at 256, 1 from 4096)
-const FAN_NAMES = ['Discs', 'Wave', 'Jelly', 'Drops', 'Flood'];
-let fanStyle = 1;
-try { const v = localStorage.getItem('udm_fan'); if (v !== null && v !== '') fanStyle = Math.max(0, Math.min(FAN_NAMES.length - 1, +v | 0)); } catch (e) {}
 const drops = []; for (let i = 0; i < 28; i++) drops.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 4, c: 0 });
 let dropI = 0;
 // points that jump out of a merge and fly to the score; a chain's multiplier rides above them
@@ -450,10 +451,10 @@ function spawnDrops(x, y, r, n, ci, v) {
 function mergePop(x, y, nb, c, pts) {
   const ci = cidx(nb.level), chain = Math.min(6, c - 1);
   let p = pops[gainI]; gainI = (gainI + 1) % pops.length;
-  p.t = 0; p.x = x; p.y = y - nb.r * 0.2; p.txt = '+' + pts; p.size = Math.min(34, 17 + nb.level * 1.1 + chain * 2); p.c = ci; p.mult = false;
+  p.t = 0; p.fresh = true; p.x = x; p.y = y - nb.r * 0.2; p.txt = '+' + pts; p.size = Math.min(22, 13 + nb.level * 0.55 + chain); p.c = ci; p.mult = false;
   if (c >= 2) {
     p = pops[gainI]; gainI = (gainI + 1) % pops.length;
-    p.t = 0; p.x = x; p.y = y - nb.r * 0.2 - 30; p.txt = '\u00d7' + c; p.size = Math.min(46, 26 + chain * 4); p.c = ci; p.mult = true;
+    p.t = 0; p.fresh = true; p.x = x; p.y = y - nb.r * 0.2 - 20; p.txt = '\u00d7' + c; p.size = Math.min(26, 16 + chain * 2); p.c = ci; p.mult = true;
   }
   if (REDUCED) return;
   const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;
@@ -1118,19 +1119,10 @@ function finishMerge(a, b) {
     if (!REDUCED) {
       kick = 0.35 + 0.55 * big;   // no freeze and no wash of the whole screen: the game keeps moving
       nb.landX = x; nb.landY = y; ripple(nb, 55 + 60 * big);   // the pile takes the shock: everything near it wobbles
-      if (fanStyle === 2) {   // jelly: the new blob is puffed outward and springs back, nothing is drawn
-        const g = 3.2 + 2.6 * big;
-        for (let k = 0; k < nb.n; k++) { nb.vx[k] += (nb.x[k] - nb.cx) * g; nb.vy[k] += (nb.y[k] - nb.cy) * g; }
-        ripple(nb, 50 + 40 * big);
-      } else if (fanStyle === 3) {   // drops: round flat drops of the new colour fly off and fall back toward the ceiling
-        const n = 9 + Math.round(13 * big);
-        for (let q = 0; q < n; q++) {
-          const d = drops[dropI]; dropI = (dropI + 1) % drops.length;
-          const th = Math.random() * 6.283, v = 150 + Math.random() * (190 + 160 * big);
-          d.t = 0; d.life = 0.55 + Math.random() * 0.45; d.r = 3.5 + Math.random() * (5 + 5 * big); d.c = fanfare.c;
-          d.x = x + Math.cos(th) * nb.r * 0.7; d.y = y + Math.sin(th) * nb.r * 0.7; d.vx = Math.cos(th) * v; d.vy = Math.sin(th) * v + 60;
-        }
-      }
+      // jelly: the new blob is puffed outward and springs back, and the pile gets a second shove; nothing is drawn
+      const g = 3.2 + 2.6 * big;
+      for (let k = 0; k < nb.n; k++) { nb.vx[k] += (nb.x[k] - nb.cx) * g; nb.vy[k] += (nb.y[k] - nb.cy) * g; }
+      ripple(nb, 50 + 40 * big);
     }
     if (nb.level >= 10) {   // three rising pings on top of the chord for the really big ones
       setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
@@ -1212,38 +1204,7 @@ function fanfareEnv() {
   if (fanfare.t >= fanfare.life) return 0;
   return Math.min(1, fanfare.t / 0.08) * Math.min(1, (fanfare.life - fanfare.t) / 0.5);
 }
-function drawFanfare() {
-  const env = fanfareEnv(); if (env <= 0) return;
-  const c = COLORS[fanfare.c], x = fanfare.x, y = fanfare.y, b = fanfare.b, rs = b ? b.r * b.scale : 40;
-  ctx.save();
-  const big = fanfare.big, t = fanfare.t, sh = v => `${Math.round(c.r * v)},${Math.round(c.g * v)},${Math.round(c.b * v)}`;
-  if (fanStyle === 0) {
-    // discs: three flat discs of the new colour, a tenth of a second apart, each easing out to its place, the wider the darker
-    const m = 0.62 + 0.38 * big;
-    for (let q = 0; q < 3; q++) {
-      const tt = (t - q * 0.1) / 0.6; if (tt <= 0) continue;
-      const k = REDUCED ? 1 : 1 - Math.pow(1 - Math.min(1, tt), 3), end = rs * (1 + m * (q === 0 ? 2.5 : q === 1 ? 1.6 : 0.8));
-      ctx.fillStyle = `rgba(${sh(q === 0 ? 0.34 : q === 1 ? 0.5 : 0.68)},${env.toFixed(3)})`;
-      ctx.beginPath(); ctx.arc(x, y, rs * 0.9 + (end - rs * 0.9) * k, 0, 6.2832); ctx.fill();
-    }
-  } else if (fanStyle === 1) {
-    // wave: two thick hoops roll out from the blob and thin to nothing, like a ring on water
-    for (let q = 0; q < 2; q++) {
-      const tt = (t - q * 0.16) / (0.7 + 0.25 * big); if (tt <= 0 || tt >= 1) continue;
-      const k = 1 - Math.pow(1 - tt, 2.4), lw = rs * (0.5 - 0.14 * q) * Math.pow(1 - tt, 1.3);
-      ctx.strokeStyle = `rgba(${sh(q ? 0.55 : 0.78)},${(Math.min(1, (1 - tt) * 1.6) * env).toFixed(3)})`; ctx.lineWidth = lw;
-      ctx.beginPath(); ctx.arc(x, y, rs * 0.85 + rs * (1.5 + 1.5 * big) * k, 0, 6.2832); ctx.stroke();
-    }
-  } else if (fanStyle === 4) {
-    // flood: the field fills from the ceiling in the new colour, a slow swell along its edge, and drains away again
-    const k = 1 - Math.pow(1 - Math.min(1, t / 0.4), 3), depth = (H - CEIL) * (0.3 + 0.3 * big) * k * env, y0 = CEIL + depth;
-    ctx.fillStyle = `rgba(${sh(0.5)},${(0.9 * Math.min(1, env * 1.5)).toFixed(3)})`;
-    ctx.beginPath(); ctx.moveTo(WALL_L, CEIL); ctx.lineTo(WALL_L, y0);
-    for (let px = WALL_L; px <= WALL_R + 1; px += 12) ctx.lineTo(px, y0 + (7 + 5 * big) * Math.sin(px * 0.035 + t * 7) * Math.min(1, depth / 30));
-    ctx.lineTo(WALL_R, CEIL); ctx.closePath(); ctx.fill();
-  }
-  ctx.restore();
-}
+function drawFanfare() {}   // the big merge is all motion now (the user's pick): nothing to draw
 // The panel's rounded corners: everything is drawn unclipped, then the four corner slivers (and anything below the
 // panel on a very tall screen) are erased once per frame. The canvas edges already cut the straight sides.
 let sliverH = -1; const slivers = [null, null, null, null];
@@ -1270,6 +1231,25 @@ function panelPath() {
   ctx.moveTo(WALL_L, CEIL + r); ctx.arcTo(WALL_L, CEIL, WALL_L + r, CEIL, r); ctx.lineTo(WALL_R - r, CEIL); ctx.arcTo(WALL_R, CEIL, WALL_R, CEIL + r, r);
   ctx.lineTo(WALL_R, H - rb); ctx.arcTo(WALL_R, H, WALL_R - rb, H, rb); ctx.lineTo(WALL_L + rb, H); ctx.arcTo(WALL_L, H, WALL_L, H - rb, rb); ctx.closePath();
 }
+// The points: page elements over the whole game. They pop out of the merge with a bounce, hang a moment, then fly into
+// the score. World position to page position: the canvas sits in #stage, S page pixels per world unit.
+const gainEls = (document.getElementById('gains') || {}).children || [];
+function drawGains() {
+  for (let i = 0; i < pops.length; i++) {
+    const p = pops[i], el = gainEls[i]; if (!el) continue;
+    if (p.t >= POP_LIFE) { if (p.on) { p.on = false; el.style.opacity = '0'; } continue; }
+    if (!p.on || p.fresh) {
+      p.on = true; p.fresh = false; el.textContent = p.txt; el.style.fontSize = (p.size * S).toFixed(1) + 'px'; el.style.color = p.mult ? COLORS[p.c].hex : '#f4f1ea';
+      p.tx = hudEl.offsetLeft + brandEl.offsetLeft + brandEl.offsetWidth * 0.5; p.ty = hudEl.offsetTop + brandEl.offsetTop + brandEl.offsetHeight * 0.5;
+    }
+    const t = p.t, inK = Math.min(1, t / 0.16), sc0 = inK < 1 ? 1.15 * inK * (2 - inK) : 1 + 0.15 * Math.max(0, 1 - (t - 0.16) / 0.12);
+    const fly = Math.max(0, (t - 0.5) / (POP_LIFE - 0.5)), e = fly * fly;
+    const x0 = stage.offsetLeft + OX + p.x * S, y0 = stage.offsetTop + OY + (p.y - 22 * Math.min(1, t / 0.5)) * S;
+    const x = x0 + (p.tx - x0) * e, y = y0 + (p.ty - y0) * e, sc = sc0 * (1 - 0.5 * e);
+    el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${sc.toFixed(3)}) translate(-50%,-50%)`;
+    el.style.opacity = (0.92 * (fly > 0.7 ? (1 - fly) / 0.3 : 1)).toFixed(2);
+  }
+}
 function drawJuice() {
   if (!juiceLive) return;
   ctx.save();
@@ -1278,19 +1258,7 @@ function drawJuice() {
     const c = COLORS[d.c], k = d.t / d.life;
     ctx.fillStyle = c.hex; ctx.beginPath(); ctx.arc(d.x, d.y, d.r * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4), 0, 6.2832); ctx.fill();
   }
-  // points: they pop out of the merge with a bounce, hang a moment, then fly to the score in the corner
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-  for (let i = 0; i < pops.length; i++) {
-    const p = pops[i]; if (p.t >= POP_LIFE) continue;
-    const t = p.t, inK = Math.min(1, t / 0.16), sc0 = inK < 1 ? 1.35 * inK * (2 - inK) : 1 + 0.35 * Math.max(0, 1 - (t - 0.16) / 0.12);
-    const fly = Math.max(0, (t - 0.5) / (POP_LIFE - 0.5)), e = fly * fly;
-    const px = p.x + (WALL_L + 62 - p.x) * e, py = p.y - 22 * Math.min(1, t / 0.5) + (CEIL - 8 - (p.y - 22)) * e, sc = sc0 * (1 - 0.55 * e);
-    ctx.save(); ctx.translate(px, py); ctx.scale(sc, sc); ctx.rotate(p.mult ? -0.1 : 0); ctx.globalAlpha = fly > 0.8 ? (1 - fly) / 0.2 : 1;
-    ctx.font = '900 ' + p.size + 'px ' + FONT;
-    ctx.lineWidth = p.size * 0.26; ctx.strokeStyle = '#17171c'; ctx.strokeText(p.txt, 0, 0);
-    ctx.fillStyle = p.mult ? COLORS[p.c].hex : '#f4f1ea'; ctx.fillText(p.txt, 0, 0);
-    ctx.restore();
-  }
+
   // rings: a thinning hoop of the new colour, out and gone
   ctx.lineCap = 'round';
   for (let i = 0; i < rings.length; i++) {
@@ -2216,6 +2184,7 @@ function draw() {
   }
 
   drawJuice();
+  drawGains();
   ctx.globalAlpha = 1; punchCorners();
 
   // score popups: white for a lone merge, warm and bigger along a chain
@@ -2439,17 +2408,12 @@ if (MERGE_LAB) {   // the lab's controls: a button per tier, the whole run of th
   const bar = document.createElement('div'); bar.id = 'lab';
   let h = '';
   for (let L = 2; L <= 13; L++) h += `<button type="button" data-l="${L}">${Math.pow(2, L)}</button>`;
-  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button>' + FAN_NAMES.map((n, i) => `<button type="button" data-fx="${i}" aria-pressed="${i === fanStyle}">${n}</button>`).join('') + '<button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Game over</button>';
+  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button><button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Game over</button>';
   backEl.appendChild(bar);
   bar.addEventListener('click', e => {
     const t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
     initAudio();
     if (t.dataset.l) { labQueue.length = 0; labMerge(+t.dataset.l); }
-    else if (t.dataset.fx) {
-      fanStyle = +t.dataset.fx; try { localStorage.setItem('udm_fan', String(fanStyle)); } catch (err) {}
-      bar.querySelectorAll('[data-fx]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.fx === fanStyle)));
-      labQueue.length = 0; labMerge(10);
-    }
     else if (t.dataset.card) { if (!over) { labQueue.length = 0; reviveUsed = t.dataset.card === 'over'; lose(); } }
     else if (t.dataset.all) { labQueue = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; labWait = 0; }
     else { labSpeed = labSpeed === 1 ? 0.25 : 1; t.setAttribute('aria-pressed', String(labSpeed !== 1)); }
