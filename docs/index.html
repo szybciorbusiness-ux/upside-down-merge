@@ -120,7 +120,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 /* danger: a red vignette over the whole screen that beats faster the closer the pile is to losing */
 #danger{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;will-change:opacity;
   background:radial-gradient(ellipse 70% 60% at 50% 45%,rgba(255,40,60,0) 30%,rgba(255,30,50,.5) 72%,rgba(190,0,25,.92) 100%)}
-#over{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(5,5,7,.72);
+#over{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:var(--card,#1e1e2a);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   animation:fade .28s ease both}
 .panel{display:flex;flex-direction:column;align-items:center;gap:calc(18*var(--u));min-width:min(calc(260*var(--u)),100%);
@@ -131,23 +131,41 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 .panel dl div{display:flex;flex-direction:column;align-items:center;gap:2px}
 .panel dt{font-size:calc(12*var(--u));font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .panel dd{margin:0;font-size:calc(28*var(--u));font-weight:900;font-variant-numeric:tabular-nums}
-#again{padding:calc(12*var(--u)) calc(34*var(--u));border:0;border-radius:999px;background:var(--ink);color:var(--bg);
-  font:900 calc(18*var(--u)) var(--font-display);cursor:pointer;transition:transform .12s ease}
-#again:active,#revive-yes:active{transform:scale(.95)}
-#revive{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(5,5,7,.72);
+#again{display:grid;place-items:center;width:calc(236*var(--u));height:calc(72*var(--u));margin-top:calc(14*var(--u));padding:0;border:0;border-radius:calc(22*var(--u));
+  background:var(--sw-on,var(--ink));color:var(--sw-knob,#fff);cursor:pointer;animation:rise .4s .42s cubic-bezier(.2,.9,.3,1.2) both,breathe 1.2s 1.4s ease-in-out infinite}
+#again svg{width:calc(30*var(--u));height:calc(30*var(--u))}
+#over .panel{gap:calc(20*var(--u));padding:0;background:transparent;border-radius:0;animation:none}
+#over h1{font-size:calc(46*var(--u));color:var(--sw-on,var(--ink));animation:rise .4s .05s cubic-bezier(.2,.9,.3,1.2) both}
+#over .reason{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+#over dl{flex-direction:column;align-items:center;gap:calc(24*var(--u));margin-top:calc(18*var(--u))}
+#over dl div{gap:calc(4*var(--u))}
+#over dl div:first-child{animation:rise .4s .16s cubic-bezier(.2,.9,.3,1.2) both}
+#over dl div:last-child{animation:rise .4s .28s cubic-bezier(.2,.9,.3,1.2) both}
+#over dt{font-size:calc(15*var(--u))}
+#o-score{font-size:calc(76*var(--u));line-height:1}
+#o-best{font-size:calc(38*var(--u));line-height:1;color:var(--sw-on,var(--ink))}
+#again:active{animation:none;transform:scale(.95)}
+#revive-yes:active{animation:none;transform:scale(.94)}
+#revive{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(0,0,0,.78);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   animation:fade .28s ease both}
 .reason{margin:0;max-width:calc(250*var(--u));text-align:center;color:var(--muted);font:600 calc(15*var(--u))/1.4 var(--font-system);text-wrap:balance}
 .tag{margin:0;padding:calc(5*var(--u)) calc(12*var(--u));border-radius:999px;background:#ffd24a;color:#17171c;font-size:calc(13*var(--u));font-weight:900}
-.ring{position:relative;width:calc(128*var(--u));height:calc(128*var(--u))}
-#revive .panel{gap:calc(22*var(--u));padding:calc(34*var(--u)) calc(40*var(--u)) calc(24*var(--u))}
+.ring{position:relative;width:calc(172*var(--u));height:calc(172*var(--u));animation:ringin .5s cubic-bezier(.2,1.4,.4,1) both}
+#revive .panel{gap:calc(26*var(--u));padding:0;background:transparent;border-radius:0;animation:none}
+.chance{margin:0;font:900 calc(28*var(--u))/1.1 var(--font-display);color:var(--ink);letter-spacing:0;text-align:center;animation:rise .4s .12s cubic-bezier(.2,.9,.3,1.2) both}
+#revive .xbtn{background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);animation:fade .4s .5s both}
+@keyframes ringin{from{opacity:0;transform:scale(.6)}}
+@keyframes tickpop{0%{transform:scale(1.45)}55%{transform:scale(.94)}100%{transform:scale(1)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 .ring svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}
-.ring circle{fill:none;stroke-width:8}
-.ring .track{stroke:var(--sh-tog,rgba(255,255,255,.12))}
-.ring .left{stroke:var(--ink);stroke-linecap:round;stroke-dasharray:264}
-.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(46*var(--u));font-weight:900;font-variant-numeric:tabular-nums}
-#revive-yes{padding:calc(13*var(--u)) calc(44*var(--u));border:0;border-radius:999px;background:var(--ink);color:var(--bg);
-  font:900 calc(19*var(--u)) var(--font-display);cursor:pointer;transition:transform .12s ease}
+.ring circle{fill:none;stroke-width:9}
+.ring .track{stroke:rgba(255,255,255,.14)}
+.ring .left{stroke:var(--sw-on,var(--ink));stroke-linecap:round;stroke-dasharray:264}
+.ring span.tick{animation:tickpop .38s cubic-bezier(.2,.9,.3,1) both}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(76*var(--u));font-weight:900;font-variant-numeric:tabular-nums}
+#revive-yes{padding:calc(20*var(--u)) calc(70*var(--u));border:0;border-radius:999px;background:var(--sw-on,var(--ink));color:var(--sw-knob,#fff);
+  font:900 calc(26*var(--u)) var(--font-display);cursor:pointer;animation:rise .4s .2s cubic-bezier(.2,.9,.3,1.2) both,breathe 1.1s .7s ease-in-out infinite}
 .xbtn{display:grid;place-items:center;width:calc(46*var(--u));height:calc(46*var(--u));padding:0;border:0;border-radius:50%;background:var(--sh-row,#30303d);color:var(--muted);
   cursor:pointer;transition:transform .12s ease}
 .xbtn:active{transform:scale(.92)}
@@ -155,7 +173,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #revive-yes:focus-visible,.xbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
-@media (prefers-reduced-motion:reduce){#over,#revive,.panel{animation:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
+@media (prefers-reduced-motion:reduce){#over,#revive,.panel,.ring,.ring span.tick,.chance,#revive-yes,#revive .xbtn,#again,#over h1,#over dl div{animation:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
 </style>
 
 <div id="phone">
@@ -183,6 +201,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
       <div class="panel" tabindex="-1" role="dialog" aria-label="Revive" aria-describedby="revive-desc">
         <p class="sr" id="revive-desc">Out of room. Revive within 6 seconds or the run ends.</p>
         <div class="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="42"/><circle class="left" id="ring-left" cx="50" cy="50" r="42"/></svg><span id="ring-n">6</span></div>
+        <p class="chance">One more chance</p>
         <button id="revive-yes" type="button">Revive</button>
         <button id="revive-no" class="xbtn" type="button" aria-label="End run"><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
       </div>
@@ -194,9 +213,9 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
         <p class="tag" id="o-new" hidden>New best</p>
         <dl>
           <div><dt>Score</dt><dd id="o-score">0</dd></div>
-          <div><dt>Best</dt><dd id="o-best">0</dd></div>
+          <div><dt>Best score</dt><dd id="o-best">0</dd></div>
         </dl>
-        <button id="again" type="button">Play again</button>
+        <button id="again" type="button" aria-label="Play again"><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M8 5.2v19.6c0 1.5 1.6 2.4 2.9 1.6l16-9.8c1.2-.7 1.2-2.5 0-3.2l-16-9.8C9.600 2.800 8 3.700 8 5.200z" fill="currentColor"/></svg></button>
       </div>
     </div>
    </div>
@@ -435,7 +454,7 @@ let hitStop = 0, scoreBump = 0;
 // of the blob, which pulses on top under a glow while sparkles pour out of it.
 const FANFARE_LEVEL = 8;    // from 256 up, growing with the tier (fanfare.big: 0 at 256, 1 from 4096)
 const drops = []; for (let i = 0; i < 28; i++) drops.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 4, c: 0 });
-let dropI = 0;
+let dropI = 0, overN = 0;
 // points that jump out of a merge and fly to the score; a chain's multiplier rides above them
 const pops = []; for (let i = 0; i < 14; i++) pops.push({ t: 9, x: 0, y: 0, txt: '', size: 20, c: 0, mult: false });
 let gainI = 0;
@@ -1596,16 +1615,22 @@ function frameLogic(dt) {
     const left = REVIVE_TIME - Math.max(0, offerT - 0.55);   // a beat to see the board, then the card and its timer
     if (offerT > 0.55 && reviveEl.hidden) { reviveEl.hidden = false; reviveEl.firstElementChild.focus({ preventScroll: true }); }
     const n = Math.max(0, Math.ceil(left));
-    if (n !== ringShown) { ringShown = n; ringN.textContent = String(n); }
+    if (n !== ringShown) {   // the number lands with a bounce on every second
+      ringShown = n; ringN.textContent = String(n); ringN.classList.remove('tick'); void ringN.offsetWidth; ringN.classList.add('tick');
+    }
     ringLeft.style.strokeDashoffset = (264 * (1 - Math.max(0, Math.min(1, left / REVIVE_TIME)))).toFixed(1);
     if (left <= 0) endRun();
   } else {
     overT += dt;
     if (overT > 0.45 && overEl.hidden) {
-      oScore.textContent = score.toLocaleString(); oBest.textContent = best.toLocaleString();
+      overN = 0; oScore.textContent = '0'; oBest.textContent = best.toLocaleString();
       oWhy.textContent = 'The pile stayed past the line.';
       oNew.hidden = !(score > 0 && score >= best && score > bestAtStart);
       overEl.hidden = false; overEl.firstElementChild.focus({ preventScroll: true });
+    }
+    if (!overEl.hidden && overN !== score) {   // the score counts up to its number
+      const k = REDUCED ? 1 : Math.min(1, (overT - 0.6) / 0.9), v = k <= 0 ? 0 : Math.round(score * (1 - Math.pow(1 - k, 3)));
+      if (v !== overN) { overN = v; oScore.textContent = v.toLocaleString(); }
     }
   }
   juiceStep(dt); frameFx(dt);
