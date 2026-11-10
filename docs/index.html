@@ -111,7 +111,8 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   animation:fade .28s ease both}
 .panel{display:flex;flex-direction:column;align-items:center;gap:calc(18*var(--u));min-width:min(calc(260*var(--u)),100%);
-  padding:calc(28*var(--u)) calc(32*var(--u));border-radius:calc(22*var(--u));background:var(--panel);animation:rise .32s cubic-bezier(.2,.9,.3,1.2) both}
+  padding:calc(28*var(--u)) calc(32*var(--u));border-radius:calc(30*var(--u));background:var(--sh,var(--panel));animation:rise .32s cubic-bezier(.2,.9,.3,1.2) both}
+.panel:focus{outline:none}
 .panel h1{margin:0;font-size:calc(30*var(--u));font-weight:900;letter-spacing:0}
 .panel dl{display:flex;gap:calc(28*var(--u));margin:0}
 .panel dl div{display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -125,17 +126,20 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
   animation:fade .28s ease both}
 .reason{margin:0;max-width:calc(250*var(--u));text-align:center;color:var(--muted);font:600 calc(15*var(--u))/1.4 var(--font-system);text-wrap:balance}
 .tag{margin:0;padding:calc(5*var(--u)) calc(12*var(--u));border-radius:999px;background:#ffd24a;color:#17171c;font-size:calc(13*var(--u));font-weight:900}
-.ring{position:relative;width:calc(104*var(--u));height:calc(104*var(--u))}
+.ring{position:relative;width:calc(128*var(--u));height:calc(128*var(--u))}
+#revive .panel{gap:calc(22*var(--u));padding:calc(34*var(--u)) calc(40*var(--u)) calc(24*var(--u))}
 .ring svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}
 .ring circle{fill:none;stroke-width:8}
-.ring .track{stroke:rgba(255,255,255,.12)}
+.ring .track{stroke:var(--sh-tog,rgba(255,255,255,.12))}
 .ring .left{stroke:var(--ink);stroke-linecap:round;stroke-dasharray:264}
-.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(38*var(--u));font-weight:900;font-variant-numeric:tabular-nums}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(46*var(--u));font-weight:900;font-variant-numeric:tabular-nums}
 #revive-yes{padding:calc(13*var(--u)) calc(44*var(--u));border:0;border-radius:999px;background:var(--ink);color:var(--bg);
   font:900 calc(19*var(--u)) var(--font-display);cursor:pointer;transition:transform .12s ease}
-.ghost{padding:calc(8*var(--u)) calc(16*var(--u));border:0;background:transparent;color:var(--muted);font:900 calc(15*var(--u)) var(--font-display);cursor:pointer}
-.ghost:hover{color:var(--ink)}
-#revive-yes:focus-visible,.ghost:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.xbtn{display:grid;place-items:center;width:calc(46*var(--u));height:calc(46*var(--u));padding:0;border:0;border-radius:50%;background:var(--sh-row,#30303d);color:var(--muted);
+  cursor:pointer;transition:transform .12s ease}
+.xbtn:active{transform:scale(.92)}
+.xbtn svg{width:calc(15*var(--u));height:calc(15*var(--u))}
+#revive-yes:focus-visible,.xbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @keyframes fade{from{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(calc(10*var(--u))) scale(.96)}}
 @media (prefers-reduced-motion:reduce){#over,#revive,.panel{animation:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
@@ -162,16 +166,15 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
     </div>
     <div id="danger" aria-hidden="true"></div>
     <div id="revive" hidden>
-      <div class="panel" role="dialog" aria-labelledby="revive-title">
-        <h1 id="revive-title">Out of room</h1>
-        <p class="reason">The pile stayed past the line. Revive clears the blobs crowding it, once per run.</p>
+      <div class="panel" tabindex="-1" role="dialog" aria-label="Revive" aria-describedby="revive-desc">
+        <p class="sr" id="revive-desc">Out of room. Revive within 6 seconds or the run ends.</p>
         <div class="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="42"/><circle class="left" id="ring-left" cx="50" cy="50" r="42"/></svg><span id="ring-n">6</span></div>
         <button id="revive-yes" type="button">Revive</button>
-        <button id="revive-no" class="ghost" type="button">End run</button>
+        <button id="revive-no" class="xbtn" type="button" aria-label="End run"><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
       </div>
     </div>
     <div id="over" hidden>
-      <div class="panel" role="dialog" aria-labelledby="over-title">
+      <div class="panel" tabindex="-1" role="dialog" aria-labelledby="over-title">
         <h1 id="over-title">Game over</h1>
         <p class="reason" id="o-why">The pile stayed past the line.</p>
         <p class="tag" id="o-new" hidden>New best</p>
@@ -235,6 +238,13 @@ const CONTACT_PASSES = 2;      // contact solves per substep; one pass lets sque
 const MU = 0.12, MU_WALL = 0.1;   // slippery: the pile flows and slides rather than locking up
 const K0 = 0.003, K1 = 0.12, KMAX = 0.2;   // soft surface tension: deep dents relax gradually instead of hitting a stiff round core
 const STRAIN = 1.05;           // a contact pocket can reach past the rest centre while the volume bulges around it
+// Liquid, after the reference (its blobs are drawn out in flight, splat flat on landing and pack with no gaps):
+// a blob is not pulled back to its round rest shape but to that shape stretched the way the blob already is (FLOW
+// of the way, up to an aspect of FLOW_MAX), so being flattened in the pile or drawn out is hardly fought and only
+// the rest pulls back to round. In free flight it is drawn out along its path, more the faster it goes (FLY_K per
+// unit of speed, up to FLY_MAX; FLY_RATE is how briskly it gets there), and it splats when it lands. Blobs in the
+// pile weigh PILE_G times as much, so the pile packs tight against the ceiling while a shot stays floaty.
+const FLOW = 0.72, FLOW_MAX = 2.4, FLY_K = 0.001, FLY_MAX = 0.5, FLY_RATE = 16, PILE_G = 2;
 const KB = 0.06;               // outline smoothness: local bending, so it wobbles in big lazy lumps, not wrinkles
 const KA = 0.42;               // area (pressure) stiffness (softer: more liquid)
 const KD = 0.0045;            // deformation damping: about four visible wobbles, then rest
@@ -361,8 +371,9 @@ let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // pea
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 // Losing, step by step: the line shows as the pile nears it; past it a 3-2-1 counts down on the line; at zero the run
 // stops and a revive is offered once (a ring timer); declined or timed out, the game-over card says why.
-const REVIVE_TIME = 6, REVIVE_BAND = 120, LINE_NEAR = 110;
-let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, count = 0, tickAt = -9, countPop = 0, ringShown = -1, bestAtStart = 0;
+const REVIVE_TIME = 6, REVIVE_BAND = 120;
+const LINE_NEAR = 64, LINE_WAIT = 1;   // the limit shows once the settled pile has stayed within LINE_NEAR of it for LINE_WAIT seconds
+let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, nearT = 0, hotA = 0, count = 0, countShown = 0, tickAt = -9, countPop = 0, ringShown = -1, bestAtStart = 0;
 let vib = true;
 // The merge lab (open the game with ?merges): a row of buttons, one per tier; each drops two blobs that meet and
 // merge, with everything a real merge shows. Nothing here loads, saves, scores a best or can be lost.
@@ -497,8 +508,24 @@ function solveShape(b) {
 
   const sc = b.scale, rr = b.r * sc, inv2 = 1 / (rr * rr), lim = STRAIN * rr, lim2 = lim * lim;
   const sxm = sc * (1 + 0.18 * b.sq), sym = sc * (1 - 0.24 * b.sq);
+  // m: the stretch the goal shape takes on (world axes, unit area). Identity on the shelf, while newborn, and while
+  // the shelf squash is still springing out of a shot (that is not the blob's own stretch).
+  let m11 = 1, m12 = 0, m22 = 1;
+  if (FLOW > 0 && !b.tray && b.young <= 0 && sc > 0.5) {
+    let w11 = b.v11, w12 = (b.v12 + b.v21) * 0.5, w22 = b.v22;
+    const det = w11 * w22 - w12 * w12;
+    if (det > 1e-6 && det === det) {
+      const kd = 1 / Math.sqrt(det); w11 *= kd; w12 *= kd; w22 *= kd;       // the blob's own stretch, at unit area
+      const tr = w11 + w22, trMax = FLOW_MAX + 1 / FLOW_MAX;               // (its two stretches are L and 1/L: their sum says how far it is drawn out)
+      const f = (tr > trMax ? FLOW * (trMax - 2) / (tr - 2) : FLOW) * Math.max(0, 1 - 5 * Math.abs(b.sq));
+      m11 = 1 + f * (w11 - 1); m12 = f * w12; m22 = 1 + f * (w22 - 1);
+      const dm = m11 * m22 - m12 * m12;
+      if (dm > 1e-6) { const km = 1 / Math.sqrt(dm); m11 *= km; m12 *= km; m22 *= km; } else { m11 = m22 = 1; m12 = 0; }
+    }
+  }
   for (let i = 0; i < n; i++) {
-    const gx = cx + sxm * (c * qx[i] - s * qy[i]), gy = cy + sym * (s * qx[i] + c * qy[i]);
+    const rx = sxm * (c * qx[i] - s * qy[i]), ry = sym * (s * qx[i] + c * qy[i]);
+    const gx = cx + m11 * rx + m12 * ry, gy = cy + m12 * rx + m22 * ry;
     let dx = gx - x[i], dy = gy - y[i];
     const d2 = dx * dx + dy * dy;
     let k = K0 + K1 * d2 * inv2; if (k > KMAX) k = KMAX;
@@ -511,8 +538,9 @@ function solveShape(b) {
   const ox = b.ox, oy = b.oy, el = b.el;
   for (let i = 0; i < n; i++) {
     const i0 = i === 0 ? n - 1 : i - 1, i1 = i + 1 < n ? i + 1 : 0;
-    const dx = (x[i0] + x[i1]) * 0.5 + sxm * (c * ox[i] - s * oy[i]) - x[i];
-    const dy = (y[i0] + y[i1]) * 0.5 + sym * (s * ox[i] + c * oy[i]) - y[i];
+    const bx0 = sxm * (c * ox[i] - s * oy[i]), by0 = sym * (s * ox[i] + c * oy[i]);
+    const dx = (x[i0] + x[i1]) * 0.5 + m11 * bx0 + m12 * by0 - x[i];
+    const dy = (y[i0] + y[i1]) * 0.5 + m12 * bx0 + m22 * by0 - y[i];
     x[i] += KB * 0.5 * dx; y[i] += KB * 0.5 * dy;
     x[i0] -= KB * 0.25 * dx; y[i0] -= KB * 0.25 * dy; x[i1] -= KB * 0.25 * dx; y[i1] -= KB * 0.25 * dy;
   }
@@ -750,7 +778,36 @@ function substep(h) {
         if (buried) b.buriedT += h; else b.buriedT = Math.max(0, b.buriedT - h * 2);
         if (sqy < 0) sqy = 0;                         // never squeeze toward the ceiling, only sideways or out toward the face
       }
-      const gh = G * gf * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
+      // free flight: drawn out along the path, toward a stretch set by the speed. The stretch is steered like a damped
+      // spring (FLY_RATE is its frequency) acting on the points' velocities as a pure change of shape (along the path
+      // one way, across it the other, with no net push or spin), so the blob's own motion is untouched and the launch wobble settles into the
+      // drawn-out shape. It lets go the moment the blob lands.
+      if (FLY_K > 0 && b.freeT > 0.05 && b.state === 0 && b.young <= 0) {
+        const sp = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy);
+        if (sp > 40) {
+          const ux = b.vcx / sp, uy = b.vcy / sp, want = 1 + Math.min(FLY_MAX, sp * FLY_K);
+          let mx = 0, my = 0, mvx = 0, mvy = 0;
+          for (let i = 0; i < n; i++) { mx += x[i]; my += y[i]; mvx += vx[i]; mvy += vy[i]; }
+          mx /= n; my /= n; mvx /= n; mvy /= n;
+          let saa = 0, sva = 0, scc = 0, svc = 0, sac = 0;
+          for (let i = 0; i < n; i++) {
+            const dx = x[i] - mx, dy = y[i] - my, al = dx * ux + dy * uy, ac = -dx * uy + dy * ux, rx = vx[i] - mvx, ry = vy[i] - mvy;
+            saa += al * al; scc += ac * ac; sac += al * ac; sva += (rx * ux + ry * uy) * al; svc += (-rx * uy + ry * ux) * ac;
+          }
+          if (saa > 1e-3 && scc > 1e-3) {
+            const cur = Math.sqrt(saa / scc);             // how drawn out it is now: along over across (1 is round)
+            const rate = (sva / saa - svc / scc) * 0.5;   // how fast that is changing (a log rate, per second)
+            let acc = (FLY_RATE * FLY_RATE * (Math.log(want) - 0.5 * Math.log(cur)) - 1.6 * FLY_RATE * rate) * h;
+            if (acc > 0.5) acc = 0.5; else if (acc < -0.5) acc = -0.5;
+            const w = 2 * acc * sac / (saa + scc);   // the spin a stretch askew to the path would add: cancelled
+            for (let i = 0; i < n; i++) {
+              const dx = x[i] - mx, dy = y[i] - my, al = dx * ux + dy * uy, ac = -dx * uy + dy * ux;
+              vx[i] += (ux * al + uy * ac) * acc - w * dy; vy[i] += (uy * al - ux * ac) * acc + w * dx;
+            }
+          }
+        }
+      }
+      const gh = G * gf * (b.touched && !b.launched && !b.buried ? PILE_G : 1) * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
       for (let i = 0; i < n; i++) {
         vx[i] += ax; vy[i] += ay - gh; px[i] = x[i]; py[i] = y[i];
         x[i] += vx[i] * h; y[i] += vy[i] * h;
@@ -1036,10 +1093,10 @@ function ripple(b, j0) {
   }
 }
 function popBlob(b) {
-  b.dead = true; saveDirty = true;
+  b.dead = true; saveDirty = true; sfxPop();
   const x = b.cx, y = b.cy, ci = cidx(b.level);
   score += b.value; if (score > best) { best = score; bestDirty = true; }
-  scoreBump = Math.max(scoreBump, 0.5); sfxPick();
+  scoreBump = Math.max(scoreBump, 0.5);
   if (REDUCED) return;
   for (let i = 0; i < 14; i++) {
     const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
@@ -1241,7 +1298,7 @@ function reset() {
     blobs.push(b); x += r * 2 + gap;
   }
   overEl.hidden = true; reviveEl.hidden = true;
-  reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; count = 0; tickAt = -9; countPop = 0; ringShown = -1; bestAtStart = best;
+  reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; nearT = 0; hotA = 0; count = 0; countShown = 0; tickAt = -9; countPop = 0; ringShown = -1; bestAtStart = best;
   saveT = 0; saveDirty = true; clearSave();
   tutB = null; tutT = -0.9;                  // the hand never keeps pointing at a shape from the run before
   if (MERGE_LAB) blobs.length = 0;           // the lab starts from an empty field
@@ -1467,7 +1524,7 @@ function frameLogic(dt) {
   musicTick();
 
   // danger line: the pile grows downward; lose only if it stays past the line
-  if (MERGE_LAB) { dangerT = 0; lineA = 0; count = 0; }
+  if (MERGE_LAB) { dangerT = 0; lineA = 0; hotA = 0; count = 0; countShown = 0; }
   else if (!over) {
     // only a settled blob counts: in the pile for a while, not merging, and nearly at rest (something flying
     // through the line is not danger). `low` is how far down the settled pile reaches.
@@ -1477,21 +1534,25 @@ function frameLogic(dt) {
       if (!b.tray && b.touched && b.sinceTouch > 0.7 && b.freeT < 0.05 && b.state === 0 && b.maxY > low && b.vcx * b.vcx + b.vcy * b.vcy < 50 * 50) low = b.maxY;
     }
     const past = low > DANGER_Y;
-    const near = Math.max(0, Math.min(1, (low - (DANGER_Y - LINE_NEAR)) / 70));   // the line fades in as the pile comes close
-    lineA += (near - lineA) * (1 - Math.exp(-dt * 8));
+    // the line comes up only once the pile has stayed close for a moment, and then slowly; it leaves quicker
+    const near = Math.max(0, Math.min(1, (low - (DANGER_Y - LINE_NEAR)) / 45));
+    nearT = near > 0 ? Math.min(LINE_WAIT + 0.6, nearT + dt) : Math.max(0, nearT - dt);
+    const want = nearT > LINE_WAIT ? (near > 0 ? near : lineA) : 0;
+    lineA += (want - lineA) * (1 - Math.exp(-dt * (want > lineA ? 1.6 : 5)));
     dangerT = past ? dangerT + dt : dangerT > 0 ? Math.max(0, dangerT - dt * 3) : Math.min(0, dangerT + dt);
     warn = dangerT > 0.12;
     if (dangerT > 0) dangerPh += dt * (1.1 + 2.6 * Math.min(1, dangerT / DANGER_HOLD)); else dangerPh = 0;   // heartbeat, quickening
     const c = dangerT > DANGER_GRACE ? Math.max(1, Math.ceil(DANGER_HOLD - dangerT)) : dangerT > 0 && count > 0 ? 3 : 0;   // 3, 2, 1; once up it stays until the pile has really cleared
     if (c > 0 && (count === 0 || c < count) && time - tickAt > 0.5) { tickAt = time; countPop = 1; sfxTick(c); buzz(18); }
-    count = c;
+    count = c; if (c > 0) countShown = c;
+    hotA += ((c > 0 ? 1 : 0) - hotA) * (1 - Math.exp(-dt * (c > 0 ? 9 : 6)));   // the red line and its countdown ease in and out
     if (countPop > 0) countPop = Math.max(0, countPop - dt * 4);
     if (dangerT >= DANGER_HOLD) lose();
     saveT += dt; if (saveT >= 2) { saveT = 0; if (saveDirty || dangerT > 0) saveRun(); }
   } else if (offer) {
     offerT += dt;
     const left = REVIVE_TIME - Math.max(0, offerT - 0.55);   // a beat to see the board, then the card and its timer
-    if (offerT > 0.55 && reviveEl.hidden) { reviveEl.hidden = false; reviveYes.focus({ preventScroll: true }); }
+    if (offerT > 0.55 && reviveEl.hidden) { reviveEl.hidden = false; reviveEl.firstElementChild.focus({ preventScroll: true }); }
     const n = Math.max(0, Math.ceil(left));
     if (n !== ringShown) { ringShown = n; ringN.textContent = String(n); }
     ringLeft.style.strokeDashoffset = (264 * (1 - Math.max(0, Math.min(1, left / REVIVE_TIME)))).toFixed(1);
@@ -1500,9 +1561,9 @@ function frameLogic(dt) {
     overT += dt;
     if (overT > 0.45 && overEl.hidden) {
       oScore.textContent = score.toLocaleString(); oBest.textContent = best.toLocaleString();
-      oWhy.textContent = 'The pile stayed past the line for 3 seconds.' + (reviveUsed ? ' Your revive was already used.' : '');
+      oWhy.textContent = 'The pile stayed past the line.';
       oNew.hidden = !(score > 0 && score >= best && score > bestAtStart);
-      overEl.hidden = false; againBtn.focus({ preventScroll: true });
+      overEl.hidden = false; overEl.firstElementChild.focus({ preventScroll: true });
     }
   }
   juiceStep(dt); frameFx(dt);
@@ -1510,7 +1571,7 @@ function frameLogic(dt) {
 // The countdown ran out: the run stops. One revive per run is offered first.
 function lose() {
   saveRun();   // the losing board with the countdown spent: a reload returns to this moment, not to before it
-  over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countPop = 0;
+  over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countShown = 0; countPop = 0; hotA = 0; nearT = 0; lineA = 0;
   flushBest(); buzz([40, 60, 90]);
   if (!reviveUsed) { offer = true; offerT = 0; ringShown = -1; sfxStop(); } else endRun();
 }
@@ -1556,13 +1617,13 @@ function frameFx(dt) {
 // landing thumps come out the same at 60, 144 or 240 Hz.
 const IMP_SUB = 4; let impN = 0;
 function impulses() {
-  const h = IMP_SUB * DT; let hit = 0, torque = 0;
+  const h = IMP_SUB * DT; let hit = 0, hitR = 30, torque = 0;
   const midX = (WALL_L + WALL_R) / 2, halfW = (WALL_R - WALL_L) / 2;
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i], dvx = b.vcx - b.pvx, dvy = b.vcy - b.pvy + G * h;
     b.pvx = b.vcx; b.pvy = b.vcy;
     const dv = b.tray ? 0 : Math.sqrt(dvx * dvx + dvy * dvy) * Math.min(1.6, 0.6 + b.r / 50);
-    if (dv > hit) hit = dv;
+    if (dv > hit) { hit = dv; hitR = b.r; }
     if (b.landV > RIPPLE_MIN && !b.tray) {
       // the knock travels: once per landing, neighbours are shoved away from the impact, less the further they sit,
       // and the wave comes back twice more, fainter (user: "more echo, more liquid")
@@ -1583,7 +1644,7 @@ function impulses() {
     }
     if (SKIN) skinKnock(b, dvx, dvy);
   }
-  if (hit > 150) sfxThump(Math.min(1, hit / 1100));
+  if (hit > 150) sfxThump(Math.min(1, hit / 1100), hitR);
   if (!REDUCED && Math.abs(torque) > TILT_MIN) {
     const kick = Math.max(-TILT_MAX_V, Math.min(TILT_MAX_V, (torque - Math.sign(torque) * TILT_MIN) * TILT_KICK));
     if (Math.sign(kick) !== Math.sign(tiltV) || Math.abs(kick) > Math.abs(tiltV)) tiltV = kick; else tiltV += kick * 0.3;
@@ -1610,7 +1671,8 @@ function tick(dt) {
 }
 
 /* ───────────────────────── audio (all synthesised) ───────────────────────── */
-let actx = null, master = null, musicBus = null, lastThump = 0, noiseBuf = null;
+let actx = null, master = null, musicBus = null, sfxBus = null, lastThump = 0;
+const ROOM = 0.45;   // how much of every effect goes into the room
 function initAudio() {
   if (!actx) {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -1619,26 +1681,21 @@ function initAudio() {
     const comp = actx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
     master.connect(comp); comp.connect(actx.destination);
     musicBus = actx.createGain(); musicBus.gain.value = 0.55; musicBus.connect(master);
-    noiseBuf = actx.createBuffer(1, actx.sampleRate * 0.1, actx.sampleRate);
-    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    // the effects go out dry and also into a small dark room (a soft tail under every tone, so they sit in a space)
+    sfxBus = actx.createGain(); sfxBus.connect(master);
+    try {
+      const len = Math.floor(actx.sampleRate * 0.8), ir = actx.createBuffer(2, len, actx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch); let lp = 0;
+        for (let i = 0; i < len; i++) { lp += (Math.random() * 2 - 1 - lp) * 0.2; d[i] = lp * Math.pow(1 - i / len, 2.8) * Math.min(1, i / 200); }
+      }
+      const room = actx.createConvolver(), send = actx.createGain(); room.buffer = ir; send.gain.value = ROOM;
+      sfxBus.connect(send); send.connect(room); room.connect(master);
+    } catch (e) {}
   }
   if (actx.state !== 'running') { const p = actx.resume(); if (p && p.catch) p.catch(() => {}); }   // also iOS 'interrupted'
 }
-let lastMerge = -1, lastMergeLv = 0;
-function tone(f0, f1, t0, dur, vol, type) {
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t0);
-  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur * 0.8);
-  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + 0.005);
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.03);
-}
-function noise(t0, dur, vol, freq) {
-  const s = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
-  s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.9;
-  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  s.connect(f); f.connect(g); g.connect(master); s.start(t0); s.stop(t0 + dur + 0.02);
-}
+let lastMerge = -1, lastMergeLv = 0, lastCombo = -1, lastPop = -1, labAudio = false;
 // Gain envelope from [seconds after t0, level] pairs.
 function env(g, t0, pts) {
   g.gain.setValueAtTime(0.0001, t0);
@@ -1646,86 +1703,88 @@ function env(g, t0, pts) {
 }
 // Time stands still while the context is not running, so a sound scheduled then would wait and
 // fire on resume together with every other one: drop it instead.
-const audible = () => actx && !muted && actx.state === 'running';
-function sfxPick() {             // grabbing a shape: a tiny falling "pok"
-  if (!audible()) return; const t = actx.currentTime, j = 0.85 + Math.random() * 0.4;
+const audible = () => actx && !muted && (labAudio || actx.state === 'running');
+// The whole set is pure tones that glide and fade, as the reference's measure (nothing in it above 3 kHz, no noise,
+// no buzz): water-drop chirps for touches, soft mallet notes for merges and the cards, one low drum for weight.
+// voice: one sine from f0 gliding to f1 over `glide` seconds, under an envelope.
+function voice(f0, f1, glide, t0, pts, out) {
   const o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.setValueAtTime(900 * j, t); o.frequency.exponentialRampToValueAtTime(400 * j, t + 0.016);
-  o.frequency.exponentialRampToValueAtTime(330 * j, t + 0.075);
-  env(g, t, [[0.006, 0.24], [0.028, 0.22], [0.08, 0]]);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.11);
+  o.frequency.setValueAtTime(f0, t0); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t0 + glide);
+  env(g, t0, pts); o.connect(g); g.connect(out || sfxBus); o.start(t0); o.stop(t0 + pts[pts.length - 1][0] + 0.03);
 }
-function sfxShoot() {            // letting go: a rising "bwip", about 1.6 octaves in 80 ms
-  if (!audible()) return; const t = actx.currentTime, f = 225 * (0.88 + Math.random() * 0.24);
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 3.05, t + 0.13);
-  env(g, t, [[0.022, 0.27], [0.045, 0.27], [0.08, 0.03], [0.1, 0.07], [0.14, 0]]);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.18);
+// note: a soft mallet note: a knock that falls to a third within 30 ms and rings out. `ring` > 0 lets it ring that
+// many seconds with a slow waver (the last note of a phrase). u stretches it in time (low notes are slower).
+function note(f, t0, vol, u, ring) {
+  const o = actx.createOscillator(), g = actx.createGain(), a = Math.min(0.008, 0.006 * u);
+  o.frequency.setValueAtTime(f, t0);
+  if (ring > 0) {
+    env(g, t0, [[a, vol], [0.025 * u, vol * 0.5], [0.1 * u, vol * 0.32], [0.24 * u, vol * 0.13], [ring, 0]]);
+    const l = actx.createOscillator(), tg = actx.createGain(), tr = actx.createGain();
+    l.frequency.value = 14 / u; tg.gain.value = 0.3; l.connect(tg); tg.connect(tr.gain);   // the waver
+    o.connect(g); g.connect(tr); tr.connect(sfxBus); l.start(t0); l.stop(t0 + ring + 0.03);
+  } else {
+    env(g, t0, [[a, vol], [0.03 * u, vol * 0.3], [0.07 * u, vol * 0.15], [0.3 * u, 0]]);
+    o.connect(g); g.connect(sfxBus);
+  }
+  o.start(t0); o.stop(t0 + (ring > 0 ? ring : 0.3 * u) + 0.03);
+  if (f < 420) {                 // small speakers lose the low notes: a quiet octave on top keeps them audible
+    const k = Math.min(0.5, (420 - f) / 420 * 0.9);
+    voice(f * 2, f * 2, 0, t0, [[a, vol * k], [0.04 * u, vol * k * 0.3], [(ring > 0 ? 0.3 : 0.12) * u, 0]]);
+  }
 }
-function sfxThump(v) {           // landing: a soft "pok", about 300 Hz and 200 ms, with a touch of noise; heavier hits add body
+function sfxPick() {             // grabbing a shape: a tiny falling blip
+  if (!audible()) return; const t = actx.currentTime, j = 0.92 + Math.random() * 0.16;
+  voice(560 * j, 420 * j, 0.035, t, [[0.005, 0.085], [0.02, 0.05], [0.045, 0]]);
+}
+function sfxShoot() {            // letting go: a short quiet rising chirp (the reference barely marks a shot)
+  if (!audible()) return; const t = actx.currentTime, j = 0.9 + Math.random() * 0.2;
+  voice(420 * j, 760 * j, 0.05, t, [[0.008, 0.13], [0.03, 0.1], [0.07, 0]]);
+}
+// Landing: a water drop. The pitch climbs (about 200 to 370 Hz in 65 ms, and on up as it dies), the level swells and
+// goes in 70 ms with a faint tail. Bigger blobs drop lower; a heavy hit has some weight under it.
+function sfxThump(v, r) {
   if (!audible()) return; const t = actx.currentTime;
   if (t - lastThump < 0.07) return; lastThump = t;
-  const j = 0.92 + Math.random() * 0.16;
-  tone(340 * j, 250 * j, t, 0.16 + v * 0.1, 0.06 + v * 0.12, 'sine');
-  noise(t, 0.035, 0.03 + v * 0.04, 1400);
-  if (v > 0.35) tone(150, 95, t, 0.2, 0.08 * v, 'sine');
+  const big = Math.max(0, Math.min(1, ((r || 30) - 20) / 70)), f = (255 - 75 * big) * (0.94 + Math.random() * 0.12), vol = 0.06 + 0.16 * v;
+  voice(f, f * 3.1, 0.12, t, [[0.012, vol * 0.55], [0.034, vol], [0.05, vol * 0.85], [0.072, vol * 0.16], [0.092, vol * 0.26], [0.13, 0]]);
+  if (v > 0.5) voice(150, 70, 0.1, t, [[0.014, 0.2 * v], [0.08, 0.13 * v], [0.17, 0]], master);
 }
-// Merge: one rising three-note chime of pure tones. Like a pitched sample, it plays lower AND slower
-// the bigger the new blob; the top note rings on and wavers.
-const ROOTS = [1307, 1133, 883, 703, 522, 435, 343, 261, 218, 172, 130];
-function chimeNote(f, t0, vol, u, last) {
-  const o = actx.createOscillator(), g = actx.createGain(), end = t0 + 0.3 * u + 0.05;
-  o.frequency.setValueAtTime(f, t0);
-  const a = Math.min(0.008, 0.006 * u);
-  if (last) {
-    env(g, t0, [[a, vol], [0.03 * u, vol * 0.52], [0.07 * u, vol * 0.4], [0.2 * u, vol * 0.3], [0.3 * u, 0]]);
-    const l = actx.createOscillator(), lg = actx.createGain(), tg = actx.createGain(), tr = actx.createGain();
-    l.frequency.value = 11 / u; lg.gain.value = f * 0.007; l.connect(lg); lg.connect(o.frequency);   // vibrato
-    tg.gain.value = 0.28; l.connect(tg); tg.connect(tr.gain);                                        // tremolo
-    o.connect(g); g.connect(tr); tr.connect(master); l.start(t0); l.stop(end);
-  } else {
-    env(g, t0, [[a, vol], [0.022 * u, vol * 0.3], [0.04 * u, vol * 0.12], [0.3 * u, 0]]);
-    o.connect(g); g.connect(master);
-  }
-  o.start(t0); o.stop(end);
-  if (f < 420) {                 // small speakers lose the low chimes: a quiet octave on top keeps them audible
-    const o2 = actx.createOscillator(), g2 = actx.createGain(), k = Math.min(0.5, (420 - f) / 420 * 0.9);
-    o2.frequency.setValueAtTime(f * 2, t0);
-    env(g2, t0, [[a, vol * k], [0.04 * u, vol * k * 0.3], [(last ? 0.3 : 0.12) * u, 0]]);
-    o2.connect(g2); g2.connect(master); o2.start(t0); o2.stop(end);
-  }
+function sfxPop() {              // a blob bursting: a quick falling blip
+  if (!audible()) return; const t = actx.currentTime;
+  if (t - lastPop < 0.05) return; lastPop = t;
+  const j = 0.9 + Math.random() * 0.2;
+  voice(640 * j, 380 * j, 0.04, t, [[0.005, 0.14], [0.025, 0.1], [0.06, 0]]);
 }
-const BLOOP = [520, 470, 420, 370, 330, 295, 262, 235, 210, 188, 168];   // the merge "bloop" root per level: bigger blobs, lower
+// The low drum under a big merge: 170 Hz falling to 55 in a fifth of a second, with a brief octave on top so a
+// phone speaker tells it too. It goes straight out, not through the room.
+function sfxBoom(v, t0) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.setValueAtTime(172, t0); o.frequency.exponentialRampToValueAtTime(90, t0 + 0.03); o.frequency.exponentialRampToValueAtTime(54, t0 + 0.2);
+  env(g, t0, [[0.02, 0.34 * v], [0.14, 0.3 * v], [0.21, 0]]);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.25);
+  voice(344, 120, 0.12, t0, [[0.012, 0.07 * v], [0.1, 0]], master);
+}
+// Merge: a rising three-note chord (root, third, fifth) of mallet notes, the last one ringing. Like the reference's
+// one pitched sample it plays lower AND slower the bigger the new blob. The roots are C, F and G, so every chord
+// is in the backing track's key. From 64 up, and deep in a chain, the low drum lands with the last note.
+const TRIAD = [1568, 1396.9, 1046.5, 784, 698.5, 523.3, 392, 349.2, 261.6, 196, 174.6];   // the root per level of the new blob, from 4 up
+const triadOf = level => TRIAD[Math.max(0, Math.min(TRIAD.length - 1, level - 2))];
+const paceOf = root => Math.max(0.5, Math.min(1.7, 523.3 / root));
 function sfxMerge(level, combo) {
   if (!audible()) return; const t = actx.currentTime;
-  if (level === lastMergeLv && t - lastMerge < 0.03) return; lastMerge = t; lastMergeLv = level;   // the same bloop twice in one step: once
-  const f = BLOOP[Math.max(0, Math.min(BLOOP.length - 1, level - 2))] * (0.97 + Math.random() * 0.06);
-  const vol = Math.min(0.42, 0.32 + combo * 0.02), ring = 0.55 + 0.03 * level;
-  const o = actx.createOscillator(), g = actx.createGain();                 // the drop: a sine that dips and bends up into its note
-  o.frequency.setValueAtTime(f * 0.72, t); o.frequency.exponentialRampToValueAtTime(f * 1.06, t + 0.07); o.frequency.exponentialRampToValueAtTime(f, t + 0.16);
-  env(g, t, [[0.008, vol], [0.09, vol * 0.55], [0.3, vol * 0.22], [ring, 0]]);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + ring + 0.05);
-  const o2 = actx.createOscillator(), g2 = actx.createGain(); o2.type = 'triangle';   // a little body an octave up, gone quickly
-  o2.frequency.setValueAtTime(f * 1.5, t); o2.frequency.exponentialRampToValueAtTime(f * 2.1, t + 0.07); o2.frequency.exponentialRampToValueAtTime(f * 2, t + 0.16);
-  env(g2, t, [[0.008, vol * 0.18], [0.12, vol * 0.05], [0.3, 0]]);
-  o2.connect(g2); g2.connect(master); o2.start(t); o2.stop(t + 0.35);
-  noise(t, 0.03, 0.05, 2200);                                               // the "plip" of the surface closing
-  if (f < 300) { const k = Math.min(0.4, (300 - f) / 300); tone(f * 2, f * 2, t, 0.3, vol * k, 'sine'); }   // small speakers keep the low ones
+  if (level === lastMergeLv && t - lastMerge < 0.03) return; lastMerge = t; lastMergeLv = level;   // the same chord twice in one step: once
+  const root = triadOf(level) * (0.995 + Math.random() * 0.01), u = paceOf(root), gap = 0.06 * u, vol = Math.min(0.3, 0.2 + combo * 0.015);
+  note(root, t, vol, u, 0); note(root * 1.25, t + gap, vol, u, 0); note(root * 1.5, t + 2 * gap, vol * 1.1, u, 0.34 + 0.2 * u);
+  if (level >= 6 || combo >= 3) sfxBoom(Math.min(1, 0.35 + 0.08 * Math.max(0, level - 6) + 0.1 * (combo - 1)), t + 2 * gap);
 }
-// Chain link: a bright ping that climbs with the combo, a soft whoosh for the flying bits, and from
-// the third link a low thump under the shake.
-let lastCombo = -1;
-const COMBO_RATIO = [2, 2.25, 2.5, 3, 3.375, 4];   // octave, ninth, tenth, twelfth... above the chime's root
+// Chain link: one soft ping after the chord, climbing with the combo (octave, ninth, tenth, twelfth...).
+const COMBO_RATIO = [2, 2.25, 2.5, 3, 3.375, 4];
 function sfxCombo(level, c) {
   if (!audible()) return; const t0 = actx.currentTime;
-  if (t0 - lastCombo < 0.06) return; lastCombo = t0;        // two merges in one step: one ping
-  const root = BLOOP[Math.max(0, Math.min(BLOOP.length - 1, level - 2))] * 2;
-  const f = Math.min(3200, root * COMBO_RATIO[Math.min(COMBO_RATIO.length - 1, c - 2)]), t = t0 + 0.09;   // a soft ping above the bloop
-  const lv = 0.6;
-  for (const [m, v, d] of [[1, 0.05, 0.3], [2, 0.015, 0.12]]) {
-    const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f * m;
-    env(g, t, [[0.004, v * lv], [0.03, v * lv * 0.45], [d, 0]]); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
-  }
+  if (t0 - lastCombo < 0.05) return; lastCombo = t0;        // two merges in one step: one ping
+  const root = triadOf(level); let f = root * COMBO_RATIO[Math.max(0, Math.min(COMBO_RATIO.length - 1, c - 2))];
+  while (f > 2200) f /= 2;
+  note(f, t0 + 3 * 0.06 * paceOf(root), 0.1, 0.8, 0.32);
 }
 // Backing track, written for this game: one soft chord and a bass note per bar, slow three-time.
 const BAR = 2.86;
@@ -1753,21 +1812,36 @@ function musicTick() {
     barI++; nextBar += BAR;
   }
 }
-function sfxTick(n) {            // the countdown on the line: a short blip, higher for the last second
-  if (!audible()) return; const t = actx.currentTime, f = n <= 1 ? 988 : 740;
-  tone(f, f, t, 0.1, 0.17, 'triangle');
+function sfxTick(n) {            // the countdown on the line: one mallet note, higher for the last second
+  if (!audible()) return;
+  note(n <= 1 ? 880 : 659.3, actx.currentTime, 0.2, 0.7, 0);
 }
-function sfxStop() {              // the countdown ran out: two falling notes, before the revive offer
+function sfxStop() {              // the countdown ran out: two falling notes and the drum, before the revive offer
   if (!audible()) return; const t = actx.currentTime;
-  tone(330, 300, t, 0.22, 0.18, 'triangle'); tone(220, 196, t + 0.16, 0.34, 0.18, 'triangle');
+  note(392, t, 0.2, 1.2, 0); note(261.6, t + 0.17, 0.22, 1.4, 0.6); sfxBoom(0.5, t + 0.17);
 }
-function sfxRevive() {           // back in the run: four quick rising notes
+function sfxRevive() {           // back in the run: four quick rising notes, the last one ringing
   if (!audible()) return; const t = actx.currentTime;
-  [392, 523, 659, 784].forEach((f, i) => tone(f, f, t + i * 0.07, 0.26, 0.16, 'triangle'));
+  [523.3, 659.3, 784, 1046.5].forEach((f, i) => note(f, t + i * 0.07, 0.2, 1, i === 3 ? 0.6 : 0));
 }
-function sfxOver() {
+function sfxOver() {             // the run is over: four slow falling notes
   if (!audible()) return; const t = actx.currentTime;
-  [392, 311, 233, 175].forEach((f, i) => tone(f, f * 0.97, t + i * 0.2, 0.42, 0.2, 'triangle'));
+  [440, 349.2, 293.7, 220].forEach((f, i) => note(f, t + i * 0.2, 0.2, 1.5, i === 3 ? 0.9 : 0));
+}
+function sfxUi(up) {             // the settings sheet and its switches: a small drop, rising for open or on, falling for close or off
+  if (!audible()) return;
+  voice(up ? 330 : 520, up ? 560 : 320, 0.06, actx.currentTime, [[0.008, 0.07], [0.04, 0.05], [0.08, 0]]);
+}
+// For tests: play sounds into an offline context and hand back the samples (24 kHz, mono, dry).
+function audioLab(fn, secs) {
+  const OC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if (!OC) return Promise.resolve(null);
+  const keep = [actx, master, sfxBus, musicBus, muted, lastThump, lastMerge, lastCombo, lastPop];
+  const off = new OC(1, Math.ceil(24000 * secs), 24000);
+  actx = off; master = off.createGain(); master.connect(off.destination); sfxBus = master; musicBus = master; muted = false; labAudio = true;
+  lastThump = lastMerge = lastCombo = lastPop = -9;
+  try { fn({ pick: sfxPick, shoot: sfxShoot, thump: sfxThump, pop: sfxPop, merge: sfxMerge, combo: sfxCombo, boom: sfxBoom, tick: sfxTick, stop: sfxStop, revive: sfxRevive, over: sfxOver, ui: sfxUi }); }
+  finally { [actx, master, sfxBus, musicBus, muted, lastThump, lastMerge, lastCombo, lastPop] = keep; labAudio = false; }
+  return off.startRendering().then(b => b.getChannelData(0));
 }
 
 /* ───────────────────────── rendering ───────────────────────── */
@@ -1787,7 +1861,7 @@ let scoreScale = 1;
 let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
 const LIMIT_WASH = 64, limitEdge = [null, null], limitWash = [null, null]; let limitY = -1, limitH = -1;
-const FONT_PILL = '900 15px ' + FONT, FONT_PILL_N = '900 24px ' + FONT;
+const FONT_COUNT = '900 21px ' + FONT;
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
 const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
@@ -1924,9 +1998,10 @@ function draw() {
     // (a mix toward the glow colour by k is that colour at alpha k: the same picture, without repainting the screen)
     if (ti !== fxTop) {
       backEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
-      // the settings sheet is cut from the same cloth: its surface, rows and switch tracks carry the screen's tint
-      sheetEl.style.setProperty('--sh', mixHex(36, 36, 47, tc, 0.11)); sheetEl.style.setProperty('--sh-row', mixHex(48, 48, 61, tc, 0.14));
-      sheetEl.style.setProperty('--sh-hi', mixHex(56, 56, 70, tc, 0.16)); sheetEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.18));
+      // the settings sheet and the cards are cut from the same cloth: their surfaces, rows and switch tracks carry the
+      // screen's own faint tint (no stronger than the screen's, or a warm blob turns them brown)
+      screenEl.style.setProperty('--sh', mixHex(36, 36, 47, tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(48, 48, 61, tc, 0.05));
+      screenEl.style.setProperty('--sh-hi', mixHex(56, 56, 70, tc, 0.06)); screenEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.07));
     }
     if (glow.c !== fxC) tintEl.style.background = `linear-gradient(rgba(${gc.r},${gc.g},${gc.b},.32),rgba(${gc.r},${gc.g},${gc.b},.06) 60%)`;
     const to = ga.toFixed(3); if (to !== tintCss) { tintCss = to; tintEl.style.opacity = to; }
@@ -1989,9 +2064,8 @@ function draw() {
 
   // the limit: an edge of light with a wash below it, fading in as the pile comes close; red and beating once the
   // pile is past it and the countdown runs. It stays out of the way of a fanfare.
-  const limitFe = count > 0 ? 0 : fanfareEnv();   // a fanfare takes the idle line out and brings it back with its own envelope
-  if (!over && (lineA > 0.02 || count > 0) && limitFe < 1) {
-    const hot = count > 0, k = hot ? 1 : 0;
+  const idleA = lineA * (1 - fanfareEnv()) * (1 - hotA);   // a fanfare takes the idle line out and brings it back with its own envelope
+  if (!over && (idleA > 0.02 || hotA > 0.02)) {
     const washH = Math.max(0, Math.min(LIMIT_WASH, TRAY_Y - TRAY_R - 8 - DANGER_Y));   // the wash stops short of the shelf
     if (limitY !== DANGER_Y || limitH !== washH) {   // four small gradients, rebuilt only when the layout changes
       limitY = DANGER_Y; limitH = washH;
@@ -2000,24 +2074,28 @@ function draw() {
         const e = ctx.createLinearGradient(WALL_L, 0, WALL_R, 0);
         e.addColorStop(0, `rgba(${col},0)`); e.addColorStop(0.16, `rgba(${col},1)`); e.addColorStop(0.84, `rgba(${col},1)`); e.addColorStop(1, `rgba(${col},0)`);
         const w = ctx.createLinearGradient(0, DANGER_Y, 0, DANGER_Y + Math.max(1, washH));
-        w.addColorStop(0, `rgba(${col},${q ? 0.3 : 0.13})`); w.addColorStop(1, `rgba(${col},0)`);
+        w.addColorStop(0, `rgba(${col},${q ? 0.3 : 0.1})`); w.addColorStop(1, `rgba(${col},0)`);
         limitEdge[q] = e; limitWash[q] = w;
       }
     }
-    const beat = Math.max(0, Math.sin(dangerPh * 6.2832)), a = hot ? 0.7 + 0.3 * beat * beat : lineA * (1 - limitFe);
-    if (washH > 0) { ctx.globalAlpha = a; ctx.fillStyle = limitWash[k]; ctx.fillRect(WALL_L, DANGER_Y, WALL_R - WALL_L, washH); }
-    ctx.fillStyle = limitEdge[k];
-    ctx.globalAlpha = a * 0.22; ctx.fillRect(WALL_L, DANGER_Y - 4, WALL_R - WALL_L, 8);          // a soft halo
-    ctx.globalAlpha = a * (hot ? 1 : 0.6); ctx.fillRect(WALL_L, DANGER_Y - (hot ? 1.5 : 1), WALL_R - WALL_L, hot ? 3 : 2);   // the edge itself
+    const beat = Math.max(0, Math.sin(dangerPh * 6.2832));
+    for (let k = 0; k < 2; k++) {   // the quiet line and the red one cross-fade
+      const a = k ? hotA * (0.7 + 0.3 * beat * beat) : idleA; if (a < 0.02) continue;
+      if (washH > 0) { ctx.globalAlpha = a; ctx.fillStyle = limitWash[k]; ctx.fillRect(WALL_L, DANGER_Y, WALL_R - WALL_L, washH); }
+      ctx.fillStyle = limitEdge[k];
+      ctx.globalAlpha = a * 0.22; ctx.fillRect(WALL_L, DANGER_Y - 4, WALL_R - WALL_L, 8);          // a soft halo
+      ctx.globalAlpha = a * (k ? 1 : 0.5); ctx.fillRect(WALL_L, DANGER_Y - (k ? 1.5 : 1), WALL_R - WALL_L, k ? 3 : 2);   // the edge itself
+    }
     ctx.globalAlpha = 1;
-    if (hot) {   // the pill on the line: what to do, and how long is left
-      const sc = 1 + 0.3 * countPop * countPop, w = 196, h = 38;
-      ctx.save(); ctx.translate(LX, Math.min(DANGER_Y, TRAY_Y - TRAY_R - 30)); ctx.scale(sc, sc);
-      ctx.beginPath(); ctx.arc(-w / 2 + h / 2, 0, h / 2, 1.5708, 4.7124); ctx.arc(w / 2 - h / 2, 0, h / 2, -1.5708, 1.5708); ctx.closePath(); ctx.fillStyle = '#ff4d5e'; ctx.fill();
-      ctx.fillStyle = '#17171c'; ctx.textBaseline = 'middle';
-      ctx.font = FONT_PILL; ctx.textAlign = 'left'; ctx.fillText('Clear the line', -w / 2 + 18, 1);
-      ctx.font = FONT_PILL_N; ctx.textAlign = 'right'; ctx.fillText(String(count), w / 2 - 18, 1);
-      ctx.restore(); ctx.textAlign = 'center';
+    if (hotA > 0.02 && countShown > 0) {   // the countdown, on the line: a ring that drains around the seconds left (the revive card's timer, small)
+      const sc = (1 + 0.28 * countPop * countPop) * (0.7 + 0.3 * hotA), R = 21;
+      const left = Math.max(0, Math.min(1, 1 - (dangerT - DANGER_GRACE) / (DANGER_HOLD - DANGER_GRACE)));
+      ctx.save(); ctx.translate(LX, Math.min(DANGER_Y, TRAY_Y - TRAY_R - 34)); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, hotA * 1.4);
+      ctx.beginPath(); ctx.arc(0, 0, R + 6, 0, 6.2832); ctx.fillStyle = '#17171c'; ctx.fill();
+      ctx.lineWidth = 4.5; ctx.strokeStyle = 'rgba(255,77,94,.26)'; ctx.beginPath(); ctx.arc(0, 0, R, 0, 6.2832); ctx.stroke();
+      if (left > 0.002) { ctx.strokeStyle = '#ff4d5e'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, 0, R, -1.5708, -1.5708 + 6.2832 * left); ctx.stroke(); }
+      ctx.fillStyle = '#f4f1ea'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'; ctx.font = FONT_COUNT; ctx.fillText(String(countShown), 0, 1.5);
+      ctx.restore();
     }
   }
 
@@ -2129,7 +2207,7 @@ const SHEET_SLOW = 0.2;
 let sheetOpen = false, sheetTimer = 0;
 function showMenu(open) {
   if (open === sheetOpen) return;
-  sheetOpen = open; gearBtn.setAttribute('aria-expanded', String(open));
+  sheetOpen = open; gearBtn.setAttribute('aria-expanded', String(open)); sfxUi(open);
   clearTimeout(sheetTimer);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
@@ -2187,10 +2265,15 @@ sheetEl.addEventListener('pointerup', endDrag);
 sheetEl.addEventListener('pointercancel', endDrag);
 sheetEl.addEventListener('click', e => { if (dragEat) { dragEat = false; e.preventDefault(); e.stopPropagation(); } }, true);
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) { showMenu(false); gearBtn.focus(); } });
-soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); });
-vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); });
+soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); sfxUi(true); });
+vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); sfxUi(vib); });
 reviveYes.addEventListener('click', () => { initAudio(); revive(); });
 reviveNo.addEventListener('click', () => { initAudio(); if (offer) endRun(); });
+window.addEventListener('keydown', e => {   // the cards hold the focus themselves (no lit button), so their main action answers the keyboard here
+  if (e.repeat || sheetOpen || (e.key !== 'Enter' && e.key !== ' ') || e.target instanceof HTMLButtonElement) return;
+  if (offer && !reviveEl.hidden) { e.preventDefault(); initAudio(); revive(); }
+  else if (ended && !overEl.hidden) { e.preventDefault(); initAudio(); reset(); }
+});
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) saveRun();
   if (actx) { try { if (document.hidden) actx.suspend(); else if (!muted) actx.resume(); } catch (e) {} }
@@ -2270,6 +2353,7 @@ window.__udm = { blobs, tick, draw, reset,
   shoot(a, i, pw) { const t = this.tray(); if (!t.length) return false; aim = a; power = pw || 1; fire(t[(i || 0) % t.length]); return true; },
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
+  audioLab,
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   pickLevel, popBlob, setPeak: v => { peak = v; }, saveRun, loadRun, clearSave, lose, revive, endRun, setDanger: v => { dangerT = v; },
