@@ -138,9 +138,7 @@ const LIGHT = 0.6, SQUEEZE = 500, DRAIN = 260, SLIP = 0.35;
 // ripple: a hard landing knocks the neighbourhood away from the impact, fading with distance (everything connects)
 const RIPPLE_MIN = 240, RIPPLE_R = 480, RIPPLE_K = 0.5, RIPPLE_MAX = 200;
 const SHAKE_MIN = 380, SHAKE_MAX = 1.1;   // landing speed that starts to rock the screen, and the most it ever rocks
-const V_DOWN_MAX = 200;
-const WALL_DOUBLE_V = 330, DOUBLE_BOOST = 1.12;   // about a third of the pull already doubles; it leaves the wall at this share of its approach speed        // a fresh shot hitting a side or back wall faster than this doubles (a full-power shot qualifies)
-const doubleQ = [];           // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
+const V_DOWN_MAX = 200;      // a knocked (not shot) blob never heads toward the shelf faster than this: ~175 units of travel
 const ECHO = [[0.14, 0.4], [0.3, 0.2]];   // delayed echoes of the landing wave: [seconds after, strength]   // only a real shot's landing echoes, not the blobs it knocked   // measured: a landing shoves the pile 1-3 radii   // restitution against the field and against other blobs (capped per substep)
 const SHOT = 640;              // launch speed: crosses the field in ~0.9 s like the original
 const DT = 1 / 240;            // physics substep
@@ -262,8 +260,6 @@ const rings = []; for (let i = 0; i < 8; i++) rings.push({ t: 9, life: 1, x: 0, 
 let ringI = 0;
 const flares = []; for (let i = 0; i < 6; i++) flares.push({ t: 9, life: 1, x: 0, y: 0, c: 0 });
 let flareI = 0;
-const dents = []; for (let i = 0; i < 6; i++) dents.push({ t: 9, life: 1, x: 0, y: 0, nx: 0, ny: 0, r: 30, c: 0 });
-let dentI = 0;
 let sparkI = 0;
 let hitStop = 0, scoreBump = 0;
 // Fanfare for a big tier (1024 and up): the field freezes for a beat and dims, rays in the new colour spin out
@@ -659,12 +655,10 @@ function substep(h) {
     }
     // whole-body rebound off the field: on first wall contact remember the approach speed; when the blob lets go
     // of the wall slower than E_BODY of that, give it the difference (the squash absorbed it)
-    const wasLaunched = b.launched;
     if (touching) { b.launched = false; if (b.freeT > 0.1 && !b.tray) { b.landV = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy); b.landX = b.cx; b.landY = b.cy; } b.freeT = 0; } else b.freeT += h;
     const onWall = b.wallHit | 0; b.wallHit = 0;
     if (onWall && !b.wasWall) {
       b.wIn = -(b.vcx * b.wnx + b.vcy * b.wny);
-      if (wasLaunched && b.wny < 0.5 && b.wIn > WALL_DOUBLE_V && !b.tray && b.state === 0 && !over) doubleQ.push(b);   // bank shot: doubles on the wall
     }
     else if (!onWall && b.wasWall && !b.tray && b.state === 0 && b.wIn > E_BODY_MIN) {
       const vOut = sx * b.wnx + sy * b.wny, add = E_BODY * b.wIn - vOut;
@@ -679,7 +673,6 @@ function substep(h) {
     }
   }
 
-  while (doubleQ.length) wallDouble(doubleQ.pop());
 
   // finish merges (one at a time per pair, so chains play out step by step)
   for (let bi = 0; bi < blobs.length; bi++) {
@@ -853,27 +846,6 @@ function ripple(b, j0) {
     o.hit = true;
   }
 }
-// A fresh shot that slams a side or back wall doubles: it is reborn one level up, bouncing off, and scores like a merge.
-function wallDouble(b) {
-  if (b.dead) return;
-  b.dead = true;
-  const nb = makeBlob(b.level + 1), rs = b.r * b.scale, k = rs / nb.r, off = nb.r - rs + 2;
-  let vx = b.vcx, vy = b.vcy; const vn = vx * b.wnx + vy * b.wny, want = DOUBLE_BOOST * b.wIn;
-  if (vn < want) { vx += b.wnx * (want - vn); vy += b.wny * (want - vn); }   // it leaves the wall faster than it came: momentum
-  placeBlob(nb, b.cx + b.wnx * off, b.cy + b.wny * off, b.pa, k, 0, 1, 1, vx, vy);   // born at the old size, pops up to the new
-  nb.scaleT = 1; nb.anim = true; nb.animT = 0; nb.flash = 1; nb.flashDur = 0.3;
-  nb.noMerge = 0.15; nb.young = 0;   // (no newborn speed cap: it keeps its momentum) nb.touched = true; nb.sinceTouch = 1; nb.freeT = 1;
-  blobs.push(nb);
-  score += nb.value; if (score > best) { best = score; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
-  const ci = cidx(nb.level), hx = b.cx - b.wnx * rs, hy = b.cy - b.wny * rs;   // the point on the wall it hit
-  scoreBump = Math.max(scoreBump, 0.7);
-  sfxMerge(nb.level, 0);
-  if (0.45 >= glow.a * 0.7) { glow.c = ci; glow.a = Math.max(glow.a, 0.7); }   // the screen takes the new colour
-  if (REDUCED) return;
-  tiltV += -b.wnx * 24;                                                       // the screen leans a little with the hit
-  const dn = dents[dentI]; dentI = (dentI + 1) % dents.length;              // the wall gives where it was struck
-  dn.t = 0; dn.life = 0.6; dn.x = hx; dn.y = hy; dn.nx = b.wnx; dn.ny = b.wny; dn.r = nb.r; dn.c = ci;
-}
 function popBlob(b) {
   b.dead = true;
   const x = b.cx, y = b.cy, ci = cidx(b.level);
@@ -912,7 +884,6 @@ function juiceStep(dt) {
   }
   for (let i = 0; i < rings.length; i++) { const rg = rings[i]; if (rg.t < rg.life) { juiceLive++; rg.t += dt; } }
   for (let i = 0; i < flares.length; i++) { const f = flares[i]; if (f.t < f.life) { juiceLive++; f.t += dt; } }
-  for (let i = 0; i < dents.length; i++) { const d = dents[i]; if (d.t < d.life) d.t += dt; }
   if (scoreBump > 0) scoreBump = Math.max(0, scoreBump - dt * 3.2);
   if (glow.a > 0) glow.a = Math.max(0, glow.a - dt * (glow.a > 0.5 ? 1.1 : 0.7));
   if (fanfare.t < fanfare.life) {
@@ -1479,23 +1450,6 @@ function draw() {
     ctx.save(); ctx.translate(LX - tw / 2 - 28, by - 16); ctx.fill(LAUREL); ctx.restore();
     ctx.save(); ctx.translate(LX + tw / 2 + 28, by - 16); ctx.scale(-1, 1); ctx.fill(LAUREL); ctx.restore();
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-  }
-  // soft wall: where a doubling shot struck, the wall dents inward and springs back, the blob's colour along its edge
-  for (let i = 0; i < dents.length; i++) {
-    const d = dents[i]; if (d.t >= d.life) continue;
-    const amp = d.r * 0.95 * Math.exp(-d.t * 4.2) * Math.sin(d.t * 14);   // in, back, a smaller echo
-    if (amp <= 0.3) continue;
-    const w = d.r * 3, tx = -d.ny, ty = d.nx, N = 18;
-    ctx.beginPath(); ctx.moveTo(d.x - tx * w - d.nx * 2, d.y - ty * w - d.ny * 2);
-    for (let q = 0; q <= N; q++) {
-      const u = q / N, sgn = (u * 2 - 1), dep = amp * (0.5 + 0.5 * Math.cos(Math.PI * sgn));
-      ctx.lineTo(d.x + tx * sgn * w + d.nx * dep, d.y + ty * sgn * w + d.ny * dep);
-    }
-    ctx.lineTo(d.x + tx * w - d.nx * 2, d.y + ty * w - d.ny * 2); ctx.closePath();
-    // the screen colour shows through, darker toward the deep edge (an inner shadow), the blob colour rims it
-    const shade = ctx.createLinearGradient(d.x, d.y, d.x + d.nx * amp, d.y + d.ny * amp);
-    shade.addColorStop(0, mixHex(30, 30, 42, gc, 0.06 * ga)); shade.addColorStop(1, '#15151f');
-    ctx.fillStyle = shade; ctx.fill();
   }
 
   // no drawn danger line. While the pile sits past it, the whole screen goes red: a heartbeat vignette over the
