@@ -160,7 +160,6 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 @keyframes punch{0%{transform:scale(1)}30%{transform:scale(1.16)}100%{transform:scale(1)}}
 @keyframes slam{0%{transform:scale(1.9);opacity:0}60%{opacity:1}100%{transform:scale(1)}}
 #over{background:var(--sh,#353543);overflow:hidden;animation:fade .25s ease both}
-#over.fx-grad{background:linear-gradient(180deg,var(--fin-a,#3b2f73),var(--fin-b,#e8d6bd))}
 #over.fx-waves{background:linear-gradient(180deg,var(--fin-w1,#f59a00),var(--fin-w2,#ffe36b))}
 .waves{position:absolute;left:-20%;top:0;width:140%;height:100%;display:none;pointer-events:none}
 #over.fx-waves .waves{display:block}
@@ -179,9 +178,9 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #over #again{display:grid;place-items:center;width:calc(338*var(--u));height:calc(85*var(--u));margin-top:calc(45*var(--u));padding:0;border-radius:calc(22*var(--u));
   background:var(--sh-row,rgba(30,30,42,.6));color:#fff;animation:rise .4s .24s cubic-bezier(.2,.9,.3,1.2) both}
 #over #again svg{width:calc(24*var(--u));height:calc(24*var(--u))}
-#over.fx-grad .oblob b,#over.fx-waves .oblob b{color:#fff;opacity:1}
-#over.fx-grad .obest,#over.fx-waves .obest,#over.fx-grad .obest span,#over.fx-waves .obest span{color:rgba(0,0,0,.5);opacity:1}
-#over.fx-grad #again,#over.fx-waves #again{background:rgba(0,0,0,.24)}
+#over.fx-waves .oblob b{color:#fff;opacity:1}
+#over.fx-waves .obest,#over.fx-waves .obest span{color:rgba(0,0,0,.5);opacity:1}
+#over.fx-waves #again{background:rgba(0,0,0,.24)}
 #over:not(.fx-conf):not(.best) .confetti{display:none}
 #over.fx-conf .confetti i{display:block!important}
 .burst{display:none!important}   /* (the old keyframe burst: replaced by the canvas one) */
@@ -2013,7 +2012,7 @@ const gearBtn = document.getElementById('gear'), sheetEl = document.getElementBy
 const reviveEl = document.getElementById('revive'), reviveYes = document.getElementById('revive-yes'), reviveNo = document.getElementById('revive-no');
 const oConf = document.getElementById('o-confetti');
 // what the ending screen has switched on (tried in the merge lab, remembered): 1 gradient, 2 waves, 4 confetti, 8 burst
-let finFx = 0; try { finFx = (+localStorage.getItem('udm_fin') | 0) & 31; } catch (e) {}   // (16: the glow from below)
+let finFx = 0; try { finFx = (+localStorage.getItem('udm_fin') | 0) & 30; } catch (e) {}   // (16: the glow from below)
 // The burst: pieces with real motion, drawn on a canvas of their own over the ending screen.
 const fxCv = document.getElementById('o-fx'), fxCtx = fxCv && fxCv.getContext ? fxCv.getContext('2d') : null;
 const BURST_COL = ['#fece00', '#ff7300', '#fea1cd', '#00a3fe', '#2ecc40', '#a06bff', '#ff4d5e', '#19c6b6', '#f4f1ea'];
@@ -2057,7 +2056,7 @@ function drawBurst() {
 }
 function setFin() {
   const c = overEl.classList;
-  c.toggle('fx-grad', !!(finFx & 1)); c.toggle('fx-waves', !!(finFx & 2)); c.toggle('fx-conf', !!(finFx & 4)); c.toggle('fx-burst', !!(finFx & 8)); c.toggle('fx-glow', !!(finFx & 16));
+  c.toggle('fx-waves', !!(finFx & 2)); c.toggle('fx-conf', !!(finFx & 4)); c.toggle('fx-burst', !!(finFx & 8)); c.toggle('fx-glow', !!(finFx & 16));
 }
 const ringLeft = document.getElementById('ring-left'), ringN = document.getElementById('ring-n'), oWhy = document.getElementById('o-why'), oNew = document.getElementById('o-new');
 const vibBtn = document.getElementById('vib'), vibState = document.getElementById('vib-state');
@@ -2212,7 +2211,6 @@ function draw() {
       screenEl.style.setProperty('--fin-n', mixHex(166, 166, 188, tc, 0.5)); screenEl.style.setProperty('--fin-k', mixHex(30, 30, 42, tc, 0.3));   // the ending screen's score and best: the HUD's own tinted inks
       screenEl.style.setProperty('--fin-g', mixHex(255, 247, 230, tc, 0.4));   // the glow from below: a pale tint of the board's colour
       screenEl.style.setProperty('--fin-w1', mixHex(20, 18, 30, tc, 0.88)); screenEl.style.setProperty('--fin-w2', mixHex(255, 255, 255, tc, 0.6));   // the waves' ground
-      screenEl.style.setProperty('--fin-a', mixHex(24, 22, 38, tc, 0.72)); screenEl.style.setProperty('--fin-b', mixHex(255, 244, 224, tc, 0.42));   // the finish screen's flood: the colour deep at the top, pale at the bottom
       screenEl.style.setProperty('--sw-on', mixHex(53, 53, 67, tc, 0.82));
       screenEl.style.setProperty('--sw-knob', 0.2126 * tc.r + 0.7152 * tc.g + 0.0722 * tc.b > 150 ? tc.ink : '#fff');   // a dark knob on a light track (yellow, lime, pink)   // a switch that is on wears the biggest blob's colour
     }
@@ -2551,14 +2549,14 @@ if (MERGE_LAB) {   // the lab's controls: a button per tier, the whole run of th
   const bar = document.createElement('div'); bar.id = 'lab';
   let h = '';
   for (let L = 2; L <= 13; L++) h += `<button type="button" data-l="${L}">${Math.pow(2, L)}</button>`;
-  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button><button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Play ending</button>' + [['Gradient', 1], ['Waves', 2], ['Glow', 16], ['Confetti', 4], ['Burst', 8]].map(q => `<button type="button" data-fin="${q[1]}" aria-pressed="${!!(finFx & q[1])}">${q[0]}</button>`).join('');
+  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button><button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Play ending</button>' + [['Waves', 2], ['Glow', 16], ['Confetti', 4], ['Burst', 8]].map(q => `<button type="button" data-fin="${q[1]}" aria-pressed="${!!(finFx & q[1])}">${q[0]}</button>`).join('');
   backEl.appendChild(bar);
   bar.addEventListener('click', e => {
     const t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
     initAudio();
     if (t.dataset.l) { labQueue.length = 0; labMerge(+t.dataset.l); }
     else if (t.dataset.fin) {   // a look for the ending screen, on or off (gradient and waves take each other's place); shows the screen
-      const bit = +t.dataset.fin; finFx ^= bit; if (bit === 1 && (finFx & 1)) finFx &= ~2; if (bit === 2 && (finFx & 2)) finFx &= ~1;
+      const bit = +t.dataset.fin; finFx ^= bit;
       try { localStorage.setItem('udm_fin', String(finFx)); } catch (err) {}
       bar.querySelectorAll('[data-fin]').forEach(b => b.setAttribute('aria-pressed', String(!!(finFx & +b.dataset.fin))));
       setFin();
