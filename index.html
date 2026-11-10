@@ -95,13 +95,6 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 .doc.fits{touch-action:none}
 .doc h3{margin:0 0 calc(12*var(--u));font:900 calc(24*var(--u))/normal var(--font-display);color:rgba(255,255,255,.62);letter-spacing:0}
 .doc p{margin:0;white-space:pre-line;font:500 calc(15*var(--u))/1.5 var(--font-system);color:rgba(255,255,255,.56)}
-#lab{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-wrap:wrap;justify-content:center;gap:calc(8*var(--u));
-  padding:calc(12*var(--u)) calc(14*var(--u)) calc(18*var(--u) + env(safe-area-inset-bottom,0px))}
-#lab button{padding:calc(9*var(--u)) calc(14*var(--u));border:0;border-radius:999px;background:#30303d;color:var(--ink);
-  font:900 calc(15*var(--u))/1 var(--font-display);font-variant-numeric:tabular-nums;cursor:pointer;transition:transform .12s ease}
-#lab button:active{transform:scale(.94)}
-#lab button[aria-pressed="true"],#lab button[data-all]{background:var(--ink);color:#17171c}
-#lab button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 #stage{position:absolute;left:0;right:0;top:calc(130*var(--u));bottom:0}
 body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
@@ -206,15 +199,15 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 @media (prefers-reduced-motion:reduce){#over,#revive,.panel,.ring,.ring span.tick,.chance,#revive-yes,#revive .xbtn,#again,#over h1,.oblob,.oblob b,.obest{animation:none!important}.confetti,.burst{display:none}#sheet,#scrim,#back,.tog,.tog::after{transition:none}}
 /* pressing things: a quick small sink on the element's own scale (so it never fights an entrance or a breathing
    animation), and an easy settle back */
-#again,#revive-yes,#sheet .row,#gear,#lab button{transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
-#again:active,#revive-yes:active,#gear:active,#lab button:active{scale:.95;transition-duration:.07s}
+#again,#revive-yes,#sheet .row,#gear{transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
+#again:active,#revive-yes:active,#gear:active{scale:.95;transition-duration:.07s}
 #sheet .row:active{scale:.975;transform:none;transition-duration:.07s}
 #sheet .row:disabled:active{scale:1}
 #over #again:active{background:var(--sh-hi,rgba(30,30,42,.75))}
 .tog::after{transition:transform .25s cubic-bezier(.32,.72,0,1),background .2s ease,width .18s ease}
 #sheet .row:active .tog::after{width:calc(30*var(--u))}
 #sheet .row[aria-pressed="true"]:active .tog::after{transform:translateX(calc(18*var(--u)))}
-@media (prefers-reduced-motion:reduce){#again,#revive-yes,#sheet .row,#gear,#lab button{transition:none}}
+@media (prefers-reduced-motion:reduce){#again,#revive-yes,#sheet .row,#gear{transition:none}}
 </style>
 
 <div id="phone">
@@ -461,7 +454,7 @@ let reviveUsed = false, offer = false, offerT = 0, ended = false, lineA = 0, nea
 let vib = true;
 // The merge lab (open the game with ?merges): a row of buttons, one per tier; each drops two blobs that meet and
 // merge, with everything a real merge shows. Nothing here loads, saves, scores a best or can be lost.
-const MERGE_LAB = /[?&]merges\b/.test(location.search);
+const MERGE_LAB = false;   // the merge lab (a test page with a chip per merge) was removed at the user's word; its guards stay, harmless
 let labSpeed = 1, labQueue = [], labWait = 0.6;
 let time = 0, acc = 0, shake = 0, shakeT = 0, shakeHeat = 0;
 // every shake heats up; while hot, new shakes land softer (spamming shots cannot keep the screen rattling)
@@ -2000,7 +1993,7 @@ const gearBtn = document.getElementById('gear'), sheetEl = document.getElementBy
 const reviveEl = document.getElementById('revive'), reviveYes = document.getElementById('revive-yes'), reviveNo = document.getElementById('revive-no');
 const oConf = document.getElementById('o-confetti');
 // what the ending screen has switched on (tried in the merge lab, remembered): 1 gradient, 2 waves, 4 confetti, 8 burst
-let finFx = 0; try { finFx = (+localStorage.getItem('udm_fin') | 0) & 14; } catch (e) {}
+let finFx = 0;   // nothing extra is switched on: a record gets the confetti and that is all (the lab that set these is gone)
 // The burst: pieces with real motion, drawn on a canvas of their own over the ending screen.
 const fxCv = document.getElementById('o-fx'), fxCtx = fxCv && fxCv.getContext ? fxCv.getContext('2d') : null;
 // The confetti's colours come from the board (user: 'make the confetti match the colors more... completely too saturated'): shades
@@ -2561,33 +2554,6 @@ window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
-if (MERGE_LAB) {   // the lab's controls: a button per tier, the whole run of them, and slow motion
-  const bar = document.createElement('div'); bar.id = 'lab';
-  let h = '';
-  for (let L = 2; L <= 13; L++) h += `<button type="button" data-l="${L}">${Math.pow(2, L)}</button>`;
-  bar.innerHTML = h + '<button type="button" data-all="1">Play all</button><button type="button" data-slow="1" aria-pressed="false">Slow</button><button type="button" data-card="revive">Revive</button><button type="button" data-card="over">Play ending</button>' + [['Waves', 2], ['Confetti', 4], ['Burst', 8]].map(q => `<button type="button" data-fin="${q[1]}" aria-pressed="${!!(finFx & q[1])}">${q[0]}</button>`).join('');
-  backEl.appendChild(bar);
-  bar.addEventListener('click', e => {
-    const t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
-    initAudio();
-    if (t.dataset.l) { labQueue.length = 0; labMerge(+t.dataset.l); }
-    else if (t.dataset.fin) {   // a look for the ending screen, on or off (gradient and waves take each other's place); shows the screen
-      const bit = +t.dataset.fin; finFx ^= bit;
-      try { localStorage.setItem('udm_fin', String(finFx)); } catch (err) {}
-      bar.querySelectorAll('[data-fin]').forEach(b => b.setAttribute('aria-pressed', String(!!(finFx & +b.dataset.fin))));
-      setFin();
-      if (!over) { labQueue.length = 0; if (score < 100) score = 4056; reviveUsed = true; lose(); }
-      else if (ended) { overEl.hidden = true; overT = 0.25; }   // already showing: play it again from the top
-    }
-    else if (t.dataset.card) {
-      if (!over) { labQueue.length = 0; if (t.dataset.card === 'over' && score < 100) score = 4056; reviveUsed = t.dataset.card === 'over'; lose(); }
-      else if (ended && t.dataset.card === 'over') { overEl.hidden = true; overT = 0.25; }   // play the ending again
-    }
-    else if (t.dataset.all) { labQueue = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; labWait = 0; }
-    else { labSpeed = labSpeed === 1 ? 0.25 : 1; t.setAttribute('aria-pressed', String(labSpeed !== 1)); }
-  });
-  labQueue = [10];   // opens on the 1024
-}
 if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
 last = performance.now();
 requestAnimationFrame(frame);
