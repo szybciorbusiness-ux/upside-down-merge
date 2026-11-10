@@ -71,6 +71,7 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
   transform:translateY(110%);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
 #sheet.open{transform:translateY(0)}
 #sheet.drag,#scrim.drag{transition:none}
+#scrim:not(.open),#sheet:not(.open){pointer-events:none}   /* on its way out it takes no presses: the game is already running */
 #sheet:focus{outline:none}
 #sheet::after{content:"";position:absolute;left:0;right:0;top:100%;height:calc(80*var(--u));background:inherit}   /* nothing shows under it when it is pulled up */
 .grab{align-self:center;width:calc(40*var(--u));height:calc(5*var(--u));border-radius:999px;background:rgba(255,255,255,.22)}
@@ -1098,7 +1099,7 @@ function drawFanfare() {
   const c = COLORS[fanfare.c], x = fanfare.x, y = fanfare.y, b = fanfare.b, rs = b ? b.r * b.scale : 40;
   ctx.save();
   ctx.fillStyle = `rgba(14,14,24,${(0.62 * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // dim the field
-  if (fanfare.t < 0.14) { ctx.fillStyle = `rgba(255,255,255,${(0.26 * (1 - fanfare.t / 0.14) * fanfare.k).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H); }   // a blink of light
+  if (fanfare.t < 0.14) { ctx.fillStyle = `rgba(255,255,255,${(0.26 * (1 - fanfare.t / 0.14) * env).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H); }   // a blink of light
   // beams: two fans turning against each other, additive, in the new colour and white. They shoot out of the blob
   // over the first third of a second and fade toward their tips; no two are the same width.
   ctx.globalCompositeOperation = 'lighter';
@@ -1241,6 +1242,8 @@ function reset() {
   overEl.hidden = true; reviveEl.hidden = true;
   reviveUsed = false; offer = false; offerT = 0; ended = false; lineA = 0; count = 0; tickAt = -9; countPop = 0; ringShown = -1; bestAtStart = best;
   saveT = 0; saveDirty = true; clearSave();
+  tutB = null; tutT = -0.9;                  // the hand never keeps pointing at a shape from the run before
+  if (MERGE_LAB) blobs.length = 0;           // the lab starts from an empty field
 }
 
 /* ───────── save: the run in progress survives closing the page ───────── */
@@ -1356,6 +1359,7 @@ function pickTray(x, y, maxDist) {
 
 let tutDone = false, tutT = -0.9, tutB = null;
 try { tutDone = localStorage.getItem('udm_tut') === '1'; } catch (e) {}
+if (best > 0) tutDone = true;   // has scored before: not a first run
 const TUT_PERIOD = 2.7, TUT_PULL = 84;
 function tutBlob() {   // the shelf shape the hand demonstrates on: stays the same one while it is there
   if (tutB && !tutB.dead && tutB.tray && !tutB.entering && tutB.state === 0) return tutB;
@@ -1364,7 +1368,7 @@ function tutBlob() {   // the shelf shape the hand demonstrates on: stays the sa
   return tutB;
 }
 function labMerge(L) {   // L: the tier that comes out (2 is the "4")
-  for (let i = 0; i < blobs.length; i++) blobs[i].dead = true;
+  blobs.length = 0;
   fanfare.t = 9; fanfare.b = null; glow.a = 0; hitStop = 0; combo = 0; comboIdle = 0; over = false; dangerT = 0; score = shown = 0; shake = 0; tilt = tiltV = 0;
   for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   peak = L - 1; runSizeScale = sizeTarget(); sizeDirty = false;   // the size the board has when this merge happens in a run
@@ -2114,12 +2118,14 @@ function showMenu(open) {
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
   if (open) {
-    aiming = false; armed = false; sel = null; saveRun();
+    aiming = false; armed = false; sel = null; shake = 0; tilt = tiltV = 0; saveRun();   // (a shake frozen by the pause would leave the screen askew)
+    dragId = -1; dragMoved = false;
     sheetEl.hidden = false; scrimEl.hidden = false;
     void sheetEl.offsetHeight;   // lay it out below the screen first, so it rises from there
     sheetEl.classList.add('open'); scrimEl.classList.add('open'); backEl.classList.add('pushed');
     sheetEl.focus({ preventScroll: true });   // the sheet itself, so no row lights up before anyone has pressed a key
   } else {
+    if (sheetEl.contains(document.activeElement)) gearBtn.focus({ preventScroll: true });
     sheetEl.classList.remove('open'); scrimEl.classList.remove('open'); backEl.classList.remove('pushed');
     sheetTimer = setTimeout(() => { if (!sheetOpen) { sheetEl.hidden = true; scrimEl.hidden = true; } }, REDUCED ? 0 : 520);
   }
@@ -2131,14 +2137,15 @@ sheetClose.addEventListener('click', () => showMenu(false));
 // quick flick, and it leaves; otherwise it settles back. A drag is never a tap on a row.
 let dragId = -1, dragY0 = 0, dragDy = 0, dragPy = 0, dragPt = 0, dragV = 0, dragMoved = false, dragEat = false, dragH = 1;
 sheetEl.addEventListener('pointerdown', e => {
-  if (!sheetOpen || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  if (!sheetOpen || (e.pointerType === 'mouse' && e.button !== 0) || (dragId !== -1 && dragMoved && e.pointerId !== dragId)) return;   // a second finger does not take over a drag
   dragId = e.pointerId; dragY0 = dragPy = e.clientY; dragPt = performance.now(); dragDy = 0; dragV = 0; dragMoved = false; dragH = sheetEl.offsetHeight || 1;
 });
 sheetEl.addEventListener('pointermove', e => {
   if (e.pointerId !== dragId) return;
+  if (e.pointerType === 'mouse' && !(e.buttons & 1)) { endDrag(e); return; }   // released somewhere the sheet could not see
   const dy = e.clientY - dragY0, now = performance.now();
   if (!dragMoved) {
-    if (Math.abs(dy) < 6) return;
+    if (Math.abs(dy) < 10) return;   // a tap may slip this far and still be a tap
     dragMoved = true; sheetEl.classList.add('drag'); scrimEl.classList.add('drag'); backEl.classList.add('drag');
     try { sheetEl.setPointerCapture(dragId); } catch (err) {}
   }
@@ -2156,6 +2163,7 @@ const endDrag = e => {
   if (!dragMoved) return;
   dragMoved = false; dragEat = true; setTimeout(() => { dragEat = false; }, 120);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
+  if (performance.now() - dragPt > 100) dragV = 0;   // it stopped before letting go: not a flick
   if (dragDy > dragH * 0.25 || (dragDy > 20 && dragV > 0.45)) showMenu(false);
   else { sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = ''; }
 };
@@ -2172,7 +2180,7 @@ document.addEventListener('visibilitychange', () => {
   if (actx) { try { if (document.hidden) actx.suspend(); else if (!muted) actx.resume(); } catch (e) {} }
 });
 window.addEventListener('pagehide', () => saveRun());
-restartBtn.addEventListener('click', () => { initAudio(); showMenu(false); reset(); });
+restartBtn.addEventListener('click', () => { initAudio(); showMenu(false); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
 againBtn.addEventListener('click', () => { initAudio(); reset(); });
 // A touch going down is not a user gesture, and iOS may not count a drag's release: any tap or key wakes the audio.
 ['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
@@ -2215,7 +2223,7 @@ setInterval(() => {
   const now = performance.now();
   if (document.hidden || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
-  if (dt > 0) { last = now; debt = 0; perfC.wd++; if (!paused) { try { tick(dt); } catch (e) { perfC.err++; } } }
+  if (dt > 0) { last = now; debt = 0; perfC.wd++; if (!paused) { try { tick(dt * labSpeed); } catch (e) { perfC.err++; } } }
 }, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
