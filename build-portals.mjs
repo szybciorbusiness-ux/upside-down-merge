@@ -36,5 +36,9 @@ for (const p of PORTALS) {
   const zip = join(dir, p.zip);
   await rm(zip, { force: true });
   execFileSync('powershell', ['-NoProfile', '-Command', `Compress-Archive -Path '${join(out, 'index.html')}' -DestinationPath '${zip}'`], { stdio: 'inherit' });
+  if (p.name === 'youtube') {   // the same build, public on the site at /play/ (the link given to YouTube: no phone frame, exactly what would be uploaded)
+    await mkdir(join(dir, 'docs', 'play'), { recursive: true });
+    await writeFile(join(dir, 'docs', 'play', 'index.html'), page(p.sdk) + body + '</body>\n</html>\n');
+  }
   console.log('built ' + p.name + '/index.html (' + kb((await stat(join(out, 'index.html'))).size) + ') and ' + p.zip + ' (' + kb((await stat(zip)).size) + ')');
 }
