@@ -231,11 +231,12 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 body.bare #mark{display:none;top:calc(env(safe-area-inset-top,0px)*.5 + 3px);font-size:14px}
 body.bare.island #mark{display:block}
 #sat{position:absolute;left:0;top:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none}
+#sab{position:absolute;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none}
 </style>
 
 <div id="phone">
   <div id="screen">
-    <div id="mark" aria-hidden="true">Blob<br>Match</div><i id="sat" aria-hidden="true"></i>
+    <div id="mark" aria-hidden="true">Blob<br>Match</div><i id="sat" aria-hidden="true"></i><i id="sab" aria-hidden="true"></i>
     <div id="status" aria-hidden="true">
       <div><span id="clock">9:41</span></div>
       <div>
@@ -312,7 +313,7 @@ const CORNER = 63 * 360 / 402;   // the panel's corner radius (63 design px) in 
 const LX = W / 2;
 let TRAY_Y = 574, DANGER_Y = 474, FLOOR_Y = 614;
 const TRAY_MAX = 2, TRAY_R = 34, GATE_TIME = 0.75;   // shelf of 2 shapes, fed from a gate on each side
-const PULL_MIN = 14, PULL_FULL = 120, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
+const PULL_MIN = 14, PULL_FULL = 100, PULL_DRAW = 26, POW_MIN = 0.3, POW_MAX = 1.12; // slingshot: pull back, it flies the other way
 
 const G = 170;                 // gravity, pulling UP (-y): firm enough to seat the soft pile against the ceiling after each impact
 const E_WALL = 0.55, E_BLOB = 0.16, E_CAP = 7;   // soft contacts: the outline takes the hit instead of bouncing it back
@@ -1355,8 +1356,9 @@ function drawJuice() {
 }
 
 /* ───────────────────────── game flow ───────────────────────── */
+let shelfLift = 0;   // world units the bottom of a full pull must stay above the screen's bottom edge (0 where there is no home indicator)
 function layout() {
-  TRAY_Y = H - 144; FLOOR_Y = H - 1; DANGER_Y = Math.min(H - 170, CEIL + 430);   // the shelf sits well above the bottom edge, easy to grab and pull
+  TRAY_Y = H - Math.max(144, PULL_FULL + 16 + shelfLift); FLOOR_Y = H - 1;   // (shelfLift: clear of the home indicator's strip, see resize) DANGER_Y = Math.min(H - 170, CEIL + 430);   // the shelf sits well above the bottom edge, easy to grab and pull
   planes = [[1, 0, WALL_L, 0], [-1, 0, -WALL_R, 0], [0, 1, CEIL, 1], [0, -1, -FLOOR_Y, 0]];
 }
 
@@ -2140,6 +2142,7 @@ function resize() {
   const pw = Math.round(CW * DPR), ph = Math.round(CH * DPR), grew = canvas.width !== pw || canvas.height !== ph;
   if (grew) { canvas.width = pw; canvas.height = ph; }
   S = CW / W; setCursor();
+  { const sab = document.getElementById('sab'), hb = sab ? sab.offsetHeight : 0; shelfLift = hb > 0 ? (hb + 26) / S : 0; }   // the home indicator's strip plus a margin
   pushS = Math.max(0.8, 1 - 2 * PUSH_GAP * uPx / (screenEl.clientWidth || 402 * uPx));   // the side gaps
   backEl.style.setProperty('--push-s', pushS.toFixed(4));
   H = Math.max(560, Math.min(CH / S, 820));
