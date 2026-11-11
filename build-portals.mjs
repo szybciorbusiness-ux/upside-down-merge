@@ -13,7 +13,7 @@ const page = sdk => `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Blob Match</title>
+<title>Blob Blitz</title>
 <style>html,body{margin:0}[hidden]{display:none!important}</style>
 ${sdk}
 </head>
