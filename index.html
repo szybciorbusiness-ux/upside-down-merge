@@ -30,7 +30,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-displ
 #back{position:absolute;inset:0;overflow:hidden;background:var(--screen);transform-origin:50% 0;
   transition:transform .5s cubic-bezier(.32,.72,0,1),border-radius .5s cubic-bezier(.32,.72,0,1)}
 #back.pushed{transform:translateY(calc(54*var(--u))) scale(var(--push-s,.849));border-radius:calc(22*var(--u))}
-body.bare #back.pushed{transform:translateY(calc(30*var(--u) + env(safe-area-inset-top,0px))) scale(var(--push-s,.849))}
+body.bare #back.pushed{transform:translateY(calc(30*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))) scale(var(--push-s,.849))}
 #back.drag{transition:none}
 #tint{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:opacity}
 body.bare{background:var(--screen)}   /* the shake slides the screen a few px; the edge it uncovers is the same colour */
@@ -48,10 +48,14 @@ body.adbusy #screen{pointer-events:none}   /* an ad is being asked for or shown:
 #revive-yes:disabled{opacity:.4;animation:none;cursor:default}
 body.cg #mark{display:none!important}
 body{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
-#revive-no.cgno{padding:calc(20*var(--u)) calc(70*var(--u));border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font:900 calc(26*var(--u)) var(--font-display);cursor:pointer}
+#revive-no.cgno{padding:calc(20*var(--u)) calc(70*var(--u));border:0;border-radius:999px;background:#ff2640;color:#fff;font:900 calc(26*var(--u)) var(--font-display);cursor:pointer}
+#revive.portal #revive-yes{animation:rise .4s .2s cubic-bezier(.2,.9,.3,1.2) both}   /* a portal's rule: the two choices weigh the same */
+body.cg #revive-note{font-size:max(13px,calc(15*var(--u)))}
+#revive.portal #revive-yes,#revive-no.cgno{box-sizing:border-box;min-width:calc(300*var(--u))}
+body.ytpaused *,body.ytpaused *::before,body.ytpaused *::after{animation-play-state:paused!important}
 #revive-yes .ad{display:inline-block;width:calc(26*var(--u));height:calc(26*var(--u));margin-right:calc(10*var(--u));vertical-align:-0.18em}
 body.bare #bezel,body.bare #status{display:none}
-body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-top:env(safe-area-inset-top,0px)}
+body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-top:var(--safe-area-inset-top, env(safe-area-inset-top,0px))}
 #status{position:absolute;z-index:5;pointer-events:none;left:0;right:0;top:0;height:calc(62*var(--u));display:flex;align-items:center;gap:calc(154*var(--u));
   padding:calc(2*var(--u)) calc(24*var(--u)) 0;color:#fff;font:590 calc(17*var(--u))/1 var(--font-system);font-variant-numeric:tabular-nums}
 #status>div{flex:1 0 0;display:flex;align-items:center;justify-content:center;gap:calc(7*var(--u));min-width:0}
@@ -59,7 +63,7 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 #status svg{display:block;width:100%;height:auto}
 #status .cell{width:calc(19.2*var(--u))}#status .wifi{width:calc(17.142*var(--u))}#status .batt{width:calc(27.328*var(--u))}
 #hud{position:absolute;left:0;right:0;top:calc(62*var(--u));height:calc(68*var(--u))}
-body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
+body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#505062;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
@@ -72,7 +76,7 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 #scrim{position:absolute;inset:0;z-index:3;background:rgba(0,0,0,.4);opacity:0;transition:opacity .35s ease}
 #scrim.open{opacity:1}
 #sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;
-  padding:calc(32*var(--u)) calc(32*var(--u)) calc(31*var(--u) + env(safe-area-inset-bottom,0px));
+  padding:calc(32*var(--u)) calc(32*var(--u)) calc(31*var(--u) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px)));
   border-radius:calc(54*var(--u)) calc(54*var(--u)) 0 0;background:var(--sh,#353543);color:var(--ink);
   transform:translateY(110%);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
 #sheet.open{transform:translateY(0)}
@@ -111,13 +115,15 @@ body.bare #hud{top:calc(10*var(--u) + env(safe-area-inset-top,0px))}
 .doc h3{margin:0 0 calc(12*var(--u));font:900 calc(24*var(--u))/normal var(--font-display);color:rgba(255,255,255,.62);letter-spacing:0}
 .doc p{margin:0;white-space:pre-line;font:500 calc(15*var(--u))/1.5 var(--font-system);color:rgba(255,255,255,.56)}
 #stage{position:absolute;left:0;right:0;top:calc(130*var(--u));bottom:0}
-body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
+body.bare #stage{top:calc(78*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
+body.cg #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + var(--vpad,0px))}
+body.cg #stage{top:calc(78*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + var(--vpad,0px));bottom:var(--vpad,0px)}
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
 /* danger: a red vignette over the whole screen that beats faster the closer the pile is to losing */
 #danger{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;will-change:opacity;
   border-radius:inherit;box-shadow:inset 0 0 calc(34*var(--u)) calc(6*var(--u)) rgba(255,77,94,.85),inset 0 0 calc(120*var(--u)) calc(10*var(--u)) rgba(255,77,94,.3)}
 #over{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(0,0,0,.8);
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-left:max(16px,var(--safe-area-inset-left, env(safe-area-inset-left,0px)));padding-right:max(16px,var(--safe-area-inset-right, env(safe-area-inset-right,0px)));
   animation:fade .28s ease both}
 .panel{display:flex;flex-direction:column;align-items:center;gap:calc(18*var(--u));min-width:min(calc(260*var(--u)),100%);
   padding:calc(28*var(--u)) calc(32*var(--u));border-radius:calc(30*var(--u));background:var(--card,var(--panel));animation:rise .32s cubic-bezier(.2,.9,.3,1.2) both}
@@ -185,7 +191,7 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 
 
 #revive{position:absolute;inset:0;z-index:2;display:grid;place-items:center;background:rgba(0,0,0,.78);
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-left:max(16px,var(--safe-area-inset-left, env(safe-area-inset-left,0px)));padding-right:max(16px,var(--safe-area-inset-right, env(safe-area-inset-right,0px)));
   animation:fade .28s ease both}
 .reason{margin:0;max-width:calc(250*var(--u));text-align:center;color:var(--muted);font:600 calc(15*var(--u))/1.4 var(--font-system);text-wrap:balance}
 .tag{margin:0;padding:calc(5*var(--u)) calc(12*var(--u));border-radius:999px;background:#ffd24a;color:#17171c;font-size:calc(13*var(--u));font-weight:900}
@@ -225,10 +231,10 @@ body.bare #stage{top:calc(78*var(--u) + env(safe-area-inset-top,0px))}
 @media (prefers-reduced-motion:reduce){#again,#revive-yes,#sheet .row,#gear{transition:none}}
 #mark{position:absolute;left:50%;top:calc(32.5*var(--u));transform:translate(-50%,-50%);z-index:6;pointer-events:none;white-space:nowrap;text-align:center;
   font:800 calc(14*var(--u))/.9 var(--font-display);text-transform:uppercase;color:#fff;opacity:.4;mix-blend-mode:plus-lighter}
-body.bare #mark{display:none;top:calc(env(safe-area-inset-top,0px)*.5 + 3px);font-size:14px}
+body.bare #mark{display:none;top:calc(var(--safe-area-inset-top, env(safe-area-inset-top,0px))*.5 + 3px);font-size:14px}
 body.bare.island #mark{display:block}
-#sat{position:absolute;left:0;top:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none}
-#sab{position:absolute;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none}
+#sat{position:absolute;left:0;top:0;width:0;height:var(--safe-area-inset-top, env(safe-area-inset-top,0px));visibility:hidden;pointer-events:none}
+#sab{position:absolute;left:0;bottom:0;width:0;height:var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px));visibility:hidden;pointer-events:none}
 </style>
 
 <div id="phone">
@@ -316,6 +322,9 @@ const CGB = !!window.__CG, YTB = !!window.__YT, PORTAL = CGB || YTB;
 const CG = CGB && window.CrazyGames && window.CrazyGames.SDK ? window.CrazyGames.SDK : null;
 const YT = YTB && typeof ytgame !== 'undefined' && ytgame && ytgame.IN_PLAYABLES_ENV ? ytgame : null;   // outside Playables their SDK does nothing: the game then runs as on the open web
 let cgOn = false, ytOn = false, cgMute = false, ytMute = false, ytPaused = false, adMute = false, adBusy = false, adSeq = 0, adsOff = false;
+// While YouTube has paused the game no input reaches it (registered first, so it stands before every other listener).
+if (YTB) ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'touchstart', 'touchend', 'click', 'keydown', 'keyup', 'contextmenu'].forEach(t => window.addEventListener(t, e => { if (ytPaused) e.stopImmediatePropagation(); }, true));
+let rafId = 0;
 let cgPlay = false, booted = false, starting = false, happyAt = -999, rewardedRun = false, runT0 = 0;
 // YouTube keeps the whole save as one string: the keys live in one object, written out a few seconds after a change.
 let ytData = {}, ytLoaded = false, ytDirty = false, ytSaveT = 0;
@@ -342,17 +351,20 @@ function cgHappy() {    // their site-wide celebration: kept rare (a record, a n
 // comes, even if the portal never answers (a watchdog ends the request).
 function portalAd(type, done) {
   if (!cgOn && !ytOn) { done(true, 'none'); return; }
-  const id = ++adSeq; let started = false;
-  adBusy = true; document.body.classList.add('adbusy');
+  const id = ++adSeq; let started = false, finished = false, late = false;
+  const hold = () => { adBusy = true; document.body.classList.add('adbusy'); };
+  const free = () => { adBusy = false; adMute = false; applyMute(); document.body.classList.remove('adbusy'); last = performance.now(); };
+  hold();
   const end = (ok, code) => {
-    if (!adBusy || id !== adSeq) return;
-    adBusy = false; adMute = false; applyMute(); document.body.classList.remove('adbusy'); last = performance.now(); done(ok, code);
+    if (id !== adSeq) return;
+    if (finished) { if (late) { late = false; free(); } return; }   // (done is called once; an ad that came late only gives the game back)
+    finished = true; free(); done(ok, code);
   };
-  setTimeout(() => { if (!started) end(false, 'timeout'); }, cgOn ? 7000 : 20000);   // no ad began
+  setTimeout(() => { if (!started) end(false, 'timeout'); }, 20000);   // no ad began
   setTimeout(() => end(false, 'timeout'), 150000);                                    // one that never ended
   try {
     if (cgOn) {
-      CG.ad.requestAd(type, { adStarted: () => { started = true; adMute = true; applyMute(); }, adFinished: () => end(true, ''), adError: e => end(false, (e && e.code) || 'other') });
+      CG.ad.requestAd(type, { adStarted: () => { if (id !== adSeq) return; started = true; if (finished) { late = true; hold(); } adMute = true; applyMute(); }, adFinished: () => end(true, ''), adError: e => end(false, (e && e.code) || 'other') });
     } else {
       started = true; adMute = true; applyMute();   // (YouTube does not say when its ad starts: quiet for the whole request)
       const p = type === 'rewarded' ? YT.ads.requestRewardedAd('revive') : YT.ads.requestInterstitialAd();
@@ -1415,7 +1427,7 @@ function drawJuice() {
 /* ───────────────────────── game flow ───────────────────────── */
 let shelfLift = 0;   // world units the bottom of a full pull must stay above the screen's bottom edge (0 where there is no home indicator)
 function layout() {
-  TRAY_Y = H - Math.max(144, PULL_FULL + 16 + shelfLift); FLOOR_Y = H - 1;   // (shelfLift: clear of the home indicator's strip, see resize) DANGER_Y = Math.min(H - 170, CEIL + 430);   // the shelf sits well above the bottom edge, easy to grab and pull
+  TRAY_Y = H - Math.max(144, PULL_FULL + 16 + shelfLift); FLOOR_Y = H - 1; DANGER_Y = Math.min(H - 170, CEIL + 474);   // (shelfLift: clear of the home indicator's strip, see resize)   // the shelf sits well above the bottom edge, easy to grab and pull
   planes = [[1, 0, WALL_L, 0], [-1, 0, -WALL_R, 0], [0, 1, CEIL, 1], [0, -1, -FLOOR_Y, 0]];
 }
 
@@ -1781,7 +1793,7 @@ function cashPop(b, i, n) {
   sfxCash(n > 1 ? i / (n - 1) : 1); buzz(7); kickShake(0.14);
 }
 function endRun() {
-  if (ytOn) { setTimeout(() => { ytFlush(); try { YT.engagement.sendScore({ value: Math.floor(best) }).catch(() => {}); } catch (e) {} }, 0); }
+  if (ytOn) { setTimeout(() => { ytFlush(); if (ytLoaded) try { YT.engagement.sendScore({ value: Math.floor(best) }).catch(() => {}); } catch (e) {} }, 0); }
   offer = false; ended = true; overT = 0; reviveEl.hidden = true; flushBest(); clearSave();
   cash.length = 0; cashI = 0;
   if (!REDUCED) for (let i = 0; i < blobs.length; i++) if (!blobs[i].dead && blobs[i].state === 0) cash.push(blobs[i]);
@@ -2170,7 +2182,7 @@ const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944
 // The phone scales as one piece: --u is one design pixel. On a narrow or touch screen the shell drops away.
 let bare = false, uPx = 1, pushS = 0.9303;
 const PUSH_GAP = 30, PUSH_R = 22;   // the Figma frame: 30 design units at each side of the game while the settings sheet is up, corners 22
-const pushTop = () => bare ? '(30 * var(--u) + env(safe-area-inset-top, 0px))' : '(54 * var(--u))';   // and 54 from the top (under the status bar)
+const pushTop = () => bare ? '(30 * var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))' : '(54 * var(--u))';   // and 54 from the top (under the status bar)
 function fitShell() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -2179,6 +2191,7 @@ function fitShell() {
   const sat = document.getElementById('sat'); document.body.classList.toggle('island', !!sat && sat.offsetHeight >= 44);   // an island or notch to sit under
   const colW = Math.min(vw, vh * 0.56);   // the column: as wide as the frame on a phone, never so wide that the field (at least 560 units tall) loses its bottom
   if (PORTAL) document.documentElement.style.setProperty('--colw', colW.toFixed(1) + 'px');
+  if (PORTAL) document.documentElement.style.setProperty('--vpad', Math.max(0, (vh - (78 * colW / 402 + 820 * colW / 360)) / 2).toFixed(1) + 'px');   // a frame taller than the tallest field: centred
   const u = PORTAL ? colW / 402 : bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);   // (a portal's frame: everything is sized from the column's width)
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
   uPx = u;
@@ -2548,7 +2561,7 @@ function goView(v) {
 }
 document.getElementById('more').addEventListener('click', () => goView('more'));
 sheetEl.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) goView(b.dataset.go); });
-gearBtn.addEventListener('click', () => { initAudio(); showMenu(!sheetOpen); });
+gearBtn.addEventListener('click', () => { initAudio(); if (adBusy) return; showMenu(!sheetOpen); });
 scrimEl.addEventListener('click', () => { if (performance.now() >= swapUntil) showMenu(false); });
 // Drag: the sheet follows the finger down (pulling up barely gives). Let go past a quarter of its height, or with a
 // quick flick, and it leaves; otherwise it settles back. A drag is never a tap on a row.
@@ -2607,11 +2620,11 @@ reviveYes.addEventListener('click', () => {
   portalAd('rewarded', (ok, code) => {
     if (!offer) return;
     if (ok) { rewardedRun = true; revive(); return; }
-    if (code === 'adsDisabled') { adsOff = true; reviveLook(); return; }
+    if (code === 'adsDisabled') { adsOff = true; reviveLook(); revive(); return; }
     reviveYes.disabled = true; reviveNote.textContent = code === 'adblock' ? 'Ads are blocked' : 'No ad available'; reviveNote.hidden = false;
   });
 });
-reviveNo.addEventListener('click', () => { initAudio(); if (offer) endRun(); });
+reviveNo.addEventListener('click', () => { initAudio(); if (adBusy) return; if (offer) endRun(); });
 window.addEventListener('keydown', e => {   // the cards hold the focus themselves (no lit button), so their main action answers the keyboard here
   if (e.repeat || sheetOpen || (e.key !== 'Enter' && e.key !== ' ') || e.target instanceof HTMLButtonElement) return;
   if (adBusy) return;
@@ -2623,7 +2636,7 @@ if (!YTB) document.addEventListener('visibilitychange', () => {
   if (actx) { try { if (document.hidden) actx.suspend(); else if (!muted) actx.resume(); } catch (e) {} }
 });
 if (!YTB) window.addEventListener('pagehide', () => saveRun());
-restartBtn.addEventListener('click', () => { initAudio(); showMenu(false); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
+restartBtn.addEventListener('click', () => { initAudio(); if (adBusy) return; showMenu(false); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
 againBtn.addEventListener('click', () => {
   initAudio();
   if (adBusy) return;
@@ -2654,7 +2667,7 @@ function pace(raw) {
 // The game draws once per animation frame and nowhere else. The next frame is asked for first, and nothing thrown
 // while stepping or drawing can stop the loop.
 function frame(t) {
-  requestAnimationFrame(frame);
+  rafId = requestAnimationFrame(frame);
   rafOk = performance.now() - rafDone < 60 ? rafOk + 1 : 0;   // frames in a row that followed the one before promptly
   const raw = (t - last) / 1000;
   if (ytPaused) { last = t; rafDone = performance.now(); return; }
@@ -2678,7 +2691,7 @@ setInterval(() => {
 }, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
-if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+if (window.ResizeObserver) { const ro = new ResizeObserver(resize); ro.observe(stage); for (const id of ['sat', 'sab']) { const p = document.getElementById(id); if (p) ro.observe(p); } }   // (the probes: a safe area the portal sets late)
 function loadPrefs() {
   try { best = +store.getItem('udm_best') || 0; muted = store.getItem('udm_muted') === '1'; vib = store.getItem('udm_vib') !== '0'; } catch (e) {}
   try { tutDone = store.getItem('udm_tut') === '1'; } catch (e) {}
@@ -2689,8 +2702,9 @@ function start() {
   if (cgOn || ytOn) loadPrefs();   // the same settings and best score, now from the portal's store
   resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
   if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
-  if (PORTAL) { reviveNo.hidden = false; reviveNo.className = 'cgno'; reviveNo.textContent = 'No thanks'; reviveLook(); }   // a decline button stands beside Revive
+  if (PORTAL) { reviveNo.hidden = false; reviveNo.className = 'cgno'; reviveNo.textContent = 'No thanks'; reviveEl.classList.add('portal'); reviveLook(); }   // a decline button stands beside Revive
   if (YTB) soundBtn.hidden = true;   // YouTube has its own sound switch, and asks for no second one
+  if (YTB) sheetEl.querySelectorAll('[data-go="terms"],[data-go="privacy"]').forEach(b => { b.hidden = true; });   // nor for legal pages of the game's own
   starting = false;
   if (cgOn) { try { CG.game.loadingStop(); } catch (e) {} cgGame(!over); }
   if (ytOn) {
@@ -2699,7 +2713,7 @@ function start() {
     initAudio();   // YouTube gives the game the focus itself: sound must not wait for a first tap
   }
   last = performance.now();
-  requestAnimationFrame(frame);
+  if (!ytPaused) rafId = requestAnimationFrame(frame);
 }
 if (CG) {
   const ready = () => {
@@ -2727,17 +2741,25 @@ if (CG) {
       if (ytPaused) return;
       try { saveRun(); } catch (e) {}
       ytFlush(); ytPaused = true; applyMute();
+      document.body.classList.add('ytpaused'); aiming = false; armed = false; sel = null;   // (a drag in flight is dropped: its release will not arrive)
+      cancelAnimationFrame(rafId); rafId = 0;
       if (actx) { try { actx.suspend(); } catch (e) {} }
     });
     YT.system.onResume(() => {
       if (!ytPaused) return;
       ytPaused = false; last = performance.now(); applyMute();
+      document.body.classList.remove('ytpaused'); if (!rafId && booted) rafId = requestAnimationFrame(frame);
       if (actx) { try { actx.resume(); } catch (e) {} }
     });
   } catch (e) {}
   ytOn = true;
   let p; try { p = YT.game.loadData(); } catch (e) { p = null; }
-  const go = raw => { try { const d = raw ? JSON.parse(raw) : {}; ytData = d && typeof d === 'object' ? d : {}; } catch (e) { ytData = {}; } ytLoaded = true; start(); };
+  const go = raw => { try { const d = raw ? JSON.parse(raw) : {}; ytData = d && typeof d === 'object' ? d : {}; } catch (e) { ytData = {}; } ytLoaded = true;
+    if (booted) {   // (the 10 s fallback had started the game: the cloud's save is taken, the higher best score kept)
+      const b0 = best; loadPrefs(); if (b0 > best) { best = b0; bestDirty = true; }
+      setMuted(muted); setVib(vib); if (!over && score === 0) loadRun();
+    } else start();
+  };
   if (p && p.then) p.then(go, () => { try { YT.health.logError(); } catch (e) {} start(); }); else go('');   // (a failed load: play on, but never write over the cloud save)
   setTimeout(start, 10000);
 } else start();
