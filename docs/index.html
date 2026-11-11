@@ -56,6 +56,7 @@ body.bare #phone{width:100vw;height:100dvh}
 /* a portal's frame: the screen fills it, and the score bar, the field and the settings sheet sit in a centred column */
 body.cg #hud{left:calc(50% - var(--colw,100%)/2);right:auto;width:var(--colw,100%)}
 body.cg #stage{left:calc(50% - var(--colw,100%)/2);right:auto;width:var(--colw,100%)}
+body.cg #screen{box-sizing:border-box}   /* the top safe area is inside the frame's height */
 body.cg #back{transform:none!important;border-radius:0!important}   /* in a portal frame the game is not pushed back under the sheet (no black frame around it: user); the dim is enough */
 body.cg #sheet{box-sizing:border-box;left:calc(50% - var(--colw,100%)/2);right:auto;width:var(--colw,100%)}
 body.cg .doc p{font-size:max(13px,calc(15*var(--u)));color:rgba(255,255,255,.8)}
@@ -84,7 +85,7 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#505062;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
-#gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:calc(36*var(--u));height:calc(36*var(--u));padding:0;border:0;border-radius:50%;
+#gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:max(34px,calc(36*var(--u)));height:max(34px,calc(36*var(--u)));padding:0;border:0;border-radius:50%;
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#484859);will-change:transform}
 #gear svg{width:100%;height:100%}
 #gear:active{transform:scale(.92)}
@@ -136,6 +137,15 @@ body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-i
 body.bare #stage{top:calc(78*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
 body.cg #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + var(--vpad,0px))}
 body.cg #stage{top:calc(78*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + var(--vpad,0px));bottom:var(--vpad,0px)}
+body.wide #hud{left:0;width:100%;top:calc(var(--wm,12px) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)));pointer-events:none}
+body.wide #stage{top:calc(var(--wm,12px) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)));bottom:calc(var(--wm,12px) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px)))}
+body.wide #brand{left:auto;right:calc(50% + var(--colw)/2 + 30*var(--u));top:calc(62*var(--u));transform-origin:100% 60%;
+  font-size:min(calc(64*var(--u)),calc((var(--gut,300px) - 40*var(--u))/5))}
+body.wide #gear{pointer-events:auto;left:calc(50% + var(--colw)/2 + 26*var(--u));top:calc(10*var(--u));width:max(34px,calc(44*var(--u)));height:max(34px,calc(44*var(--u)))}
+body.cg.wide #mark{display:block!important;left:auto;right:calc(50% + var(--colw)/2 + 32*var(--u));top:calc(var(--wm,12px) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + 16*var(--u));
+  transform:none;text-align:right;font-size:calc(24*var(--u));opacity:.34}
+body.wide #mark{transition:opacity .25s ease}
+body.wide:has(#over:not([hidden])) #mark,body.wide:has(#revive:not([hidden])) #mark{opacity:0}   /* the cards stand alone */
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
 /* danger: a red vignette over the whole screen that beats faster the closer the pile is to losing */
 #danger{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;will-change:opacity;
@@ -357,9 +367,17 @@ const store = {
   setItem: (k, v) => { if (cgOn) CG.data.setItem(k, v); else if (ytOn) { v = String(v); if (ytData[k] !== v) { ytData[k] = v; ytDirty = true; } } else localStorage.setItem(k, v); },
   removeItem: k => { if (cgOn) CG.data.removeItem(k); else if (ytOn) { if (Object.prototype.hasOwnProperty.call(ytData, k)) { delete ytData[k]; ytDirty = true; } } else localStorage.removeItem(k); }
 };
+let cgWant = false, cgTimer = 0; const cgAt = [-1e9, -1e9];
 function cgGame(on) {   // CrazyGames: play has started or stopped (once per change, and never from a focus change)
-  if (!cgOn || on === cgPlay) return; cgPlay = on;
-  try { if (on) CG.game.gameplayStart(); else CG.game.gameplayStop(); } catch (e) {}
+  if (!cgOn) return; cgWant = on; cgSync();
+}
+function cgSync() {     // their SDK drops a second gameplayStart (or Stop) within a second: that one is sent when the second is up, if still wanted
+  clearTimeout(cgTimer); cgTimer = 0;
+  if (cgWant === cgPlay) return;
+  const k = cgWant ? 1 : 0, wait = 1100 - (performance.now() - cgAt[k]);
+  if (wait > 0) { cgTimer = setTimeout(cgSync, wait); return; }
+  cgPlay = cgWant; cgAt[k] = performance.now();
+  try { if (cgPlay) CG.game.gameplayStart(); else CG.game.gameplayStop(); } catch (e) {}
 }
 function cgHappy() {    // their site-wide celebration: kept rare (a record, a new biggest blob), never twice within 90 s
   if (!cgOn || time - happyAt < 90) return; happyAt = time;
@@ -1445,7 +1463,7 @@ function drawJuice() {
 /* ───────────────────────── game flow ───────────────────────── */
 let shelfLift = 0;   // world units the bottom of a full pull must stay above the screen's bottom edge (0 where there is no home indicator)
 function layout() {
-  TRAY_Y = H - Math.max(144, PULL_FULL + 16 + shelfLift); FLOOR_Y = H - 1; DANGER_Y = Math.min(H - 170, CEIL + 474);   // (shelfLift: clear of the home indicator's strip, see resize)   // the shelf sits well above the bottom edge, easy to grab and pull
+  TRAY_Y = H - Math.max(144, PULL_FULL + 16 + shelfLift); FLOOR_Y = H - 1; DANGER_Y = Math.min(TRAY_Y - 26, CEIL + 474);   // (shelfLift: clear of the home indicator's strip, see resize)   // the shelf sits well above the bottom edge, easy to grab and pull
   planes = [[1, 0, WALL_L, 0], [-1, 0, -WALL_R, 0], [0, 1, CEIL, 1], [0, -1, -FLOOR_Y, 0]];
 }
 
@@ -1678,6 +1696,11 @@ function fire(b) {
   if (!b || !b.tray || b.dead || over) return;
   if (!tutDone) { tutDone = true; try { store.setItem('udm_tut', '1'); } catch (e) {} }
   initAudio();
+  if (b.entering) {   // flicked while still sliding in: it starts from fully inside the walls
+    const d = Math.max(WALL_L + b.br + 2, Math.min(WALL_R - b.br - 2, b.cx)) - b.cx;
+    for (let i = 0; i < b.n; i++) { b.x[i] += d; b.px[i] += d; b.RX[i] += d; }
+    b.cx += d; b.entering = false;
+  }
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
   b.tray = false; b.launched = true; b.scaleT = 1; b.sqT = 0; b.anim = true; b.animT = 0;   // springs back to full size: the launch stretch
@@ -2207,9 +2230,18 @@ function fitShell() {
   bare = PORTAL || vw < 560 || (coarse && vw < 900);
   document.body.classList.toggle('bare', bare); document.body.classList.toggle('cg', PORTAL); document.body.classList.toggle('yt', YTB);
   const sat = document.getElementById('sat'); document.body.classList.toggle('island', !!sat && sat.offsetHeight >= 44);   // an island or notch to sit under
-  const colW = Math.min(vw, vh * 0.56);   // the column: as wide as the frame on a phone, never so wide that the field (at least 560 units tall) loses its bottom
+  let wide = false, colW = Math.min(vw, vh * 0.56);   // the column: as wide as the frame on a phone, never so wide that the field (at least 560 units tall) loses its bottom
+  if (PORTAL && vw > vh) {   // a wide frame: the field takes the frame's height (about 600 units of it), the score and the gear stand beside it
+    const sab = document.getElementById('sab'), m = Math.max(8, Math.round(vh * 0.025));
+    const cw = Math.min((vh - 2 * m - (sat ? sat.offsetHeight : 0) - (sab ? sab.offsetHeight : 0)) * 0.6, vw * 0.5);
+    if ((vw - cw) / 2 >= cw * 0.42) {
+      wide = true; colW = cw;
+      document.documentElement.style.setProperty('--wm', m + 'px'); document.documentElement.style.setProperty('--gut', ((vw - cw) / 2).toFixed(1) + 'px');
+    }
+  }
+  document.body.classList.toggle('wide', wide);
   if (PORTAL) document.documentElement.style.setProperty('--colw', colW.toFixed(1) + 'px');
-  if (PORTAL) document.documentElement.style.setProperty('--vpad', Math.max(0, (vh - (78 * colW / 402 + 820 * colW / 360)) / 2).toFixed(1) + 'px');   // a frame taller than the tallest field: centred
+  if (PORTAL) document.documentElement.style.setProperty('--vpad', wide ? '0px' : Math.max(0, (vh - (78 * colW / 402 + 820 * colW / 360)) / 2).toFixed(1) + 'px');   // a frame taller than the tallest field: centred
   const u = PORTAL ? colW / 402 : bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);   // (a portal's frame: everything is sized from the column's width)
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
   uPx = u;
@@ -2240,7 +2272,7 @@ function resize() {
   const pw = Math.round(CW * DPR), ph = Math.round(CH * DPR), grew = canvas.width !== pw || canvas.height !== ph;
   if (grew) { canvas.width = pw; canvas.height = ph; }
   S = CW / W; setCursor();
-  { const sab = document.getElementById('sab'), hb = sab ? sab.offsetHeight : 0; shelfLift = hb > 0 ? (hb + 26) / S : 0; }   // the home indicator's strip plus a margin
+  { const sab = document.getElementById('sab'), hb = sab ? sab.offsetHeight : 0; shelfLift = hb > 0 && !document.body.classList.contains('wide') ? (hb + 26) / S : 0; }   // (a wide frame's field already ends above it)   // the home indicator's strip plus a margin
   pushS = Math.max(0.8, 1 - 2 * PUSH_GAP * uPx / (PORTAL ? 402 * uPx : screenEl.clientWidth || 402 * uPx));   // the side gaps
   backEl.style.setProperty('--push-s', pushS.toFixed(4));
   H = Math.max(560, Math.min(CH / S, 820));
@@ -2563,6 +2595,7 @@ const DOCS = {
   licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Blob Blitz.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
 };
 if (PORTAL) DOCS.privacy[1] = 'Blob Blitz keeps your best score, your current run and your sound and vibration choices. On this site they are stored through the site itself: on this device for a guest, and with your account there if you are signed in.\n\nThe game has no accounts, analytics or tracking of its own, and it sends nothing anywhere else.\n\nThe site you are playing on has its own privacy policy, and it may show ads.';
+if (PORTAL) DOCS.terms[1] = 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run are kept through the site you are playing on.\n\nNothing in the game costs money.';
 const sheetViews = sheetEl.querySelectorAll('.view'), docTitle = document.getElementById('doc-title'), docBody = document.getElementById('doc-body');
 let sheetAt = 'main', viewTimer = 0, swapUntil = 0;
 function setView(v) {
