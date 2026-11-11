@@ -125,9 +125,9 @@ body.wide #brand{left:auto;right:calc(50% + var(--colw)/2 + 30*var(--u));top:cal
   font-size:min(calc(64*var(--u)),calc((var(--gut,300px) - 40*var(--u))/5))}
 body.wide #gear{pointer-events:auto;left:calc(50% + var(--colw)/2 + 26*var(--u));top:calc(10*var(--u));width:max(34px,calc(44*var(--u)));height:max(34px,calc(44*var(--u)))}
 body.cg.wide #mark{display:block!important;left:auto;right:calc(50% + var(--colw)/2 + 32*var(--u));top:calc(var(--wm,12px) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + 16*var(--u));
-  transform:none;text-align:right;font-size:calc(24*var(--u));opacity:.34}
+  transform:none;text-align:right;font-size:calc(24*var(--u));opacity:.75;mix-blend-mode:normal;color:#505062}
 body.wide #mark{transition:opacity .25s ease}
-body.wide:has(#over:not([hidden])) #mark,body.wide:has(#revive:not([hidden])) #mark{opacity:0}   /* the cards stand alone */
+body.cg.wide:has(#over:not([hidden])) #mark,body.cg.wide:has(#revive:not([hidden])) #mark{opacity:0}   /* the cards stand alone */
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
 /* danger: a red vignette over the whole screen that beats faster the closer the pile is to losing */
 #danger{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;will-change:opacity;
@@ -335,6 +335,7 @@ let cgOn = false, ytOn = false, cgMute = false, ytMute = false, ytPaused = false
 // While YouTube has paused the game no input reaches it (registered first, so it stands before every other listener).
 if (YTB) ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'touchstart', 'touchend', 'click', 'keydown', 'keyup', 'contextmenu'].forEach(t => window.addEventListener(t, e => { if (ytPaused) e.stopImmediatePropagation(); }, true));
 let rafId = 0;
+const markEl = document.getElementById('mark');
 let cgPlay = false, booted = false, starting = false, happyAt = -999, rewardedRun = false, runT0 = 0;
 // YouTube keeps the whole save as one string: the keys live in one object, written out a few seconds after a change.
 let ytData = {}, ytLoaded = false, ytDirty = false, ytSaveT = 0;
@@ -2373,7 +2374,7 @@ function draw() {
       const i0 = I0 + (T - I0) * 0.42, ink = i0 + (G - i0) * 0.85 * ga;
       bc += Math.min(255, Math.round(bg + ink * a)) + (k < 2 ? ',' : ')'); gr += Math.min(255, Math.round(bg + ink * (a - 0.05))) + (k < 2 ? ',' : ')');
     }
-    if (bc !== hudCss) { hudCss = bc; brandEl.style.color = bc; }
+    if (bc !== hudCss) { hudCss = bc; brandEl.style.color = bc; if (PORTAL && markEl) markEl.style.color = bc; }   // (the name beside the field takes the score's colour)
     if (gr !== gearCss) { gearCss = gr; gearBtn.style.setProperty('--gear-c', gr); }
     fxTop = ti; fxC = glow.c; fxA = ga; fxH = H;
   }
