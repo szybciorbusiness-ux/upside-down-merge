@@ -53,7 +53,13 @@ body.bare #back.pushed{transform:translateY(calc(30*var(--u) + env(safe-area-ins
 #tint{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:opacity}
 body.bare{background:var(--screen)}   /* the shake slides the screen a few px; the edge it uncovers is the same colour */
 body.bare #phone{width:100vw;height:100dvh}
-body.cg #phone{width:min(100vw,52dvh)}   /* a portrait column in a landscape frame; the sides are the screen's own colour */
+body.cg #phone{width:min(100vw,62dvh)}   /* a portrait column in a landscape frame; the sides are the screen's own colour */
+body.cg .doc p{font-size:max(13px,calc(15*var(--u)));color:rgba(255,255,255,.8)}
+body.cg #sheet .row{font-size:max(15px,calc(24*var(--u)))}
+body.cg .doc h3{font-size:max(16px,calc(24*var(--u)))}
+body.adbusy #screen{pointer-events:none}   /* an ad is being asked for or shown: nothing in the game can be pressed */
+#revive-note{margin:0;font:900 calc(15*var(--u))/1.2 var(--font-display);color:rgba(255,255,255,.7);text-align:center}
+#revive-yes:disabled{opacity:.4;animation:none;cursor:default}
 body.cg #mark{display:none!important}
 body{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 #revive-no.cgno{padding:calc(20*var(--u)) calc(70*var(--u));border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font:900 calc(26*var(--u)) var(--font-display);cursor:pointer}
@@ -265,6 +271,7 @@ body.bare.island #mark{display:block}
         <p class="sr" id="revive-desc">Out of room. Revive within 6 seconds, or wait and the run ends.</p>
         <div class="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="42"/><circle class="left" id="ring-left" cx="50" cy="50" r="42"/></svg><span id="ring-n">6</span></div>
         <button id="revive-yes" type="button">Revive</button>
+        <p id="revive-note" hidden></p>
         <button id="revive-no" class="xbtn" type="button" aria-label="End run" hidden><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
       </div>
     </div>
@@ -310,27 +317,61 @@ body.bare.island #mark{display:block}
 (() => {
 'use strict';
 
-/* ───────────────────────── platform: CrazyGames build ───────────────────────── */
-const CGB = !!window.__CG, CG = CGB && window.CrazyGames && window.CrazyGames.SDK ? window.CrazyGames.SDK : null;
-let cgOn = false, cgMute = false, adMute = false, adBusy = false, cgPlay = false, booted = false;
-// Saves and settings: the browser's own storage, or on CrazyGames their Data module (same three calls).
+/* ───────────────────────── platform: portal builds ─────────────────────────
+   The same file ships to game portals. The page that wraps it sets one flag and loads that portal's SDK before this
+   script (build-portals.mjs); without a flag everything here is inert.
+   window.__CG, CrazyGames (SDK v3): init, loading and gameplay events, happytime, saves through their Data module,
+     ads only through the SDK (rewarded for Revive, midgame between runs), their mute setting.
+   window.__YT, YouTube Playables (ytgame): firstFrameReady and gameReady, their audio switch (no sound switch of our
+     own), pause and resume only through their callbacks (never the page visibility API), the save as one string
+     through loadData / saveData, the best score through sendScore, their ads.
+   On both: no phone frame, a portrait column centred in the frame, no outside links. */
+const CGB = !!window.__CG, YTB = !!window.__YT, PORTAL = CGB || YTB;
+const CG = CGB && window.CrazyGames && window.CrazyGames.SDK ? window.CrazyGames.SDK : null;
+const YT = YTB && typeof ytgame !== 'undefined' && ytgame && ytgame.IN_PLAYABLES_ENV ? ytgame : null;   // outside Playables their SDK does nothing: the game then runs as on the open web
+let cgOn = false, ytOn = false, cgMute = false, ytMute = false, ytPaused = false, adMute = false, adBusy = false, adSeq = 0, adsOff = false;
+let cgPlay = false, booted = false, starting = false, happyAt = -999, rewardedRun = false, runT0 = 0;
+// YouTube keeps the whole save as one string: the keys live in one object, written out a few seconds after a change.
+let ytData = {}, ytLoaded = false, ytDirty = false, ytSaveT = 0;
+function ytFlush() {
+  if (!ytOn || !ytLoaded || !ytDirty) return;   // (never before their load has succeeded: it would overwrite the player's cloud save)
+  ytDirty = false; ytSaveT = 0;
+  try { YT.game.saveData(JSON.stringify(ytData)).catch(() => { try { YT.health.logWarning(); } catch (e) {} }); } catch (e) {}
+}
+// Saves and settings: the browser's own storage, or the portal's.
 const store = {
-  getItem: k => cgOn ? CG.data.getItem(k) : localStorage.getItem(k),
-  setItem: (k, v) => cgOn ? CG.data.setItem(k, v) : localStorage.setItem(k, v),
-  removeItem: k => cgOn ? CG.data.removeItem(k) : localStorage.removeItem(k)
+  getItem: k => cgOn ? CG.data.getItem(k) : ytOn ? (Object.prototype.hasOwnProperty.call(ytData, k) ? ytData[k] : null) : localStorage.getItem(k),
+  setItem: (k, v) => { if (cgOn) CG.data.setItem(k, v); else if (ytOn) { v = String(v); if (ytData[k] !== v) { ytData[k] = v; ytDirty = true; } } else localStorage.setItem(k, v); },
+  removeItem: k => { if (cgOn) CG.data.removeItem(k); else if (ytOn) { if (Object.prototype.hasOwnProperty.call(ytData, k)) { delete ytData[k]; ytDirty = true; } } else localStorage.removeItem(k); }
 };
-function cgGame(on) {   // tell the platform that play has started or stopped (once per change)
+function cgGame(on) {   // CrazyGames: play has started or stopped (once per change, and never from a focus change)
   if (!cgOn || on === cgPlay) return; cgPlay = on;
   try { if (on) CG.game.gameplayStart(); else CG.game.gameplayStop(); } catch (e) {}
 }
-function cgHappy() { if (cgOn) { try { CG.game.happytime(); } catch (e) {} } }
-// An ad through the platform. The game stands still and is muted while it runs; done(ok, code) always comes.
-function cgAd(type, done) {
-  if (!cgOn) { done(true, 'none'); return; }
-  adBusy = true;
-  const end = (ok, code) => { if (!adBusy) return; adBusy = false; adMute = false; applyMute(); last = performance.now(); done(ok, code); };
+function cgHappy() {    // their site-wide celebration: kept rare (a record, a new biggest blob), never twice within 90 s
+  if (!cgOn || time - happyAt < 90) return; happyAt = time;
+  try { CG.game.happytime(); } catch (e) {}
+}
+// An ad through the portal. The game stands still, takes no input and is muted while it runs. done(ok, code) always
+// comes, even if the portal never answers (a watchdog ends the request).
+function portalAd(type, done) {
+  if (!cgOn && !ytOn) { done(true, 'none'); return; }
+  const id = ++adSeq; let started = false;
+  adBusy = true; document.body.classList.add('adbusy');
+  const end = (ok, code) => {
+    if (!adBusy || id !== adSeq) return;
+    adBusy = false; adMute = false; applyMute(); document.body.classList.remove('adbusy'); last = performance.now(); done(ok, code);
+  };
+  setTimeout(() => { if (!started) end(false, 'timeout'); }, cgOn ? 7000 : 20000);   // no ad began
+  setTimeout(() => end(false, 'timeout'), 150000);                                    // one that never ended
   try {
-    CG.ad.requestAd(type, { adStarted: () => { adMute = true; applyMute(); }, adFinished: () => end(true, ''), adError: e => end(false, (e && e.code) || 'other') });
+    if (cgOn) {
+      CG.ad.requestAd(type, { adStarted: () => { started = true; adMute = true; applyMute(); }, adFinished: () => end(true, ''), adError: e => end(false, (e && e.code) || 'other') });
+    } else {
+      started = true; adMute = true; applyMute();   // (YouTube does not say when its ad starts: quiet for the whole request)
+      const p = type === 'rewarded' ? YT.ads.requestRewardedAd('revive') : YT.ads.requestInterstitialAd();
+      p.then(r => end(type === 'rewarded' ? r === true : true, type === 'rewarded' && r !== true ? 'unfilled' : ''), () => end(false, 'other'));
+    }
   } catch (e) { end(false, 'other'); }
 }
 
@@ -1414,7 +1455,8 @@ function pickLevel() {
 }
 
 function reset() {
-  if (booted) cgGame(true);   // a new run is play again
+  if (booted && !starting) cgGame(true);   // a new run is play again
+  rewardedRun = false; runT0 = time;
   blobs.length = 0; shuffleRun(); runSizeScale = 1; sizeDirty = true;
   score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; shakeHeat = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
@@ -1740,7 +1782,8 @@ function lose() {
   saveRun();   // the losing board with the countdown spent: a reload returns to this moment, not to before it
   over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countShown = 0; countPop = 0; hotA = 0; nearT = 0; lineA = 0;
   flushBest(); buzz([40, 60, 90]);
-  if (!reviveUsed) { offer = true; offerT = 0; ringShown = -1; sfxStop(); } else endRun();
+  const worth = !PORTAL || (score >= Math.max(300, bestAtStart * 0.4) && time - runT0 > 45);   // (a portal: no ad offer after every short run)
+  if (!reviveUsed && worth) { offer = true; offerT = 0; ringShown = -1; sfxStop(); reviveYes.disabled = false; reviveNote.hidden = true; reviveLook(); } else endRun();
 }
 // The cash-out: what is left on the board bursts blob by blob before the finish screen shows.
 const cash = []; let cashI = 0, cashT = 0, cashGap = 0.08;
@@ -1752,6 +1795,7 @@ function cashPop(b, i, n) {
   sfxCash(n > 1 ? i / (n - 1) : 1); buzz(7); kickShake(0.14);
 }
 function endRun() {
+  if (ytOn) { setTimeout(() => { ytFlush(); try { YT.engagement.sendScore({ value: Math.floor(best) }).catch(() => {}); } catch (e) {} }, 0); }
   offer = false; ended = true; overT = 0; reviveEl.hidden = true; flushBest(); clearSave();
   cash.length = 0; cashI = 0;
   if (!REDUCED) for (let i = 0; i < blobs.length; i++) if (!blobs[i].dead && blobs[i].state === 0) cash.push(blobs[i]);
@@ -1831,7 +1875,8 @@ function impulses() {
   }
 }
 function tick(dt) {
-  if (adBusy) return;   // an ad is up: nothing moves, no timer runs
+  if (adBusy || ytPaused) return;   // an ad is up, or the portal has paused the game: nothing moves, no timer runs
+  if (ytOn && ytDirty) { ytSaveT += dt; if (ytSaveT > 3) ytFlush(); }
   time += dt;
   if (sel && (sel.dead || sel.state === 1 || !sel.tray)) { sel = null; aiming = false; armed = false; }
   if (hover && (hover.dead || !hover.tray)) hover = null;
@@ -2143,10 +2188,10 @@ const pushTop = () => bare ? '(30 * var(--u) + env(safe-area-inset-top, 0px))' :
 function fitShell() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-  bare = CGB || vw < 560 || (coarse && vw < 900);
-  document.body.classList.toggle('bare', bare); document.body.classList.toggle('cg', CGB);
+  bare = PORTAL || vw < 560 || (coarse && vw < 900);
+  document.body.classList.toggle('bare', bare); document.body.classList.toggle('cg', PORTAL); document.body.classList.toggle('yt', YTB);
   const sat = document.getElementById('sat'); document.body.classList.toggle('island', !!sat && sat.offsetHeight >= 44);   // an island or notch to sit under
-  const u = CGB ? Math.min(Math.min(vw, vh * 0.52) / 402, vh / 700) : bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);   // (CrazyGames: a column no wider than about half the frame's height)
+  const u = PORTAL ? Math.min(Math.min(vw, vh * 0.62) / 402, vh / 700) : bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);   // (a portal's frame: a column no wider than about 62% of its height)
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
   uPx = u;
 }
@@ -2461,7 +2506,7 @@ function setMuted(m) {
   applyMute();
   try { store.setItem('udm_muted', m ? '1' : '0'); } catch (e) {}
 }
-function applyMute() { if (master) master.gain.value = (muted || cgMute || adMute) ? 0 : 0.6; }   // the game's switch, the platform's mute, or an ad running
+function applyMute() { if (master) master.gain.value = (muted || cgMute || ytMute || adMute || ytPaused) ? 0 : 0.6; }   // the game's switch, the portal's, an ad running, or paused by the portal
 function setVib(v) {
   vib = v && CAN_VIB;
   vibBtn.disabled = !CAN_VIB; vibBtn.setAttribute('aria-pressed', String(vib)); vibState.textContent = !CAN_VIB ? 'N/A' : vib ? 'On' : 'Off';
@@ -2498,6 +2543,7 @@ const DOCS = {
   terms: ['Terms', 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run live only on your device. They can be lost if the browser\'s data is cleared, and they cannot be restored.\n\nNothing in the game costs money.'],
   licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Blob Match.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
 };
+if (PORTAL) DOCS.privacy[1] = 'Blob Match keeps your best score, your current run and your sound and vibration choices. On this site they are stored through the site itself: on this device for a guest, and with your account there if you are signed in.\n\nThe game has no accounts, analytics or tracking of its own, and it sends nothing anywhere else.\n\nThe site you are playing on has its own privacy policy, and it may show ads.';
 const sheetViews = sheetEl.querySelectorAll('.view'), docTitle = document.getElementById('doc-title'), docBody = document.getElementById('doc-body');
 let sheetAt = 'main', viewTimer = 0, swapUntil = 0;
 function setView(v) {
@@ -2556,29 +2602,45 @@ sheetEl.addEventListener('click', e => { if (dragEat || performance.now() < swap
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) { showMenu(false); gearBtn.focus(); } });
 soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); sfxUi(true); });
 vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); sfxUi(vib); });
+const reviveNote = document.getElementById('revive-note');
+const AD_ICON = '<svg class="ad" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="5" width="22" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 9.6v6.8l6-3.4z" fill="currentColor"/></svg>';
+function reviveLook() {   // on a portal the button says what it costs: an ad, or nothing where the portal shows none
+  if (!PORTAL) return;
+  const ad = (cgOn || ytOn) && !adsOff;
+  reviveYes.innerHTML = (ad ? AD_ICON : '') + 'Revive'; reviveYes.setAttribute('aria-label', ad ? 'Watch an ad to revive' : 'Revive');
+}
 reviveYes.addEventListener('click', () => {
   initAudio();
-  if (!CGB) { revive(); return; }
-  if (adBusy || !offer) return;
-  // a rewarded ad: the revive is the reward. No ad system at all in this session (their Basic launch): the revive is free.
-  // An ad that did not come or was blocked earns nothing, and the run ends.
-  cgAd('rewarded', (ok, code) => { if (!offer) return; if (ok || code === 'adsDisabled' || code === 'none') revive(); else endRun(); });
+  if (adBusy || !offer || reviveYes.disabled) return;
+  if (!PORTAL || adsOff || (!cgOn && !ytOn)) { revive(); return; }
+  // A rewarded ad: the revive is the reward, and only a finished ad earns it. An ad that did not come or was blocked
+  // earns nothing: the offer stays, its countdown goes on, and the button says why it cannot be used. Where the portal
+  // runs no ads at all in this session, the button becomes a plain free Revive from then on.
+  portalAd('rewarded', (ok, code) => {
+    if (!offer) return;
+    if (ok) { rewardedRun = true; revive(); return; }
+    if (code === 'adsDisabled') { adsOff = true; reviveLook(); return; }
+    reviveYes.disabled = true; reviveNote.textContent = code === 'adblock' ? 'Ads are blocked' : 'No ad available'; reviveNote.hidden = false;
+  });
 });
 reviveNo.addEventListener('click', () => { initAudio(); if (offer) endRun(); });
 window.addEventListener('keydown', e => {   // the cards hold the focus themselves (no lit button), so their main action answers the keyboard here
   if (e.repeat || sheetOpen || (e.key !== 'Enter' && e.key !== ' ') || e.target instanceof HTMLButtonElement) return;
-  if (offer && !reviveEl.hidden) { e.preventDefault(); initAudio(); revive(); }
-  else if (ended && !overEl.hidden) { e.preventDefault(); initAudio(); reset(); }
+  if (adBusy) return;
+  if (offer && !reviveEl.hidden) { e.preventDefault(); reviveYes.click(); }
+  else if (ended && !overEl.hidden) { e.preventDefault(); againBtn.click(); }
 });
-document.addEventListener('visibilitychange', () => {
+if (!YTB) document.addEventListener('visibilitychange', () => {
   if (document.hidden) saveRun();
   if (actx) { try { if (document.hidden) actx.suspend(); else if (!muted) actx.resume(); } catch (e) {} }
 });
-window.addEventListener('pagehide', () => saveRun());
+if (!YTB) window.addEventListener('pagehide', () => saveRun());
 restartBtn.addEventListener('click', () => { initAudio(); showMenu(false); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
 againBtn.addEventListener('click', () => {
   initAudio();
-  if (CGB && cgOn) { if (!adBusy) cgAd('midgame', () => reset()); return; }   // between two runs: the one place a midgame ad may sit
+  if (adBusy) return;
+  // between two runs: the one place an ad between plays may sit (not after a run in which a rewarded ad was watched)
+  if ((cgOn || ytOn) && !adsOff && !rewardedRun) { portalAd('midgame', () => reset()); return; }
   reset();
 });
 // A touch going down is not a user gesture, and iOS may not count a drag's release: any tap or key wakes the audio.
@@ -2607,13 +2669,14 @@ function frame(t) {
   requestAnimationFrame(frame);
   rafOk = performance.now() - rafDone < 60 ? rafOk + 1 : 0;   // frames in a row that followed the one before promptly
   const raw = (t - last) / 1000;
+  if (ytPaused) { last = t; rafDone = performance.now(); return; }
   try {
     const a = performance.now();
     if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); }   // t can predate a watchdog step: nothing to simulate
     const b = performance.now();
     draw();
     perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
-  } catch (e) { perfC.err++; if (!frameErr) { frameErr = true; if (window.console) console.error(e); } }
+  } catch (e) { perfC.err++; if (!frameErr) { frameErr = true; if (window.console) console.error(e); if (ytOn) { try { YT.health.logError(); } catch (e2) {} } } }
   rafDone = performance.now();
 }
 // Watchdog for embedded views that stop handing out animation frames: only when none has finished for a while does a
@@ -2621,7 +2684,7 @@ function frame(t) {
 // fires. Paused while the page is hidden.
 setInterval(() => {
   const now = performance.now();
-  if (!booted || document.hidden || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
+  if (!booted || ytPaused || (!YTB && document.hidden) || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
   if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); } catch (e) { perfC.err++; } }
 }, 33);
@@ -2634,16 +2697,19 @@ function loadPrefs() {
   bestN = -1;
 }
 function start() {
-  if (booted) return; booted = true;
-  if (cgOn) loadPrefs();   // the same settings and best score, now from the platform's store
+  if (booted) return; booted = true; starting = true;
+  if (cgOn || ytOn) loadPrefs();   // the same settings and best score, now from the portal's store
   resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
   if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
-  if (CGB) {   // on CrazyGames: the decline button stands beside Revive, which says it is an ad
-    reviveNo.hidden = false; reviveNo.className = 'cgno'; reviveNo.textContent = 'No thanks';
-    reviveYes.innerHTML = '<svg class="ad" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="5" width="22" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 9.6v6.8l6-3.4z" fill="currentColor"/></svg>Revive';
-    reviveYes.setAttribute('aria-label', 'Watch an ad to revive');
-  }
+  if (PORTAL) { reviveNo.hidden = false; reviveNo.className = 'cgno'; reviveNo.textContent = 'No thanks'; reviveLook(); }   // a decline button stands beside Revive
+  if (YTB) soundBtn.hidden = true;   // YouTube has its own sound switch, and asks for no second one
+  starting = false;
   if (cgOn) { try { CG.game.loadingStop(); } catch (e) {} cgGame(!over); }
+  if (ytOn) {
+    try { draw(); } catch (e) {}
+    try { YT.game.firstFrameReady(); YT.game.gameReady(); } catch (e) {}   // the first frame is drawn and the game takes input from it
+    initAudio();   // YouTube gives the game the focus itself: sound must not wait for a first tap
+  }
   last = performance.now();
   requestAnimationFrame(frame);
 }
@@ -2652,16 +2718,40 @@ if (CG) {
     try {
       cgOn = CG.environment !== 'disabled';
       if (cgOn) {
-        CG.game.loadingStart();
         cgMute = !!(CG.game.settings && CG.game.settings.muteAudio);
         CG.game.addSettingsChangeListener(st => { cgMute = !!(st && st.muteAudio); applyMute(); });
+        if (booted) {   // their SDK came up after the game had already started on its own: join it where the game is
+          const b0 = best; loadPrefs(); if (b0 > best) { best = b0; bestDirty = true; }
+          setMuted(muted); applyMute(); cgGame(!over && !sheetOpen);
+        } else CG.game.loadingStart();
       }
     } catch (e) { cgOn = false; }
     start();
   };
   let p; try { p = CG.init(); } catch (e) { p = null; }
   if (p && p.then) p.then(ready, () => { cgOn = false; start(); }); else ready();
-  setTimeout(start, 6000);   // whatever happens to the SDK, the game starts
+  setTimeout(start, 10000);   // whatever happens to the SDK, the game starts
+} else if (YT) {
+  try {
+    ytMute = !YT.system.isAudioEnabled();
+    YT.system.onAudioEnabledChange(on => { ytMute = !on; applyMute(); });
+    YT.system.onPause(() => {   // everything stops: the loop, the sound, the drawing; the save goes out first
+      if (ytPaused) return;
+      try { saveRun(); } catch (e) {}
+      ytFlush(); ytPaused = true; applyMute();
+      if (actx) { try { actx.suspend(); } catch (e) {} }
+    });
+    YT.system.onResume(() => {
+      if (!ytPaused) return;
+      ytPaused = false; last = performance.now(); applyMute();
+      if (actx) { try { actx.resume(); } catch (e) {} }
+    });
+  } catch (e) {}
+  ytOn = true;
+  let p; try { p = YT.game.loadData(); } catch (e) { p = null; }
+  const go = raw => { try { const d = raw ? JSON.parse(raw) : {}; ytData = d && typeof d === 'object' ? d : {}; } catch (e) { ytData = {}; } ytLoaded = true; start(); };
+  if (p && p.then) p.then(go, () => { try { YT.health.logError(); } catch (e) {} start(); }); else go('');   // (a failed load: play on, but never write over the cloud save)
+  setTimeout(start, 10000);
 } else start();
 
 // small hook for automated play-testing
