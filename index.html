@@ -35,6 +35,11 @@ body.bare #back.pushed{transform:translateY(calc(30*var(--u) + env(safe-area-ins
 #tint{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:opacity}
 body.bare{background:var(--screen)}   /* the shake slides the screen a few px; the edge it uncovers is the same colour */
 body.bare #phone{width:100vw;height:100dvh}
+body.cg #phone{width:min(100vw,52dvh)}   /* a portrait column in a landscape frame; the sides are the screen's own colour */
+body.cg #mark{display:none!important}
+body{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+#revive-no.cgno{padding:calc(20*var(--u)) calc(70*var(--u));border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font:900 calc(26*var(--u)) var(--font-display);cursor:pointer}
+#revive-yes .ad{display:inline-block;width:calc(26*var(--u));height:calc(26*var(--u));margin-right:calc(10*var(--u));vertical-align:-0.18em}
 body.bare #bezel,body.bare #status{display:none}
 body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-top:env(safe-area-inset-top,0px)}
 #status{position:absolute;z-index:5;pointer-events:none;left:0;right:0;top:0;height:calc(62*var(--u));display:flex;align-items:center;gap:calc(154*var(--u));
@@ -287,6 +292,30 @@ body.bare.island #mark{display:block}
 (() => {
 'use strict';
 
+/* ───────────────────────── platform: CrazyGames build ───────────────────────── */
+const CGB = !!window.__CG, CG = CGB && window.CrazyGames && window.CrazyGames.SDK ? window.CrazyGames.SDK : null;
+let cgOn = false, cgMute = false, adMute = false, adBusy = false, cgPlay = false, booted = false;
+// Saves and settings: the browser's own storage, or on CrazyGames their Data module (same three calls).
+const store = {
+  getItem: k => cgOn ? CG.data.getItem(k) : localStorage.getItem(k),
+  setItem: (k, v) => cgOn ? CG.data.setItem(k, v) : localStorage.setItem(k, v),
+  removeItem: k => cgOn ? CG.data.removeItem(k) : localStorage.removeItem(k)
+};
+function cgGame(on) {   // tell the platform that play has started or stopped (once per change)
+  if (!cgOn || on === cgPlay) return; cgPlay = on;
+  try { if (on) CG.game.gameplayStart(); else CG.game.gameplayStop(); } catch (e) {}
+}
+function cgHappy() { if (cgOn) { try { CG.game.happytime(); } catch (e) {} } }
+// An ad through the platform. The game stands still and is muted while it runs; done(ok, code) always comes.
+function cgAd(type, done) {
+  if (!cgOn) { done(true, 'none'); return; }
+  adBusy = true;
+  const end = (ok, code) => { if (!adBusy) return; adBusy = false; adMute = false; applyMute(); last = performance.now(); done(ok, code); };
+  try {
+    CG.ad.requestAd(type, { adStarted: () => { adMute = true; applyMute(); }, adFinished: () => end(true, ''), adError: e => end(false, (e && e.code) || 'other') });
+  } catch (e) { end(false, 'other'); }
+}
+
 /* ───────────────────────── world + tuning ───────────────────────── */
 const W = 360;                 // world width (units). Height adapts to the screen.
 let H = 640;
@@ -510,7 +539,7 @@ const mixRgb = (r0, g0, b0, c, k) => [r0 + (c.r - r0) * k, g0 + (c.g - g0) * k, 
 const mixHex = (r0, g0, b0, c, k) => `rgb(${Math.round(r0 + (c.r - r0) * k)},${Math.round(g0 + (c.g - g0) * k)},${Math.round(b0 + (c.b - b0) * k)})`;
 const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0, big: 0 };
 
-try { best = +localStorage.getItem('udm_best') || 0; muted = localStorage.getItem('udm_muted') === '1'; vib = localStorage.getItem('udm_vib') !== '0'; } catch (e) {}
+try { best = +store.getItem('udm_best') || 0; muted = store.getItem('udm_muted') === '1'; vib = store.getItem('udm_vib') !== '0'; } catch (e) {}
 const CAN_VIB = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
 function buzz(p) { if (vib && CAN_VIB) { try { navigator.vibrate(p); } catch (e) {} } }
 
@@ -1174,6 +1203,7 @@ function finishMerge(a, b) {
       for (let k = 0; k < nb.n; k++) { nb.vx[k] += (nb.x[k] - nb.cx) * g; nb.vy[k] += (nb.y[k] - nb.cy) * g; }
       ripple(nb, 50 + 40 * big);
     }
+    if (nb.level >= 10) cgHappy();
     if (nb.level >= 10) {   // three rising pings on top of the chord for the really big ones
       setTimeout(() => sfxCombo(nb.level, 2), 60); setTimeout(() => sfxCombo(nb.level, 4), 170); setTimeout(() => sfxCombo(nb.level, 6), 280);
     }
@@ -1366,6 +1396,7 @@ function pickLevel() {
 }
 
 function reset() {
+  if (booted) cgGame(true);   // a new run is play again
   blobs.length = 0; shuffleRun(); runSizeScale = 1; sizeDirty = true;
   score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; shakeHeat = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
@@ -1398,8 +1429,8 @@ function reset() {
 const SAVE_KEY = 'udm_save', SAVE_V = 1;
 let saveT = 0, saveDirty = true;
 let bestDirty = false;
-function flushBest() { if (!bestDirty || MERGE_LAB) return; bestDirty = false; try { localStorage.setItem('udm_best', String(best)); } catch (e) {} }
-function clearSave() { if (MERGE_LAB) return; try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+function flushBest() { if (!bestDirty || MERGE_LAB) return; bestDirty = false; try { store.setItem('udm_best', String(best)); } catch (e) {} }
+function clearSave() { if (MERGE_LAB) return; try { store.removeItem(SAVE_KEY); } catch (e) {} }
 function saveRun() {
   flushBest();
   if (over || !blobs.length || MERGE_LAB) return;
@@ -1419,12 +1450,12 @@ function saveRun() {
     bl.push(e);
   }
   saveDirty = moving;   // keep saving while the board is still moving, then once more at rest
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), blobs: bl })); } catch (e) {}
+  try { store.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), blobs: bl })); } catch (e) {}
 }
 function loadRun() {
   if (MERGE_LAB) return false;
   let d = null;
-  try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { d = null; }
+  try { d = JSON.parse(store.getItem(SAVE_KEY) || 'null'); } catch (e) { d = null; }
   if (!d || d.v !== SAVE_V || !Array.isArray(d.blobs) || !d.blobs.length || d.blobs.length > 80 || !Array.isArray(d.order) || d.order.length !== COLORS.length) return false;
   const seen = new Set(d.order);
   if (seen.size !== COLORS.length) return false;
@@ -1503,7 +1534,7 @@ function pickTray(x, y, maxDist) {
 }
 
 let tutDone = false, tutT = -0.9, tutB = null;
-try { tutDone = localStorage.getItem('udm_tut') === '1'; } catch (e) {}
+try { tutDone = store.getItem('udm_tut') === '1'; } catch (e) {}
 if (best > 0) tutDone = true;   // has scored before: not a first run
 const TUT_PERIOD = 2.7, TUT_PULL = 84;
 function tutBlob() {   // the shelf shape the hand demonstrates on: stays the same one while it is there
@@ -1569,7 +1600,7 @@ function drawTutorial() {
 }
 function fire(b) {
   if (!b || !b.tray || b.dead || over) return;
-  if (!tutDone) { tutDone = true; try { localStorage.setItem('udm_tut', '1'); } catch (e) {} }
+  if (!tutDone) { tutDone = true; try { store.setItem('udm_tut', '1'); } catch (e) {} }
   initAudio();
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
@@ -1669,7 +1700,7 @@ function frameLogic(dt) {
       overN = 0; overTick = 0; overDone = false; overEl.classList.remove('counted'); oScore.textContent = '0'; oBest.textContent = String(best);
       oWhy.textContent = 'The pile stayed past the line.';
       const nb = score > 0 && score >= best && score > bestAtStart;
-      oNew.textContent = nb ? 'New best' : 'Best'; overEl.classList.toggle('best', nb); overBest = nb; oConf.hidden = false;
+      oNew.textContent = nb ? 'New best' : 'Best'; overEl.classList.toggle('best', nb); overBest = nb; oConf.hidden = false; if (nb) cgHappy();
       oScore.style.fontSize = `calc(${Math.min(56, Math.round(330 / (0.8 * Math.max(3, String(score).length))))} * var(--u))`; setFin();
       overEl.hidden = false; againBtn.parentNode.focus({ preventScroll: true });
       pieces.length = 0; rainAcc = 0; rainOn = false; cannonLeft = 0; burstLast = performance.now();
@@ -1687,6 +1718,7 @@ function frameLogic(dt) {
 }
 // The countdown ran out: the run stops. One revive per run is offered first.
 function lose() {
+  cgGame(false);
   saveRun();   // the losing board with the countdown spent: a reload returns to this moment, not to before it
   over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countShown = 0; countPop = 0; hotA = 0; nearT = 0; lineA = 0;
   flushBest(); buzz([40, 60, 90]);
@@ -1710,6 +1742,7 @@ function endRun() {
 // Revive: the blobs crowding the line burst (never fewer than three, and never the run's biggest), play goes on.
 function revive() {
   if (!offer) return;
+  cgGame(true);
   reviveUsed = true; offer = false; over = false; ended = false; reviveEl.hidden = true;
   dangerT = -1.5; dangerPh = 0; warn = false; count = 0;   // a moment's grace before the line counts again
   let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > top) top = blobs[i].level;
@@ -1780,6 +1813,7 @@ function impulses() {
   }
 }
 function tick(dt) {
+  if (adBusy) return;   // an ad is up: nothing moves, no timer runs
   time += dt;
   if (sel && (sel.dead || sel.state === 1 || !sel.tray)) { sel = null; aiming = false; armed = false; }
   if (hover && (hover.dead || !hover.tray)) hover = null;
@@ -1806,7 +1840,7 @@ function initAudio() {
   if (!actx) {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     actx = new AC();
-    master = actx.createGain(); master.gain.value = muted ? 0 : 0.6;
+    master = actx.createGain(); applyMute();
     const comp = actx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
     master.connect(comp); comp.connect(actx.destination);
     musicBus = actx.createGain(); musicBus.gain.value = 0.55; musicBus.connect(master);
@@ -2091,10 +2125,10 @@ const pushTop = () => bare ? '(30 * var(--u) + env(safe-area-inset-top, 0px))' :
 function fitShell() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-  bare = vw < 560 || (coarse && vw < 900);
-  document.body.classList.toggle('bare', bare);
+  bare = CGB || vw < 560 || (coarse && vw < 900);
+  document.body.classList.toggle('bare', bare); document.body.classList.toggle('cg', CGB);
   const sat = document.getElementById('sat'); document.body.classList.toggle('island', !!sat && sat.offsetHeight >= 44);   // an island or notch to sit under
-  const u = bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);
+  const u = CGB ? Math.min(Math.min(vw, vh * 0.52) / 402, vh / 700) : bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);   // (CrazyGames: a column no wider than about half the frame's height)
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
   uPx = u;
 }
@@ -2406,19 +2440,21 @@ canvas.addEventListener('contextmenu', e => { e.preventDefault(); aiming = false
 function setMuted(m) {
   muted = m;
   soundBtn.setAttribute('aria-pressed', String(!m)); soundState.textContent = m ? 'Off' : 'On';
-  if (master) master.gain.value = m ? 0 : 0.6;
-  try { localStorage.setItem('udm_muted', m ? '1' : '0'); } catch (e) {}
+  applyMute();
+  try { store.setItem('udm_muted', m ? '1' : '0'); } catch (e) {}
 }
+function applyMute() { if (master) master.gain.value = (muted || cgMute || adMute) ? 0 : 0.6; }   // the game's switch, the platform's mute, or an ad running
 function setVib(v) {
   vib = v && CAN_VIB;
   vibBtn.disabled = !CAN_VIB; vibBtn.setAttribute('aria-pressed', String(vib)); vibState.textContent = !CAN_VIB ? 'N/A' : vib ? 'On' : 'Off';
-  if (CAN_VIB) { try { localStorage.setItem('udm_vib', v ? '1' : '0'); } catch (e) {} }
+  if (CAN_VIB) { try { store.setItem('udm_vib', v ? '1' : '0'); } catch (e) {} }
 }
 // The settings sheet. While it is up the game runs at a fifth of its speed behind it, and the run is saved.
 const SHEET_SLOW = 0.2;
 let sheetOpen = false, sheetTimer = 0;
 function showMenu(open) {
   if (open === sheetOpen) return;
+  cgGame(!open && !over);
   sheetOpen = open; gearBtn.setAttribute('aria-expanded', String(open)); sfxUi(open);
   clearTimeout(sheetTimer);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
@@ -2440,7 +2476,7 @@ function showMenu(open) {
 }
 // More: the sheet drops and comes straight back as a second sheet of the same build (the legal pages), and back again.
 const DOCS = {
-  privacy: ['Privacy', 'Blob Match keeps your best score, your current run and your sound and vibration choices on this device, in your browser\'s storage. Nothing is sent anywhere.\n\nThere are no accounts, no ads, no analytics and no tracking.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe page is served by GitHub Pages. Like any web host, it may log technical request data such as your IP address.'],
+  privacy: ['Privacy', 'Blob Match keeps your best score, your current run and your sound and vibration choices on this device, in your browser\'s storage. The game itself sends nothing anywhere.\n\nThe game has no accounts, analytics or tracking of its own.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe site you are playing on hosts the game and, like any web host, may log technical request data such as your IP address. On a game portal, the privacy policy of that portal also applies, and the portal may show ads and keep your save with your account there.'],
   terms: ['Terms', 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run live only on your device. They can be lost if the browser\'s data is cleared, and they cannot be restored.\n\nNothing in the game costs money.'],
   licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Blob Match.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
 };
@@ -2502,7 +2538,14 @@ sheetEl.addEventListener('click', e => { if (dragEat || performance.now() < swap
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) { showMenu(false); gearBtn.focus(); } });
 soundBtn.addEventListener('click', () => { initAudio(); setMuted(!muted); sfxUi(true); });
 vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); sfxUi(vib); });
-reviveYes.addEventListener('click', () => { initAudio(); revive(); });
+reviveYes.addEventListener('click', () => {
+  initAudio();
+  if (!CGB) { revive(); return; }
+  if (adBusy || !offer) return;
+  // a rewarded ad: the revive is the reward. No ad system at all in this session (their Basic launch): the revive is free.
+  // An ad that did not come or was blocked earns nothing, and the run ends.
+  cgAd('rewarded', (ok, code) => { if (!offer) return; if (ok || code === 'adsDisabled' || code === 'none') revive(); else endRun(); });
+});
 reviveNo.addEventListener('click', () => { initAudio(); if (offer) endRun(); });
 window.addEventListener('keydown', e => {   // the cards hold the focus themselves (no lit button), so their main action answers the keyboard here
   if (e.repeat || sheetOpen || (e.key !== 'Enter' && e.key !== ' ') || e.target instanceof HTMLButtonElement) return;
@@ -2515,7 +2558,11 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => saveRun());
 restartBtn.addEventListener('click', () => { initAudio(); showMenu(false); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
-againBtn.addEventListener('click', () => { initAudio(); reset(); if (MERGE_LAB) { labQueue = [10]; labWait = 0.3; } });
+againBtn.addEventListener('click', () => {
+  initAudio();
+  if (CGB && cgOn) { if (!adBusy) cgAd('midgame', () => reset()); return; }   // between two runs: the one place a midgame ad may sit
+  reset();
+});
 // A touch going down is not a user gesture, and iOS may not count a drag's release: any tap or key wakes the audio.
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button:not(:disabled)')) buzz(6); }, { passive: true });   // every press of a button is felt
 ['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
@@ -2556,17 +2603,48 @@ function frame(t) {
 // fires. Paused while the page is hidden.
 setInterval(() => {
   const now = performance.now();
-  if (document.hidden || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
+  if (!booted || document.hidden || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
   if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); } catch (e) { perfC.err++; } }
 }, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
-resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
-if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
-last = performance.now();
-requestAnimationFrame(frame);
+function loadPrefs() {
+  try { best = +store.getItem('udm_best') || 0; muted = store.getItem('udm_muted') === '1'; vib = store.getItem('udm_vib') !== '0'; } catch (e) {}
+  try { tutDone = store.getItem('udm_tut') === '1'; } catch (e) {}
+  bestN = -1;
+}
+function start() {
+  if (booted) return; booted = true;
+  if (cgOn) loadPrefs();   // the same settings and best score, now from the platform's store
+  resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
+  if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
+  if (CGB) {   // on CrazyGames: the decline button stands beside Revive, which says it is an ad
+    reviveNo.hidden = false; reviveNo.className = 'cgno'; reviveNo.textContent = 'No thanks';
+    reviveYes.innerHTML = '<svg class="ad" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="5" width="22" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 9.6v6.8l6-3.4z" fill="currentColor"/></svg>Revive';
+    reviveYes.setAttribute('aria-label', 'Watch an ad to revive');
+  }
+  if (cgOn) { try { CG.game.loadingStop(); } catch (e) {} cgGame(!over); }
+  last = performance.now();
+  requestAnimationFrame(frame);
+}
+if (CG) {
+  const ready = () => {
+    try {
+      cgOn = CG.environment !== 'disabled';
+      if (cgOn) {
+        CG.game.loadingStart();
+        cgMute = !!(CG.game.settings && CG.game.settings.muteAudio);
+        CG.game.addSettingsChangeListener(st => { cgMute = !!(st && st.muteAudio); applyMute(); });
+      }
+    } catch (e) { cgOn = false; }
+    start();
+  };
+  let p; try { p = CG.init(); } catch (e) { p = null; }
+  if (p && p.then) p.then(ready, () => { cgOn = false; start(); }); else ready();
+  setTimeout(start, 6000);   // whatever happens to the SDK, the game starts
+} else start();
 
 // small hook for automated play-testing
 window.__udm = { blobs, tick, draw, reset,
@@ -2579,7 +2657,7 @@ window.__udm = { blobs, tick, draw, reset,
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   pickLevel, popBlob, setPeak: v => { peak = v; }, saveRun, loadRun, clearSave, lose, revive, endRun, setDanger: v => { dangerT = v; },
   lose2: () => ({ over, offer, ended, reviveUsed, count, lineA, dangerT }),
-  tut: v => { if (v !== undefined) { tutDone = !v; tutT = 0; try { if (v) localStorage.removeItem('udm_tut'); } catch (e) {} } return { tutDone, tutT }; },
+  tut: v => { if (v !== undefined) { tutDone = !v; tutT = 0; try { if (v) store.removeItem('udm_tut'); } catch (e) {} } return { tutDone, tutT }; },
   perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>

@@ -25,6 +25,10 @@ createServer(async (req, res) => {
       return res.end(data);
     }
     const html = await readFile(join(dir, 'index.html'), 'utf8');
+    if (path === '/cg' || path === '/cg/') {   // the CrazyGames build, for local testing (their SDK runs in its local mode on localhost)
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(head.replace('</head>', '<script>window.__CG=1</script><script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script></head>') + html.replace(/s*<img id="bezel"[^>]*>/, '') + '</body></html>');
+    }
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     res.end(head + html + '</body></html>');
   } catch (e) {
