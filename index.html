@@ -448,6 +448,13 @@ const ENTER_V = 430;              // units/s a new shelf shape slides in from of
 const DANGER_HOLD = 3.35;      // how long the pile may sit past the line: the grace, then a visible 3-2-1
 const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing at all
 const MAXN = 52;
+// Stones: a rock that rides in on the shelf like a shape, never merges, and breaks when a merge happens beside it.
+// From shot STONE_FROM, every Nth shelf arrival is one; N starts at STONE_N0 and drops by one per new tier from 128 up.
+const STONE_FROM = 12, STONE_N0 = 9, STONE_NMIN = 4;
+const STONE_LV = 4;            // its size: a 16's
+const STONE_W = 0.5, STONE_G = 1.5, STONE_K = 3;   // heavier in contacts, pulled harder toward the pile, stiffer shape
+const STONE_GAP = 10;          // a merge's newborn breaks a stone within its radius plus this
+const STONE_C = '#77748a', STONE_INK = '#55526a', STONE_CHIP = '#68657b';
 // Skin: a damped wave that runs round each outline after a knock. Drawn only, never collided with.
 const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const SKIN = !REDUCED;
@@ -534,7 +541,8 @@ function resizeBlob(b, r, onShelf) {
   }
   if (onShelf) { b.scale /= k; b.scaleT /= k; b.scaleV /= k; b.v11 /= k; b.v12 /= k; b.v21 /= k; b.v22 /= k; }
   else { b.cx = cx; b.cy = cy; b.br = (b.br - 1) * k + 1; b.maxY = cy + (b.maxY - cy) * k; }
-  b.r = r; b.area0 *= k2; b.sqq *= k2; b.w = n / Math.pow(r, 1.25);
+  b.r = r; b.area0 *= k2; b.sqq *= k2; b.w = n / Math.pow(r, 1.25) * (b.stone ? STONE_W : 1);
+  if (b.cracks) for (const c of b.cracks) for (let q = 0; q < c.length; q++) c[q] *= k;
   const digits = b.label.length;
   b.fs = Math.min(r * 0.8, r * 1.56 / digits) * (r > 44 ? Math.max(0.78, 1 - (r - 44) * 0.0045) : 1);
   const g = n / 6.2832, sb = Math.sqrt(19.8 / r);
@@ -673,6 +681,27 @@ function makeBlob(level, sh) {
   b.fresh = true; b.hit = false; b.flashDur = 1;
   return b;
 }
+// A stone: the same pebble outline, no number, worth nothing, heavier and stiffer. Its cracks come from its shape's
+// own numbers, so a reloaded stone looks the same.
+function makeStone(sh) {
+  const b = makeBlob(STONE_LV, sh);
+  b.stone = true; b.label = ''; b.value = 0; b.w *= STONE_W; b.breaking = 0;
+  let s = Math.floor((b.sh[3] * 1000 + b.sh[4] * 100 + b.sh[5] * 10) * 1000) >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const nc = 2 + (rnd() < 0.5 ? 1 : 0), a0 = rnd() * 6.283;
+  b.cracks = [];
+  for (let c = 0; c < nc; c++) {
+    // from just inside the rim, two or three kinked steps inward
+    let th = a0 + c * 6.283 / nc + (rnd() - 0.5) * 0.9, rr = b.r * (0.86 - rnd() * 0.06);
+    const pts = [Math.cos(th) * rr, Math.sin(th) * rr], steps = 2 + (rnd() < 0.5 ? 1 : 0);
+    for (let k = 0; k < steps; k++) {
+      th += (rnd() - 0.5) * 0.9; rr -= b.r * (0.14 + rnd() * 0.1);
+      pts.push(Math.cos(th) * rr, Math.sin(th) * rr);
+    }
+    b.cracks.push(pts);
+  }
+  return b;
+}
 
 // Place a blob's particles: rest shape rotated by `ang`, scaled, then stretched (sa along `dir`, sb across).
 function placeBlob(b, x, y, ang, scale, dir, sa, sb, vx, vy) {
@@ -710,7 +739,7 @@ function solveShape(b) {
   // m: the stretch the goal shape takes on (world axes, unit area). Identity on the shelf, while newborn, and while
   // the shelf squash is still springing out of a shot (that is not the blob's own stretch).
   let m11 = 1, m12 = 0, m22 = 1;
-  if (FLOW > 0 && !b.tray && b.young <= 0 && sc > 0.5 && b.state === 0 && !b.buried && !b.popping) {   // (not while merging, trapped or popping: those keep a round goal, or they are drawn into tendrils and slivers)
+  if (FLOW > 0 && !b.stone && !b.tray && b.young <= 0 && sc > 0.5 && b.state === 0 && !b.buried && !b.popping) {   // (not while merging, trapped or popping: those keep a round goal, or they are drawn into tendrils and slivers)
     let w11 = b.v11, w12 = (b.v12 + b.v21) * 0.5, w22 = b.v22;
     const det = w11 * w22 - w12 * w12;
     if (det > 1e-6 && det === det) {
@@ -722,12 +751,13 @@ function solveShape(b) {
       if (dm > 1e-6) { const km = 1 / Math.sqrt(dm); m11 *= km; m12 *= km; m22 *= km; } else { m11 = m22 = 1; m12 = 0; }
     }
   }
+  const kSt = b.stone ? STONE_K : 1;
   for (let i = 0; i < n; i++) {
     const rx = sxm * (c * qx[i] - s * qy[i]), ry = sym * (s * qx[i] + c * qy[i]);
     const gx = cx + m11 * rx + m12 * ry, gy = cy + m12 * rx + m22 * ry;
     let dx = gx - x[i], dy = gy - y[i];
     const d2 = dx * dx + dy * dy;
-    let k = K0 + K1 * d2 * inv2; if (k > KMAX) k = KMAX;
+    let k = (K0 + K1 * d2 * inv2) * kSt; if (k > KMAX * kSt) k = KMAX * kSt;
     x[i] += dx * k; y[i] += dy * k;
     dx = x[i] - gx; dy = y[i] - gy;
     const e2 = dx * dx + dy * dy;
@@ -981,7 +1011,7 @@ function substep(h) {
       // spring (FLY_RATE is its frequency) acting on the points' velocities as a pure change of shape (along the path
       // one way, across it the other, with no net push or spin), so the blob's own motion is untouched and the launch wobble settles into the
       // drawn-out shape. It lets go the moment the blob lands.
-      if (FLY_K > 0 && b.freeT > 0.05 && b.state === 0 && b.young <= 0) {
+      if (FLY_K > 0 && !b.stone && b.freeT > 0.05 && b.state === 0 && b.young <= 0) {
         const sp = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy);
         if (sp > 40) {
           const ux = b.vcx / sp, uy = b.vcy / sp, want = 1 + Math.min(FLY_MAX, sp * FLY_K);
@@ -1006,7 +1036,7 @@ function substep(h) {
           }
         }
       }
-      const gh = G * gf * (b.touched && !b.launched && !b.buried ? PILE_G : 1) * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
+      const gh = G * gf * (b.touched && !b.launched && !b.buried ? PILE_G : 1) * (b.stone ? STONE_G : 1) * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
       for (let i = 0; i < n; i++) {
         vx[i] += ax; vy[i] += ay - gh; px[i] = x[i]; py[i] = y[i];
         x[i] += vx[i] * h; y[i] += vy[i] * h;
@@ -1039,7 +1069,7 @@ function substep(h) {
       const hits = collide(A, B) + collide(B, A);
       if (hits > 0) {
         A.touched = B.touched = true; A.hit = B.hit = true;
-        if (A.level === B.level && A.state === 0 && B.state === 0 && A.noMerge <= 0 && B.noMerge <= 0 && !over) {
+        if (A.level === B.level && !A.stone && !B.stone && A.state === 0 && B.state === 0 && A.noMerge <= 0 && B.noMerge <= 0 && !over) {
           A.state = B.state = 1; A.partner = B; B.partner = A; A.mergeT = B.mergeT = MERGE_TIME;
         }
       }
@@ -1152,7 +1182,7 @@ function skinBump(b, bi, J) {
 }
 // A knock dents the side that took it. Called on the fixed 1/60 s physics cadence, never per display frame.
 function skinKnock(b, dvx, dvy) {
-  if (b.tray || b.fresh) return;
+  if (b.tray || b.fresh || b.stone) return;
   const dv = Math.sqrt(dvx * dvx + dvy * dvy);
   if (dv <= SK_DV0) return;
   const n = b.n, x = b.x, y = b.y, cx = b.cx, cy = b.cy;
@@ -1245,7 +1275,7 @@ function finishMerge(a, b) {
     for (let i = 0; i < n; i++) { const th = i / n * 6.2832; nb.hv[i] += 1.5 * (Math.cos(2 * th + k2) + 0.6 * Math.cos(3 * th + k3)); }
     const reach = nb.r * 3;
     for (let q = 0; q < blobs.length; q++) {
-      const o = blobs[q]; if (o.dead || o.tray !== a.tray) continue;
+      const o = blobs[q]; if (o.dead || o.tray !== a.tray || o.stone) continue;
       const dx = x - o.cx, dy = y - o.cy, d = Math.sqrt(dx * dx + dy * dy);
       if (d >= reach) continue;
       let bi = 0, bd = -1e9;
@@ -1254,6 +1284,10 @@ function finishMerge(a, b) {
     }
   }
   blobs.push(nb);
+  if (!onShelf) for (let q = 0; q < blobs.length; q++) {   // a stone beside the merge cracks and breaks
+    const o = blobs[q]; if (!o.stone || o.dead || o.tray || o.breaking) continue;
+    if (Math.hypot(o.cx - x, o.cy - y) < nb.r + o.r * o.scale + STONE_GAP) breakStone(o);
+  }
   if (onShelf) { nb.tray = true; nb.sq = nb.sqT = 1; } else { combo++; comboIdle = 0; }
   const pts = nb.value * (onShelf ? 1 : combo);
   score += pts;
@@ -1314,12 +1348,51 @@ function popBlob(b) {
   }
   // (no shake here: a trapped blob pops a second or more after anything the player did, and the shake read as late: user)
 }
+// A stone breaking: it shrinks for a moment (frameLogic), then crumbles into a few flat chips that drift off and fade.
+const chips = []; for (let i = 0; i < 16; i++) chips.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, a: 0, va: 0, r: 4, c: 0, p: new Float32Array(10) });
+let chipI = 0;
+function breakStone(s, quiet) {
+  if (!s.stone || s.dead || s.breaking) return;
+  s.breaking = 1e-6; s.anim = true; s.animT = 0; s.scaleT = s.scale * 0.72; s.noMerge = 9; saveDirty = true;
+  if (!quiet) { sfxTok(); buzz(6); }
+}
+function crumbleStone(s) {
+  s.dead = true; saveDirty = true;
+  if (REDUCED) return;
+  const n = 3 + Math.floor(Math.random() * 3), rs = s.r * s.scale;
+  for (let i = 0; i < n; i++) {
+    const c = chips[chipI]; chipI = (chipI + 1) % chips.length;
+    const th = i / n * 6.283 + Math.random() * 0.8, v = 50 + Math.random() * 70;
+    c.t = 0; c.life = 0.5 + Math.random() * 0.25; c.r = rs * (0.3 + Math.random() * 0.14);
+    c.x = s.cx + Math.cos(th) * rs * 0.42; c.y = s.cy + Math.sin(th) * rs * 0.42;
+    c.vx = Math.cos(th) * v; c.vy = Math.sin(th) * v; c.a = Math.random() * 6.283; c.va = (Math.random() - 0.5) * 5; c.c = i & 1;
+    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283 + (Math.random() - 0.5) * 0.7, l = 0.7 + Math.random() * 0.35; c.p[k * 2] = Math.cos(a) * l; c.p[k * 2 + 1] = Math.sin(a) * l; }
+  }
+}
+function chipStep(dt) {
+  for (let i = 0; i < chips.length; i++) {
+    const c = chips[i]; if (c.t >= c.life) continue;
+    c.t += dt; c.vx *= Math.exp(-dt * 2); c.vy = c.vy * Math.exp(-dt * 2) - 140 * dt;   // they fall the world's way, toward the ceiling
+    c.x += c.vx * dt; c.y += c.vy * dt; c.a += c.va * dt;
+  }
+}
+function drawChips() {
+  for (let i = 0; i < chips.length; i++) {
+    const c = chips[i]; if (c.t >= c.life) continue;
+    const k = c.t / c.life, r = c.r * (1 - 0.35 * k);
+    ctx.globalAlpha = 1 - k * k; ctx.fillStyle = c.c ? STONE_CHIP : STONE_C;
+    ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.a); ctx.beginPath();
+    ctx.moveTo(c.p[0] * r, c.p[1] * r); for (let q = 1; q < 5; q++) ctx.lineTo(c.p[q * 2] * r, c.p[q * 2 + 1] * r);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, Math.min(2.4, 0.7 + 0.42 * (c - 1) + 0.13 * Math.max(0, nb.level - 5)));   // no particles: the newborn's pale stretched shape is the whole effect
 }
 let juiceLive = 0;
 function juiceStep(dt) {
-  juiceLive = 0;
+  juiceLive = 0; chipStep(dt);
   const k = Math.exp(-dt * 2.4), ks = Math.exp(-dt * 4);
   for (let i = 0; i < bits.length; i++) {
     const b = bits[i]; if (b.t >= b.life) continue;
@@ -1451,13 +1524,13 @@ function layout() {
 }
 
 const trayScale = b => Math.min(baseRadiusFor(b.level), TRAY_R) / b.r;   // the grab size never shrinks with the run
-function boardHas(level) { for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level === level) return true; return false; }
+function boardHas(level) { for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].stone && blobs[i].level === level) return true; return false; }
 // The smallest launch tier retires as the run climbs: 2s stop at 128, 4s at 512, 8s at 2048, and so on.
 // Blobs already on the board stay; only new shelf arrivals obey the floor.
 const spawnFloor = () => Math.max(1, 1 + Math.ceil((peak - 6) / 2));
 function pickLevel() {
   let maxL = 4;
-  for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > maxL) maxL = blobs[i].level;
+  for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && !blobs[i].stone && blobs[i].level > maxL) maxL = blobs[i].level;
   const lo = spawnFloor();
   const top = Math.max(lo + 2, Math.min(lo + 4, maxL - 2));
   let total = 0; const w = [];
@@ -1475,7 +1548,7 @@ function reset() {
   if (booted && !starting) cgGame(true);   // a new run is play again
   rewardedRun = false; runT0 = time;
   blobs.length = 0; shuffleRun(); runSizeScale = 1; sizeDirty = true;
-  score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
+  score = shown = 0; combo = 0; peak = 0; shotN = 0; sinceStone = 0; for (const c of chips) c.t = 9; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; shakeHeat = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; bumpSeen = 0; scoreS = scoreV = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   fanfare.t = 9; fanfare.b = null; glow.a = 0;
@@ -1514,9 +1587,9 @@ function saveRun() {
   const bl = [];
   let moving = false;
   for (let i = 0; i < blobs.length; i++) {
-    const b = blobs[i]; if (b.dead || b.popping) continue;
+    const b = blobs[i]; if (b.dead || b.popping || b.breaking) continue;
     const e = [b.level, Math.round(b.cx * 10) / 10, Math.round(b.cy * 10) / 10, b.tray ? 0 : Math.round(b.vcx), b.tray ? 0 : Math.round(b.vcy),
-      (b.tray ? 1 : 0) | (!b.tray && b.launched && !b.touched ? 2 : 0), Math.round(Math.atan2(b.sn, b.cs) * 100) / 100];
+      (b.tray ? 1 : 0) | (!b.tray && b.launched && !b.touched ? 2 : 0) | (b.stone ? 4 : 0), Math.round(Math.atan2(b.sn, b.cs) * 100) / 100];
     if (!b.tray) {
       const p = new Array(b.n * 2);
       for (let k = 0; k < b.n; k++) { p[k * 2] = Math.round(b.x[k] * 10); p[k * 2 + 1] = Math.round(b.y[k] * 10); }
@@ -1527,7 +1600,7 @@ function saveRun() {
     bl.push(e);
   }
   saveDirty = moving;   // keep saving while the board is still moving, then once more at rest
-  try { store.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), blobs: bl })); } catch (e) {}
+  try { store.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), shots: shotN, since: sinceStone, blobs: bl })); } catch (e) {}
 }
 function loadRun() {
   if (MERGE_LAB) return false;
@@ -1548,12 +1621,13 @@ function loadRun() {
   runSizeScale = sizeTarget(); sizeDirty = false;
   dangerT = isFinite(+d.danger) ? Math.max(0, Math.min(DANGER_HOLD, +d.danger)) : 0;
   openQ = Array.isArray(d.openQ) ? d.openQ.filter(l => Number.isInteger(l) && l >= 1 && l <= 12).slice(0, 3) : [];
+  shotN = Number.isInteger(d.shots) && d.shots >= 0 ? d.shots : 0; sinceStone = Number.isInteger(d.since) && d.since >= 0 && d.since < 50 ? d.since : 0;   // (older saves have neither)
   for (const e of d.blobs) {
     const x = +e[1], y = +e[2], vx = +e[3] || 0, vy = +e[4] || 0, f = e[5] | 0, a = isFinite(+e[6]) ? +e[6] : 0;
     const q = e[8];   // its own pebble shape, if the save has a sane one
     const shOk = Array.isArray(q) && q.length === 7 && q.every(v => typeof v === 'number' && isFinite(v)) && Number.isInteger(q[6]) && q[6] >= 14 && q[6] <= MAXN &&
       q[0] >= 0 && q[0] < 0.2 && q[1] >= 0 && q[1] < 0.2 && q[2] >= 0 && q[2] < 0.2;
-    const b = makeBlob(e[0], shOk ? q : undefined);
+    const b = f & 4 ? makeStone(shOk ? q : undefined) : makeBlob(e[0], shOk ? q : undefined);
     if (f & 1) {
       const ts = trayScale(b), rs = b.r * ts;
       placeBlob(b, clamp(x, WALL_L + rs + 4, WALL_R - rs - 4), TRAY_Y, a, ts, 0, 1, 1, 0, 0);
@@ -1590,10 +1664,19 @@ function loadRun() {
 
 function trayCount() { let c = 0; for (let i = 0; i < blobs.length; i++) if (blobs[i].tray) c++; return c; }
 
+// Stones: from shot STONE_FROM, every Nth arrival; N shrinks with each new tier from 128 up. One on the shelf at most.
+let shotN = 0, sinceStone = 0;
+const stoneEvery = () => Math.max(STONE_NMIN, STONE_N0 - Math.max(0, peak - 6));
+function stoneNext() {
+  if (MERGE_LAB || shotN < STONE_FROM) return false;
+  if (++sinceStone < stoneEvery()) return false;
+  for (let i = 0; i < blobs.length; i++) if (blobs[i].tray && blobs[i].stone && !blobs[i].dead) return false;   // (it stays due: the next arrival after that one leaves)
+  sinceStone = 0; return true;
+}
 // A new shape slides onto the shelf from the left (0) or right (1) gate.
 function spawnTray(side) {
   while (openQ.length && openQ[0] < spawnFloor()) openQ.shift();
-  const b = makeBlob(openQ.length ? openQ.shift() : pickLevel()), ts = trayScale(b);
+  const b = stoneNext() ? makeStone() : makeBlob(openQ.length ? openQ.shift() : pickLevel()), ts = trayScale(b);
   const x = side === 0 ? WALL_L - b.r * ts * 1.15 : WALL_R + b.r * ts * 1.15;   // starts beyond the edge of the screen
   placeBlob(b, x, TRAY_Y, Math.random() * 6.28, ts, 0, 1, 1, side === 0 ? ENTER_V : -ENTER_V, 0);
   b.tray = true; b.entering = true; b.scale = b.scaleT = ts; b.sq = 1.18; b.sqT = 1; b.anim = true; b.animT = 0; b.noMerge = 0.3;
@@ -1687,7 +1770,7 @@ function fire(b) {
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
   b.tray = false; b.launched = true; b.scaleT = 1; b.sqT = 0; b.anim = true; b.animT = 0;   // springs back to full size: the launch stretch
-  saveDirty = true;
+  saveDirty = true; shotN++;
   b.vcx = b.pvx = dx; b.vcy = b.pvy = dy; b.touched = false; b.sinceTouch = 0; b.noMerge = 0;
   combo = 0;
   // on touch it is this release that wakes the audio, a moment later: still play the launch then
@@ -1712,7 +1795,8 @@ function frameLogic(dt) {
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i];
     if (b.flash > 0) b.flash -= dt / b.flashDur;
-    if (!b.popping && b.buriedT > POP_AFTER && b.level <= 4 && !over) { b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; }
+    if (b.breaking) { b.breaking += dt; if (b.breaking > 0.09 && !b.dead) crumbleStone(b); }
+    else if (!b.popping && !b.stone && b.buriedT > POP_AFTER && b.level <= 4 && !over) { b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; }
     else if (b.popping) { b.popping += dt; if (b.popping > POP_TIME) popBlob(b); }
     if (SKIN) skinStep(b, dt);
     // numbers tumble with the blob, then right themselves so they stay readable
@@ -1811,6 +1895,7 @@ function lose() {
 const cash = []; let cashI = 0, cashT = 0, cashGap = 0.08;
 function cashPop(b, i, n) {
   if (b.dead) return;
+  if (b.stone) { breakStone(b, true); sfxCash(n > 1 ? i / (n - 1) : 1); return; }
   b.dead = true;
   const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;
   rg.t = 0; rg.life = 0.32; rg.x = b.cx; rg.y = b.cy; rg.r0 = b.r * 0.55; rg.r1 = b.r * 1.5; rg.c = cidx(b.level);
@@ -1829,14 +1914,16 @@ function revive() {
   cgGame(true);
   reviveUsed = true; offer = false; over = false; ended = false; reviveEl.hidden = true;
   dangerT = -1.5; dangerPh = 0; warn = false; count = 0;   // a moment's grace before the line counts again
-  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > top) top = blobs[i].level;
-  const field = blobs.filter(b => !b.tray && !b.dead && b.level < top).sort((p, q) => q.maxY - p.maxY);
-  const stuck = blobs.filter(b => !b.tray && !b.dead && b.level === top && b.maxY > DANGER_Y - 40);   // a biggest blob that is itself at the line
+  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && !blobs[i].stone && blobs[i].level > top) top = blobs[i].level;
+  const field = blobs.filter(b => !b.tray && !b.dead && (b.level < top || b.stone)).sort((p, q) => q.maxY - p.maxY);
+  const stuck = blobs.filter(b => !b.tray && !b.dead && !b.stone && b.level === top && b.maxY > DANGER_Y - 40);   // a biggest blob that is itself at the line
   const pins = b => stuck.some(t => b.cy < t.cy && b.maxY > t.cy - t.r - REVIVE_BAND && Math.abs(b.cx - t.cx) < (b.r + t.r) * 0.9);   // what rests on it (gravity is toward the ceiling)
   let n = 0;
   for (const b of field) {
     if (n >= 3 && b.maxY < DANGER_Y - REVIVE_BAND && !pins(b)) continue;
-    b.dead = true; n++;
+    n++;
+    if (b.stone) { breakStone(b, true); continue; }   // (the revive's own sound and buzz cover it)
+    b.dead = true;
     if (!REDUCED) for (let i = 0; i < 10; i++) {
       const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
       const th = Math.random() * 6.283, v = 120 + Math.random() * 220;
@@ -2005,6 +2092,11 @@ function sfxPop() {              // a blob bursting: a quick falling blip
   if (t - lastPop < 0.05) return; lastPop = t;
   const j = 0.9 + Math.random() * 0.2;
   voice(480 * j, 300 * j, 0.06, t, [[0.012, 0.08], [0.035, 0.055], [0.09, 0]]);
+}
+function sfxTok() {              // a stone breaking: a soft low wooden tok, a falling knock with a quiet low ring under it
+  if (!audible()) return; const t = actx.currentTime, j = 0.94 + Math.random() * 0.12;
+  voice(260 * j, 150 * j, 0.05, t, [[0.008, 0.09], [0.03, 0.045], [0.1, 0]]);
+  note(131 * j, t + 0.005, 0.07, 1.2, 0);
 }
 // The low drum under a big merge: 170 Hz falling to 55 in a fifth of a second, with a brief octave on top so a
 // phone speaker tells it too. It goes straight out, not through the room.
@@ -2278,7 +2370,7 @@ function pathPts(x, y, n) {
 }
 const fontOf = b => { if (b.fontFs !== b.fs) { b.fontFs = b.fs; b.font = '900 ' + b.fs.toFixed(1) + 'px ' + FONT; } return b.font; };
 function label(b, alpha) {
-  if (alpha <= 0.02) return;
+  if (alpha <= 0.02 || b.stone) return;
   const u = b.scale, k = 0.35, ca = Math.cos(b.la), sa = Math.sin(b.la);
   let v11 = u + k * (b.v11 - u), v22 = u + k * (b.v22 - u), v12 = k * b.v12, v21 = k * b.v21;
   if (v11 < 0.45) v11 = 0.45; else if (v11 > 1.7) v11 = 1.7;
@@ -2298,6 +2390,17 @@ function drawBlob(b, outline) {
   const sk = SKIN && !b.fresh, X = sk ? b.RX : b.x, Y = sk ? b.RY : b.y;
   const lx = b.tray ? 0 : b.vcx * acc, ly = b.tray ? 0 : b.vcy * acc, led = lx !== 0 || ly !== 0;
   if (led) ctx.translate(lx, ly);
+  if (b.stone) {   // flat grey pebble with a few thin darker cracks, turning with the body
+    ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = STONE_C; ctx.fill();
+    if (outline) { ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.stroke(); }
+    const sc = b.scale, cs = b.cs * sc, sn = b.sn * sc;
+    ctx.save(); ctx.transform(cs, sn, -sn, cs, b.cx, b.cy);
+    ctx.strokeStyle = STONE_INK; ctx.lineWidth = 2.2 / sc; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+    for (const p of b.cracks) { ctx.moveTo(p[0], p[1]); for (let q = 2; q < p.length; q += 2) ctx.lineTo(p[q], p[q + 1]); }
+    ctx.stroke(); ctx.restore();
+    if (led) ctx.translate(-lx, -ly);
+    return;
+  }
   ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = c.hex; ctx.fill();
   let fl = b.flash;                 // merge flash: a white veil over the same inside, fading away
   if (b.state === 1) fl = Math.max(fl, 0.7 * (1 - Math.max(0, b.mergeT) / MERGE_TIME));   // a merging pair brightens as it closes
@@ -2330,7 +2433,7 @@ function draw() {
 
   // the panel is the play field: the ceiling is the "floor". No gate bars: shapes just arrive from the sides.
   // Its slate lights up in the merge colour from the top and carries a faint standing tint of the biggest blob.
-  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level > top) top = blobs[i].level;
+  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].stone && blobs[i].level > top) top = blobs[i].level;
   const ti = cidx(Math.max(1, top)), gc = COLORS[glow.c], tc = COLORS[ti], ga = Math.round(glow.a * glow.a * (2 - glow.a) * 64) / 64;
   if (ti !== fxTop || glow.c !== fxC || ga !== fxA || H !== fxH || !fieldPaint) {
     fieldPaint = ctx.createLinearGradient(0, CEIL, 0, H);
@@ -2422,6 +2525,7 @@ function draw() {
     if (f !== lf) { lf = f; ctx.font = f; }
     label(b, 1);   // (the grabbed shape only gets the outline; no patch, no black number)
   }
+  drawChips();
   ctx.restore();
 
   // the limit: a drifting row of dots, fading in as the pile comes close; coral and beating once the
@@ -2806,10 +2910,12 @@ window.__udm = { blobs, tick, draw, reset,
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   audioLab,
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
+  stone(x, y) { const b = makeStone(); placeBlob(b, x, y, Math.random() * 6.28, 1, 0, 1, 1, 0, 0); b.touched = true; b.sinceTouch = 1; blobs.push(b); return b; },
+  breakStone, stones: () => ({ shotN, sinceStone, every: stoneEvery(), field: blobs.filter(b => b.stone && !b.tray && !b.dead).length, shelf: blobs.filter(b => b.stone && b.tray && !b.dead).length }),
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   pickLevel, popBlob, setPeak: v => { peak = v; }, saveRun, loadRun, clearSave, lose, revive, endRun, setDanger: v => { dangerT = v; },
   lose2: () => ({ over, offer, ended, reviveUsed, count, lineA, dangerT }),
   tut: v => { if (v !== undefined) { tutDone = !v; tutT = 0; try { if (v) store.removeItem('udm_tut'); } catch (e) {} } return { tutDone, tutT }; },
-  perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
+  perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, stones: blobs.filter(b => b.stone && !b.dead).length, shots: shotN, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
