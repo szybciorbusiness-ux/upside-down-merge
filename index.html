@@ -2966,8 +2966,10 @@ function useBoost(i) {
     if (!boostAds()) return;   // dim: nothing to do until a new tier refills it
     if (i === 2 && smashOn) { smashOn = false; boostUI(); }
     aiming = false; armed = false; sel = null;
-    // a rewarded ad: a finished one gives one of this booster, and nothing else
+    // a rewarded ad: a finished one gives one of this booster, and nothing else. Play stops for it (CrazyGames: a break)
+    cgGame(false);
     portalAd('rewarded', (ok, code) => {
+      cgGame(!over && !sheetOpen && !titleOn);
       if (ok) { if (!over) { boost[i] = Math.min(99, boost[i] + 1); saveDirty = true; boostPop(i); sfxUi(true); } }
       else if (code === 'adsDisabled') { adsOff = true; reviveLook(); }
       boostUI();
@@ -2998,7 +3000,7 @@ function swapShelf() {
   if (sel && sel.leaving) { sel = null; aiming = false; armed = false; }
   if (hover && hover.leaving) hover = null;
   swapDeal = TRAY_MAX - trayCount();
-  for (let s = 0; s < 2; s++) gateT[s] = Math.min(gateT[s], 1 - 0.22 / GATE_TIME);   // the new ones come in a beat after the old ones go
+  for (let s = 0; s < 2; s++) gateT[s] = Math.max(gateT[s], 1 - 0.4 / GATE_TIME);   // the new ones come in as the old ones reach the edge (not a full gate wait later)
   return true;
 }
 // The pile blob or stone under a point (world units), for Smash: the one whose middle is nearest, relative to its size.
