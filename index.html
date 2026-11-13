@@ -454,7 +454,7 @@ const STONE_FROM = 12, STONE_N0 = 9, STONE_NMIN = 4;
 const STONE_LV = 4;            // its size: a 16's
 const STONE_W = 0.5, STONE_G = 1.5, STONE_K = 3;   // heavier in contacts, pulled harder toward the pile, stiffer shape
 const STONE_GAP = 10;          // a merge's newborn breaks a stone within its radius plus this
-const STONE_C = '#77748a', STONE_INK = '#55526a', STONE_CHIP = '#68657b';
+const STONE_C = '#77748a', STONE_INK = '#4c495f', STONE_CHIP = '#68657b';
 // Skin: a damped wave that runs round each outline after a knock. Drawn only, never collided with.
 const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const SKIN = !REDUCED;
@@ -692,7 +692,7 @@ function makeStone(sh) {
   b.cracks = [];
   for (let c = 0; c < nc; c++) {
     // from just inside the rim, two or three kinked steps inward
-    let th = a0 + c * 6.283 / nc + (rnd() - 0.5) * 0.9, rr = b.r * (0.86 - rnd() * 0.06);
+    let th = a0 + c * 6.283 / nc + (rnd() - 0.5) * 0.9, rr = b.r * (0.78 - rnd() * 0.06);
     const pts = [Math.cos(th) * rr, Math.sin(th) * rr], steps = 2 + (rnd() < 0.5 ? 1 : 0);
     for (let k = 0; k < steps; k++) {
       th += (rnd() - 0.5) * 0.9; rr -= b.r * (0.14 + rnd() * 0.1);
@@ -986,7 +986,7 @@ function substep(h) {
     } else {
       let gf = 1, sqx = 0, sqy = 0, held = 0;
       b.buried = false;
-      if (b.touched && b.state === 0 && b.young <= 0) {
+      if (b.touched && b.state === 0 && b.young <= 0 && !b.stone) {   // (a stone is never squeezed out: it sinks and stays)
         const ra = b.r * b.scale;
         for (let q = 0; q < nb; q++) {
           const o = blobs[q]; if (o === b || o.tray || o.dead || o.level <= b.level) continue;
@@ -2095,7 +2095,7 @@ function sfxPop() {              // a blob bursting: a quick falling blip
 }
 function sfxTok() {              // a stone breaking: a soft low wooden tok, a falling knock with a quiet low ring under it
   if (!audible()) return; const t = actx.currentTime, j = 0.94 + Math.random() * 0.12;
-  voice(260 * j, 150 * j, 0.05, t, [[0.008, 0.09], [0.03, 0.045], [0.1, 0]]);
+  voice(260 * j, 150 * j, 0.05, t, [[0.014, 0.08], [0.035, 0.04], [0.11, 0]]);
   note(131 * j, t + 0.005, 0.07, 1.2, 0);
 }
 // The low drum under a big merge: 170 Hz falling to 55 in a fifth of a second, with a brief octave on top so a
