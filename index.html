@@ -72,6 +72,28 @@ body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-i
 #gear svg{width:100%;height:100%}
 #gear:active{transform:scale(.92)}
 #gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+/* the boosters: three round flat buttons, a count badge each. Phone: one row in the HUD between the score and the gear;
+   wide frame: a column under the gear */
+#boost{position:absolute;left:calc(254*var(--u));top:calc(11*var(--u));display:flex;gap:calc(10*var(--u));transform:translateX(-50%)}
+.bst{position:relative;flex:none;display:grid;place-items:center;width:calc(40*var(--u));height:calc(40*var(--u));padding:0;border:0;border-radius:50%;
+  background:var(--sh-row,#272734);color:rgba(235,233,242,.86);cursor:pointer;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease,opacity .2s ease}
+.bst .ic{display:block;width:56%;height:56%}
+.bst:active{scale:.92;transition-duration:.07s}
+.bst.on{background:var(--sh-tog,#4a4a58);color:#fff}
+.bst.empty{opacity:.34;cursor:default}
+.bst.empty:active{scale:1}
+.bst.ad .ic{opacity:.5}
+.bst .bn{position:absolute;right:calc(-5*var(--u));bottom:calc(-4*var(--u));box-sizing:border-box;min-width:calc(18*var(--u));height:calc(18*var(--u));padding:0 calc(4*var(--u));
+  border-radius:999px;background:#ebe9f2;color:#1e1e2a;font:900 calc(11*var(--u))/calc(18*var(--u)) var(--font-display);text-align:center;font-variant-numeric:tabular-nums}
+.bst .bn svg{display:block;width:calc(14*var(--u));height:calc(18*var(--u));margin:0 calc(-1*var(--u))}
+.bst.empty .bn{display:none}
+.bst.pop{animation:bpop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes bpop{0%{scale:1}30%{scale:1.3}100%{scale:1}}
+.bst:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+body.wide #boost{left:calc(50% + var(--colw)/2 + 24*var(--u));top:calc(78*var(--u));flex-direction:column;gap:calc(16*var(--u));transform:none;pointer-events:auto}
+body.wide .bst{width:calc(48*var(--u));height:calc(48*var(--u))}
+body.wide .bst .bn{min-width:calc(20*var(--u));height:calc(20*var(--u));font-size:calc(12*var(--u));line-height:calc(20*var(--u))}
+@media (prefers-reduced-motion:reduce){.bst{transition:none}.bst.pop{animation:none}}
 /* settings: a bottom sheet over a dimmed screen. It rises on the sheet curve, follows a downward drag, and leaves by
    a drag, a tap on the dimmed screen, or Escape. More swaps it for a second sheet of the same build. The game runs in slow motion behind it. */
 #scrim{position:absolute;inset:0;z-index:3;background:rgba(0,0,0,.4);opacity:0;transition:opacity .35s ease}
@@ -289,6 +311,11 @@ body.titling #back{background:linear-gradient(#232330,#1e1e2a 60%)!important}
     <header id="hud">
       <h1 id="brand" aria-label="Score">0</h1>
       <button id="gear" type="button" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
+      <div id="boost">
+        <button class="bst" id="b-hint" type="button" aria-label="Hint"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2a7.1 7.1 0 0 0-4.3 12.75c.75.57 1.2 1.3 1.2 2.1v.45h6.2v-.45c0-.8.45-1.53 1.2-2.1A7.1 7.1 0 0 0 12 2.2z"/><rect x="9" y="19" width="6" height="2.8" rx="1.4"/></svg><b class="bn"></b></button>
+        <button class="bst" id="b-swap" type="button" aria-label="Swap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h14.5M15 3.8l3.7 3.7-3.7 3.7M20 16.5H5.5M9 12.8l-3.7 3.7L9 20.2"/></svg><b class="bn"></b></button>
+        <button class="bst" id="b-smash" type="button" aria-label="Smash"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g transform="rotate(-40 12 12)"><rect x="4.5" y="2.6" width="15" height="7" rx="2.2"/><rect x="10.5" y="8.5" width="3" height="13.2" rx="1.5"/></g></svg><b class="bn"></b></button>
+      </div>
     </header>
     <div id="stage">
       <canvas id="c" aria-label="Blob Blitz play field"></canvas>
@@ -401,7 +428,7 @@ function cgHappy() {    // their site-wide celebration: kept rare (a record, a n
 }
 // An ad through the portal. The game stands still, takes no input and is muted while it runs. done(ok, code) always
 // comes, even if the portal never answers (a watchdog ends the request).
-function portalAd(type, done) {
+function portalAd(type, done, tag) {
   if (!cgOn && !ytOn) { done(true, 'none'); return; }
   const id = ++adSeq; let started = false, finished = false, late = false;
   const hold = () => { adBusy = true; document.body.classList.add('adbusy'); };
@@ -419,7 +446,7 @@ function portalAd(type, done) {
       CG.ad.requestAd(type, { adStarted: () => { if (id !== adSeq) return; started = true; if (finished) { late = true; hold(); } adMute = true; applyMute(); }, adFinished: () => end(true, ''), adError: e => end(false, (e && e.code) || 'other') });
     } else {
       started = true; adMute = true; applyMute();   // (YouTube does not say when its ad starts: quiet for the whole request)
-      const p = type === 'rewarded' ? YT.ads.requestRewardedAd('revive') : YT.ads.requestInterstitialAd();
+      const p = type === 'rewarded' ? YT.ads.requestRewardedAd(tag || 'revive') : YT.ads.requestInterstitialAd();
       p.then(r => end(type === 'rewarded' ? r === true : true, type === 'rewarded' && r !== true ? 'unfilled' : ''), () => end(false, 'other'));
     }
   } catch (e) { end(false, 'other'); }
@@ -604,6 +631,10 @@ let reachTop = 0, titleOn = false;
 const ladPop = new Float32Array(LAD_TOP + 1).fill(9), ladBlink = new Float32Array(LAD_TOP + 1).map(() => 1 + Math.random() * 5);
 const badge = { lv: 0, t: 9 };   // the phone's new-tier badge (no ladder there)
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
+// Boosters (Hint, Swap, Smash): charges this run, which one the next new tier from 128 up refills, Hint shown until the
+// next shot, Smash waiting for a tap on the pile, and how many of the next shelf arrivals are a Swap's fresh deal.
+const BOOST_START = [1, 1, 1];
+let boost = BOOST_START.slice(), boostCy = 0, hintOn = false, smashOn = false, swapDeal = 0;
 // Losing, step by step: the line shows as the pile nears it; past it a 3-2-1 counts down on the line; at zero the run
 // stops and a revive is offered once (a ring timer); declined or timed out, the game-over card says why.
 const REVIVE_TIME = 6, REVIVE_BAND = 120;
@@ -958,6 +989,7 @@ function limitNotch(b) {
 function collideWalls(b) {
   const n = b.n, x = b.x, y = b.y, px = b.px, py = b.py;
   b.wl.fill(0);   // (wallHit is counted across both contact passes and cleared in the velocity pass)
+  if (b.leaving) return;   // a Swap's leaving shape slides out through the wall
   if (b.entering) { if (b.cx - b.br > WALL_L + 1 && b.cx + b.br < WALL_R - 1) b.entering = false; else return; }
   for (let p = 0; p < planes.length; p++) {
     const pl = planes[p], nx = pl[0], ny = pl[1], dd = pl[2];
@@ -1011,7 +1043,8 @@ function substep(h) {
       // shelf: no gravity, drawn toward the middle of the row, heavily damped.
       // The grabbed shape follows the pull instead, so it squashes back like a slingshot.
       let tx = LX, ty = TRAY_Y, kx = b.entering ? 40 : 14, lim = b.entering ? 3000 : 800;
-      if (b === sel && armed) { tx = selX + pullX; ty = TRAY_Y + pullY; kx = 160; lim = 5000; }
+      if (b.leaving) { tx = b.leaving < 0 ? WALL_L - b.r * b.scale * 2 - 40 : WALL_R + b.r * b.scale * 2 + 40; kx = 40; lim = 3000; }
+      else if (b === sel && armed) { tx = selX + pullX; ty = TRAY_Y + pullY; kx = 160; lim = 5000; }
       else if (b === sel) { tx = selX; kx = 60; lim = 3000; }   // held: a sliding shape stops under the finger
       else if (sel && armed) kx = 0;        // neighbours hold still while one is pulled back
       let ax = (tx - b.cx) * kx; if (ax > lim) ax = lim; else if (ax < -lim) ax = -lim;
@@ -1096,6 +1129,7 @@ function substep(h) {
     for (let j = i + 1; j < nb; j++) {
       const B = blobs[j];
       if (A.state === 1 && A.partner === B) continue;
+      if (A.leaving || B.leaving) continue;   // a Swap's leaving shape touches nothing on its way out
       if (A.tray !== B.tray) {   // shelf vs field: only a shot on its way back down, near the shelf, touches the shelf
         const f = A.tray ? B : A;
         if (f.launched || f.vcy < 40 || f.cy < TRAY_Y - 150 || f.state === 1) continue;   // a fresh shot passes its shelf neighbours
@@ -1330,6 +1364,7 @@ function finishMerge(a, b) {
   const pts = nb.value * (onShelf ? 1 : combo);
   score += pts;
   if (score > best) { best = score; bestDirty = true; }
+  if (nb.level > peak && nb.level >= 7) grantBoost();   // each new tier from 128 up refills a booster, in turn
   if (nb.level > peak && nb.level >= 6) newTier(nb.level);   // the first 64 (and up) of the run: its ladder slot pops, or the phone's badge
   if (nb.level > peak) peak = nb.level;
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
@@ -1376,8 +1411,10 @@ function ripple(b, j0) {
 function popBlob(b) {
   b.dead = true; saveDirty = true; sfxPop();
   const x = b.cx, y = b.cy, ci = cidx(b.level);
-  score += b.value; if (score > best) { best = score; bestDirty = true; }
-  scoreBump = Math.max(scoreBump, 0.5);
+  if (!b.smashed) {   // (a Smash scores nothing)
+    score += b.value; if (score > best) { best = score; bestDirty = true; }
+    scoreBump = Math.max(scoreBump, 0.5);
+  }
   if (REDUCED) return;
   for (let i = 0; i < 14; i++) {
     const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
@@ -1610,6 +1647,7 @@ function reset() {
   hitStop = 0; scoreBump = 0; bumpSeen = 0; scoreS = scoreV = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   fanfare.t = 9; fanfare.b = null; glow.a = 0;
   aiming = false; armed = false; sel = hover = null;
+  boost = BOOST_START.slice(); boostCy = 0; hintOn = false; smashOn = false; swapDeal = 0; boostUI();
   gateT[0] = 0.8; gateT[1] = 0.45; gateFlash[0] = gateFlash[1] = 0; openQ = [1, 2, 3];
   // Opening board: 8 4 2 8 2 4 along the ceiling. A 2 into the left 2 chains 4 → 8 → 16.
   const order = [3, 2, 1, 3, 1, 2];
@@ -1644,7 +1682,7 @@ function saveRun() {
   const bl = [];
   let moving = false;
   for (let i = 0; i < blobs.length; i++) {
-    const b = blobs[i]; if (b.dead || b.popping || b.breaking) continue;
+    const b = blobs[i]; if (b.dead || b.popping || b.breaking || b.leaving) continue;
     const e = [b.level, Math.round(b.cx * 10) / 10, Math.round(b.cy * 10) / 10, b.tray ? 0 : Math.round(b.vcx), b.tray ? 0 : Math.round(b.vcy),
       (b.tray ? 1 : 0) | (!b.tray && b.launched && !b.touched ? 2 : 0) | (b.stone ? 4 : 0), Math.round(Math.atan2(b.sn, b.cs) * 100) / 100];
     if (!b.tray) {
@@ -1657,7 +1695,7 @@ function saveRun() {
     bl.push(e);
   }
   saveDirty = moving;   // keep saving while the board is still moving, then once more at rest
-  try { store.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), shots: shotN, since: sinceStone, blobs: bl })); } catch (e) {}
+  try { store.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), shots: shotN, since: sinceStone, boost: boost.slice(), bcy: boostCy, hint: hintOn ? 1 : 0, deal: swapDeal, blobs: bl })); } catch (e) {}
 }
 function loadRun() {
   if (MERGE_LAB) return false;
@@ -1679,6 +1717,9 @@ function loadRun() {
   dangerT = isFinite(+d.danger) ? Math.max(0, Math.min(DANGER_HOLD, +d.danger)) : 0;
   openQ = Array.isArray(d.openQ) ? d.openQ.filter(l => Number.isInteger(l) && l >= 1 && l <= 12).slice(0, 3) : [];
   shotN = Number.isInteger(d.shots) && d.shots >= 0 ? d.shots : 0; sinceStone = Number.isInteger(d.since) && d.since >= 0 && d.since < 50 ? d.since : 0;   // (older saves have neither)
+  if (Array.isArray(d.boost) && d.boost.length === 3 && d.boost.every(v => Number.isInteger(v) && v >= 0 && v <= 99)) boost = d.boost.slice();   // (older saves: the run's starting 1/1/1)
+  boostCy = Number.isInteger(d.bcy) && d.bcy >= 0 && d.bcy < 3 ? d.bcy : 0; hintOn = d.hint === 1; swapDeal = Number.isInteger(d.deal) && d.deal >= 0 && d.deal <= 2 ? d.deal : 0;
+  boostUI();
   for (const e of d.blobs) {
     const x = +e[1], y = +e[2], vx = +e[3] || 0, vy = +e[4] || 0, f = e[5] | 0, a = isFinite(+e[6]) ? +e[6] : 0;
     const q = e[8];   // its own pebble shape, if the save has a sane one
@@ -1719,7 +1760,7 @@ function loadRun() {
   return true;
 }
 
-function trayCount() { let c = 0; for (let i = 0; i < blobs.length; i++) if (blobs[i].tray) c++; return c; }
+function trayCount() { let c = 0; for (let i = 0; i < blobs.length; i++) if (blobs[i].tray && !blobs[i].leaving) c++; return c; }
 
 // Stones: from shot STONE_FROM, every Nth arrival; N shrinks with each new tier from 128 up. One on the shelf at most.
 let shotN = 0, sinceStone = 0;
@@ -1733,7 +1774,16 @@ function stoneNext() {
 // A new shape slides onto the shelf from the left (0) or right (1) gate.
 function spawnTray(side) {
   while (openQ.length && openQ[0] < spawnFloor()) openQ.shift();
-  const b = stoneNext() ? makeStone() : makeBlob(openQ.length ? openQ.shift() : pickLevel()), ts = trayScale(b);
+  let b;
+  if (swapDeal > 0) {   // a Swap's fresh deal: never a stone, never the shape that just left this side (if the pool allows)
+    swapDeal--; let lv = pickLevel();
+    // (and never the pair that left, the other way round)
+    const other = swapDeal === 0 ? blobs.find(o => o.tray && !o.dead && !o.leaving && !o.stone) : null;
+    const same = l => l === swapGone[side] || (other && ((l === swapGone[0] && other.level === swapGone[1]) || (l === swapGone[1] && other.level === swapGone[0])));
+    for (let k = 0; k < 6 && same(lv); k++) lv = pickLevel();
+    b = makeBlob(lv);
+  } else b = stoneNext() ? makeStone() : makeBlob(openQ.length ? openQ.shift() : pickLevel());
+  const ts = trayScale(b);
   const x = side === 0 ? WALL_L - b.r * ts * 1.15 : WALL_R + b.r * ts * 1.15;   // starts beyond the edge of the screen
   placeBlob(b, x, TRAY_Y, Math.random() * 6.28, ts, 0, 1, 1, side === 0 ? ENTER_V : -ENTER_V, 0);
   b.tray = true; b.entering = true; b.scale = b.scaleT = ts; b.sq = 1.18; b.sqT = 1; b.anim = true; b.animT = 0; b.noMerge = 0.3;
@@ -1743,7 +1793,7 @@ function spawnTray(side) {
 function pickTray(x, y, maxDist) {
   let bestB = null, bd = 1e18;
   for (let i = 0; i < blobs.length; i++) {
-    const b = blobs[i]; if (!b.tray || b.state !== 0) continue;
+    const b = blobs[i]; if (!b.tray || b.state !== 0 || b.leaving) continue;
     const d = Math.hypot(b.cx - x, b.cy - y) - b.r * b.scale;
     if (d < bd) { bd = d; bestB = b; }
   }
@@ -1755,9 +1805,9 @@ try { tutDone = store.getItem('udm_tut') === '1'; } catch (e) {}
 if (best > 0) tutDone = true;   // has scored before: not a first run
 const TUT_PERIOD = 2.7, TUT_PULL = 84;
 function tutBlob() {   // the shelf shape the hand demonstrates on: stays the same one while it is there
-  if (tutB && !tutB.dead && tutB.tray && !tutB.entering && tutB.state === 0 && !tutB.stone) return tutB;
+  if (tutB && !tutB.dead && tutB.tray && !tutB.entering && !tutB.leaving && tutB.state === 0 && !tutB.stone) return tutB;
   tutB = null;
-  for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (b.tray && !b.dead && !b.entering && b.state === 0 && !b.stone) { tutB = b; break; } }   // (never a stone: the demo shows a merge)
+  for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (b.tray && !b.dead && !b.entering && !b.leaving && b.state === 0 && !b.stone) { tutB = b; break; } }   // (never a stone: the demo shows a merge)
   return tutB;
 }
 function labMerge(L) {   // L: the tier that comes out (2 is the "4")
@@ -1816,7 +1866,8 @@ function drawTutorial() {
   ctx.restore();
 }
 function fire(b) {
-  if (!b || !b.tray || b.dead || over) return;
+  if (!b || !b.tray || b.dead || b.leaving || over) return;
+  if (hintOn) { hintOn = false; boostUI(); }   // a Hint lasts until the next shot
   if (!tutDone) { tutDone = true; try { store.setItem('udm_tut', '1'); } catch (e) {} }
   initAudio();
   if (b.entering) {   // flicked while still sliding in: it starts from fully inside the walls
@@ -1852,6 +1903,7 @@ function frameLogic(dt) {
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i];
     if (b.flash > 0) b.flash -= dt / b.flashDur;
+    if (b.leaving && !b.dead) { b.leaveT += dt; const rs = b.br * b.scale; if (b.cx + rs < WALL_L - 2 || b.cx - rs > WALL_R + 2 || b.leaveT > 1.6) b.dead = true; }
     if (b.breaking) { b.breaking += dt; if (b.breaking > 0.09 && !b.dead) crumbleStone(b); }
     else if (!b.popping && !b.stone && b.buriedT > POP_AFTER && b.level <= 4 && !over) { b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; }
     else if (b.popping) { b.popping += dt; if (b.popping > POP_TIME) popBlob(b); }
@@ -1944,6 +1996,7 @@ function frameLogic(dt) {
 function lose() {
   cgGame(false);
   saveRun();   // the losing board with the countdown spent: a reload returns to this moment, not to before it
+  if (smashOn) { smashOn = false; boostUI(); }
   over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countShown = 0; countPop = 0; hotA = 0; nearT = 0; lineA = 0;
   flushBest(); buzz([40, 60, 90]);
   const worth = !PORTAL || (score >= Math.max(300, bestAtStart * 0.4) && time - runT0 > 45);   // (a portal: no ad offer after every short run)
@@ -2045,8 +2098,8 @@ function tick(dt) {
   if (adBusy || ytPaused) return;   // an ad is up, or the portal has paused the game: nothing moves, no timer runs
   if (ytOn && ytDirty) { ytSaveT += dt; if (ytSaveT > 3) ytFlush(); }
   time += dt;
-  if (sel && (sel.dead || sel.state === 1 || !sel.tray)) { sel = null; aiming = false; armed = false; }
-  if (hover && (hover.dead || !hover.tray)) hover = null;
+  if (sel && (sel.dead || sel.state === 1 || !sel.tray || sel.leaving)) { sel = null; aiming = false; armed = false; }
+  if (hover && (hover.dead || !hover.tray || hover.leaving)) hover = null;
   if (hitStop > 0) {   // a beat of stillness on a chain, cut short while the player is mid-pull
     if (aiming && armed) hitStop = Math.min(hitStop, 0.04);
     hitStop -= dt; juiceStep(dt); frameFx(dt); return;
@@ -2658,6 +2711,16 @@ function draw() {
 
   drawTutorial();
 
+  // Hint: a soft pulsing ring on the target; Smash ready: the same ring on the blob under the mouse
+  if (!over) {
+    const tg = hintOn ? hintPick() : smashOn && ptrMouse && ptrIn && !aiming ? smashAt(ptrX, ptrY) : null;
+    if (tg) {
+      const ph = REDUCED ? 0 : Math.sin(time * 5.5);
+      ctx.globalAlpha = 0.5 + 0.25 * ph; ctx.lineWidth = 3.2; ctx.strokeStyle = '#f4f1ea';
+      ctx.beginPath(); ctx.arc(tg.cx, tg.cy, tg.r * tg.scale + 7 + 2.5 * ph, 0, 6.2832); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+
   // trajectory: a straight ray from the grabbed shape to the first thing it would reach (ceiling, wall or
   // blob), drawn as evenly spaced dots with a faint ghost of the shape at the end. Pure geometry, no
   // simulation, so it follows the finger with no lag.
@@ -2675,12 +2738,12 @@ function draw() {
       const t = tc - Math.sqrt(rr * rr - h2); if (t > 0 && t < tEnd) tEnd = t;
     }
     // only the first stretch of the path (user: "not the full trajectory"), a little longer for a harder pull
-    const t0 = rs + 10, show = Math.min(tEnd - 4, t0 + 95 + 45 * (power - POW_MIN) / (POW_MAX - POW_MIN)), step = 13;
+    const t0 = rs + 10, show = hintOn ? tEnd - 4 : Math.min(tEnd - 4, t0 + 95 + 45 * (power - POW_MIN) / (POW_MAX - POW_MIN)), step = 13;   // (a Hint shows the whole ray)
     ctx.fillStyle = '#f4f1ea';
     const flow = (time * AIM_FLOW) % step;                                    // dots drift outward along the ray
     if (show > t0) for (let t = t0 + flow - step; t < show; t += step) {
       const q = Math.min(1, Math.max(0, (t - t0) / (show - t0))), lead = t < t0 ? Math.max(0, (t - t0 + step) / step) : 1;   // the newest dot fades in near the shape
-      ctx.globalAlpha = 0.95 * (1 - q * q) * lead;
+      ctx.globalAlpha = 0.95 * (1 - (hintOn ? 0.55 : 1) * q * q) * lead;   // (a Hint's long ray stays visible to its end)
       const v0 = SHOT * power, disc = v0 * v0 - 2 * G * uy * t; if (disc < 0) break;   // a light shot aimed down turns back before it gets this far
       const tau = 2 * t / (v0 + Math.sqrt(disc)), bend = 0.5 * G * ux * tau * tau;   // seconds of flight to this dot; gravity (toward the ceiling) bends the path off the ray
       ctx.beginPath(); ctx.arc(sx + ux * t + uy * bend, sy + uy * t - ux * bend, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
@@ -2730,6 +2793,10 @@ function setPtr(e) {
 canvas.addEventListener('pointerdown', e => {
   if (over || titleOn || (e.pointerType === 'mouse' && e.button !== 0)) return;
   initAudio(); aiming = false; setPtr(e);
+  if (smashOn && !adBusy) {   // Smash is ready: a tap on a pile blob or a stone breaks it (anywhere else still aims)
+    const t = smashAt(ptrX, ptrY);
+    if (t) { smashBlob(t); e.preventDefault(); return; }
+  }
   sel = pickTray(ptrX, ptrY, 1e9);
   if (!sel) return;
   aiming = true; armed = false; aimPtr = e.pointerId; pressX = ptrX; pressY = ptrY; pullX = pullY = 0;
@@ -2855,10 +2922,131 @@ vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); sfxUi(vib); });
 const reviveNote = document.getElementById('revive-note');
 const AD_ICON = '<svg class="ad" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="5" width="22" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 9.6v6.8l6-3.4z" fill="currentColor"/></svg>';
 function reviveLook() {   // on a portal the button says what it costs: an ad, or nothing where the portal shows none
+  boostUI();   // (and so do the spent boosters)
   if (!PORTAL) return;
   const ad = (cgOn || ytOn) && !adsOff;
   reviveYes.innerHTML = (ad ? AD_ICON : '') + 'Revive'; reviveYes.setAttribute('aria-label', ad ? 'Watch an ad to revive' : 'Revive');
 }
+/* ───────── boosters: Hint, Swap, Smash ───────── */
+// Each run starts with one of each; every new tier from 128 up adds one, in turn. Spent, a booster asks for a rewarded
+// ad where the portal shows them (only on a press, never on its own); elsewhere it stays dim until a new tier refills it.
+const boostBtns = ['b-hint', 'b-swap', 'b-smash'].map(id => document.getElementById(id));
+const BOOST_NAME = ['Hint', 'Swap', 'Smash'], boostSeen = ['', '', ''];
+const swapGone = [0, 0];   // the tiers a Swap just sent out of each side (its fresh deal avoids dealing the same back)
+const boostAds = () => (cgOn || ytOn) && !adsOff;
+function boostUI() {
+  const ad = boostAds();
+  for (let i = 0; i < 3; i++) {
+    const el = boostBtns[i]; if (!el) continue;
+    const n = boost[i], on = i === 0 ? hintOn : i === 2 ? smashOn : false, mode = n > 0 ? 'n' : on ? 'on' : ad ? 'ad' : 'empty';   // (a Hint in use with none left: lit, no badge)
+    const key = n + mode + (on ? 1 : 0);
+    if (key === boostSeen[i]) continue; boostSeen[i] = key;
+    const bn = el.querySelector('.bn');
+    if (bn) { bn.innerHTML = mode === 'ad' ? AD_ICON : String(n); bn.hidden = mode === 'on'; }
+    el.classList.toggle('on', on); el.classList.toggle('ad', mode === 'ad'); el.classList.toggle('empty', mode === 'empty');
+    el.setAttribute('aria-pressed', String(on));
+    el.setAttribute('aria-label', mode === 'ad' ? BOOST_NAME[i] + ': watch an ad for one more' : BOOST_NAME[i] + ', ' + n + ' left');
+    if (mode === 'empty') el.setAttribute('aria-disabled', 'true'); else el.removeAttribute('aria-disabled');
+  }
+}
+function boostPop(i) {
+  const el = boostBtns[i]; if (!el || REDUCED) return;
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function grantBoost() {
+  const i = boostCy; boostCy = (boostCy + 1) % 3;
+  boost[i] = Math.min(99, boost[i] + 1); saveDirty = true; boostUI(); boostPop(i);
+}
+// Not while the run is stopped: the title, an ad, the revive offer, the cash-out and the ending, the sheet, a portal's pause.
+const boostLocked = () => titleOn || over || offer || ended || adBusy || sheetOpen || ytPaused || MERGE_LAB;
+function useBoost(i) {
+  initAudio();
+  if (boostLocked() || (i === 0 && hintOn)) return;   // (a Hint already showing: nothing to add)
+  if (boost[i] <= 0) {
+    if (!boostAds()) return;   // dim: nothing to do until a new tier refills it
+    if (i === 2 && smashOn) { smashOn = false; boostUI(); }
+    aiming = false; armed = false; sel = null;
+    // a rewarded ad: a finished one gives one of this booster, and nothing else
+    portalAd('rewarded', (ok, code) => {
+      if (ok) { if (!over) { boost[i] = Math.min(99, boost[i] + 1); saveDirty = true; boostPop(i); sfxUi(true); } }
+      else if (code === 'adsDisabled') { adsOff = true; reviveLook(); }
+      boostUI();
+    }, 'booster');
+    return;
+  }
+  if (i === 0) {   // Hint: until the next shot
+    boost[0]--; hintOn = true; sfxUi(true); buzz(8);
+  } else if (i === 1) {   // Swap: both shelf shapes slide out, two fresh ones slide in
+    if (!swapShelf()) return;
+    boost[1]--; sfxUi(false); buzz(10);
+  } else {   // Smash: armed by a press, spent on the tap that breaks something; a second press puts it away
+    smashOn = !smashOn; sfxUi(smashOn);
+  }
+  saveDirty = true; boostUI();
+}
+boostBtns.forEach((el, i) => { if (el) el.addEventListener('click', () => useBoost(i)); });
+function swapShelf() {
+  let n = 0;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]; if (!b.tray || b.dead || b.leaving || b.state !== 0) continue;
+    const side = b.cx < LX ? 0 : 1;
+    b.leaving = side ? 1 : -1; b.leaveT = 0; b.entering = false; swapGone[side] = b.stone ? 0 : b.level;
+    for (let k = 0; k < b.n; k++) b.vx[k] += side ? ENTER_V * 0.6 : -ENTER_V * 0.6;
+    n++;
+  }
+  if (!n) return false;   // (nothing on the shelf yet: nothing to swap)
+  if (sel && sel.leaving) { sel = null; aiming = false; armed = false; }
+  if (hover && hover.leaving) hover = null;
+  swapDeal = TRAY_MAX - trayCount();
+  for (let s = 0; s < 2; s++) gateT[s] = Math.min(gateT[s], 1 - 0.22 / GATE_TIME);   // the new ones come in a beat after the old ones go
+  return true;
+}
+// The pile blob or stone under a point (world units), for Smash: the one whose middle is nearest, relative to its size.
+function smashAt(x, y) {
+  let hit = null, bd = 1e9;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]; if (b.tray || b.dead || b.state !== 0 || b.popping || b.breaking) continue;
+    const rs = b.r * b.scale, d = Math.hypot(b.cx - x, b.cy - y);
+    if (d < rs + 6 && d / rs < bd) { bd = d / rs; hit = b; }
+  }
+  return hit;
+}
+function smashBlob(b) {
+  boost[2] = Math.max(0, boost[2] - 1); smashOn = false; saveDirty = true; boostUI();
+  if (b.stone) { breakStone(b); return; }
+  b.smashed = true; b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; buzz(14);   // it pops like a trapped blob, for no points
+}
+// Hint's target: a pile blob that matches the shape being aimed (or the shelf shape nearest the pointer, or the bigger
+// one), preferring one the shape can reach in a straight line, then the nearest.
+function hintPick() {
+  if (!hintOn || over) return null;
+  let from = aiming && sel ? sel : null;
+  if (!from) {
+    let bd = 1e9;
+    for (let i = 0; i < blobs.length; i++) {
+      const b = blobs[i]; if (!b.tray || b.dead || b.leaving || b.state !== 0 || b.stone) continue;
+      const d = ptrIn ? Math.hypot(b.cx - ptrX, b.cy - ptrY) : -b.level;
+      if (d < bd) { bd = d; from = b; }
+    }
+  }
+  if (!from || from.stone) return null;
+  const rs = from.r * from.scale;
+  let pick = null, pd = 1e18;
+  for (let i = 0; i < blobs.length; i++) {
+    const t = blobs[i]; if (t.tray || t.dead || t.stone || t.level !== from.level || t.state !== 0 || t.popping) continue;
+    const dx = t.cx - from.cx, dy = t.cy - from.cy, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    let blocked = false;
+    for (let q = 0; q < blobs.length && !blocked; q++) {
+      const o = blobs[q]; if (o === t || o === from || o.tray || o.dead) continue;
+      const ox = o.cx - from.cx, oy = o.cy - from.cy, tc = ox * ux + oy * uy; if (tc <= 0 || tc >= L) continue;
+      const h2 = ox * ox + oy * oy - tc * tc, rr = o.r * o.scale + rs * 0.7; if (h2 < rr * rr) blocked = true;
+    }
+    const sc = L + (blocked ? 1e6 : 0);
+    if (sc < pd) { pd = sc; pick = t; }
+  }
+  return pick;
+}
+
 reviveYes.addEventListener('click', () => {
   initAudio();
   if (adBusy || !offer || reviveYes.disabled) return;
@@ -3189,7 +3377,9 @@ if (CG) {
 
 // small hook for automated play-testing
 window.__udm = { blobs, tick, draw, reset,
-  tray: () => blobs.filter(b => b.tray && b.state === 0),
+  tray: () => blobs.filter(b => b.tray && b.state === 0 && !b.leaving),
+  boost: () => ({ n: boost.slice(), cy: boostCy, hint: hintOn, smash: smashOn, deal: swapDeal, target: (() => { const t = hintPick(); return t ? { level: t.level, x: t.cx, y: t.cy } : null; })(), leaving: blobs.filter(b => b.leaving).length }),
+  setBoost: (a) => { boost = a.slice(); boostUI(); }, grantBoost,
   shoot(a, i, pw) { const t = this.tray(); if (!t.length) return false; aim = a; power = pw || 1; fire(t[(i || 0) % t.length]); return true; },
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
