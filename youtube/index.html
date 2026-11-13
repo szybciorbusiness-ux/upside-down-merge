@@ -480,6 +480,7 @@ body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:cal
 <script>
 (() => {
 'use strict';
+document.body.classList.add('titling');   // the HUD stays hidden while the portal SDK and the save load: the title is the first thing seen
 
 /* ───────────────────────── platform: portal builds ─────────────────────────
    The same file ships to game portals. The page that wraps it sets one flag and loads that portal's SDK before this
