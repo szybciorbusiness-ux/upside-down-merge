@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Blob Blitz</title>
+<title>Blob Blitz 2</title>
 <style>html,body{margin:0}[hidden]{display:none!important}</style>
 <script>window.__CG=1</script>
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
@@ -385,7 +385,7 @@ body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:cal
 
 <div id="phone">
   <div id="screen">
-    <div id="mark" aria-hidden="true">Blob<br>Blitz</div><i id="sat" aria-hidden="true"></i><i id="sab" aria-hidden="true"></i>
+    <div id="mark" aria-hidden="true">Blob<br>Blitz 2</div><i id="sat" aria-hidden="true"></i><i id="sab" aria-hidden="true"></i>
     <div id="status" aria-hidden="true">
       <div><span id="clock">9:41</span></div>
       <div>
@@ -408,7 +408,7 @@ body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:cal
       </div>
     </header>
     <div id="stage">
-      <canvas id="c" aria-label="Blob Blitz play field"></canvas>
+      <canvas id="c" aria-label="Blob Blitz 2 play field"></canvas>
     </div>
     <canvas id="ladder" aria-hidden="true"></canvas>
     <canvas id="badge" aria-hidden="true"></canvas>
@@ -436,7 +436,7 @@ body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:cal
       </div>
     </div>
     <div id="title" hidden>
-      <h2 class="tword" aria-label="Blob Blitz">Blob<br>Blitz</h2>
+      <h2 class="tword" aria-label="Blob Blitz 2">Blob<br>Blitz 2</h2>
       <canvas id="t-cv" aria-hidden="true"></canvas>
       <button id="play" type="button" aria-label="Play"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.1967 2.71828C8.53683 0.970354 5 2.8783 5 6.0611V17.9387C5 21.1215 8.53684 23.0294 11.1967 21.2815L20.234 15.3427C22.6384 13.7627 22.6384 10.2371 20.234 8.65706L11.1967 2.71828Z" fill="white"/></svg></button>
       <button id="t-shop" type="button"><svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#e0961a"/><circle cx="12" cy="12" r="10" fill="#ffc83d"/><path d="M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z" fill="#b86e0a"/></svg><span>Shop</span></button>
@@ -3011,11 +3011,11 @@ function showMenu(open) {
 }
 // More: the sheet drops and comes straight back as a second sheet of the same build (the legal pages), and back again.
 const DOCS = {
-  privacy: ['Privacy', 'Blob Blitz keeps your best score, your current run, your coins and shop items, and your sound and vibration choices on this device, in your browser\'s storage. The game itself sends nothing anywhere.\n\nThe game has no accounts, analytics or tracking of its own.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe site you are playing on hosts the game and, like any web host, may log technical request data such as your IP address. On a game portal, the privacy policy of that portal also applies, and the portal may show ads and keep your save with your account there.'],
+  privacy: ['Privacy', 'Blob Blitz 2 keeps your best score, your current run, your coins and shop items, and your sound and vibration choices on this device, in your browser\'s storage. The game itself sends nothing anywhere.\n\nThe game has no accounts, analytics or tracking of its own.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe site you are playing on hosts the game and, like any web host, may log technical request data such as your IP address. On a game portal, the privacy policy of that portal also applies, and the portal may show ads and keep your save with your account there.'],
   terms: ['Terms', 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run live only on your device. They can be lost if the browser\'s data is cleared, and they cannot be restored.\n\nNothing in the game costs money. Coins are earned by playing and have no money value.'],
-  licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Blob Blitz.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
+  licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Blob Blitz 2.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
 };
-if (PORTAL) DOCS.privacy[1] = 'Blob Blitz keeps your best score, your current run, your coins and shop items, and your sound and vibration choices. On this site they are stored through the site itself: on this device for a guest, and with your account there if you are signed in.\n\nThe game has no accounts, analytics or tracking of its own, and it sends nothing anywhere else.\n\nThe site you are playing on has its own privacy policy, and it may show ads.';
+if (PORTAL) DOCS.privacy[1] = 'Blob Blitz 2 keeps your best score, your current run, your coins and shop items, and your sound and vibration choices. On this site they are stored through the site itself: on this device for a guest, and with your account there if you are signed in.\n\nThe game has no accounts, analytics or tracking of its own, and it sends nothing anywhere else.\n\nThe site you are playing on has its own privacy policy, and it may show ads.';
 if (PORTAL) DOCS.terms[1] = 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run are kept through the site you are playing on.\n\nNothing in the game costs money. Coins are earned by playing (or by choosing to watch an ad) and have no money value.';
 const sheetViews = sheetEl.querySelectorAll('.view'), docTitle = document.getElementById('doc-title'), docBody = document.getElementById('doc-body');
 let sheetAt = 'main', viewTimer = 0, swapUntil = 0;

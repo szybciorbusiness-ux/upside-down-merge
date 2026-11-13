@@ -20,7 +20,7 @@ const head = `<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Blob Blitz">
+<meta name="apple-mobile-web-app-title" content="Blob Blitz 2">
 <style>html,body{margin:0}[hidden]{display:none!important}</style>
 </head>
 <body>
