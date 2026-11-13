@@ -75,13 +75,44 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 #status .cell{width:calc(19.2*var(--u))}#status .wifi{width:calc(17.142*var(--u))}#status .batt{width:calc(27.328*var(--u))}
 #hud{position:absolute;left:0;right:0;top:calc(62*var(--u));height:calc(68*var(--u))}
 body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
-#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#505062;letter-spacing:0;
+#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#8c8ca0;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
+/* phone HUD: a long score steps its size down so it never runs under the boosters (the row also holds the coins);
+   its merge bump grows mostly leftward, into the margin, so even mid-bump it keeps clear of the Hint button */
+body:not(.wide) #brand{transform-origin:85% 60%}
+body:not(.wide) #brand[data-n="4"]{font-size:calc(34*var(--u));top:calc(7*var(--u))}
+body:not(.wide) #brand[data-n="5"]{font-size:calc(27*var(--u));top:calc(11*var(--u))}
+body:not(.wide) #brand[data-n="6"]{font-size:calc(22.5*var(--u));top:calc(14*var(--u))}
+body:not(.wide) #brand[data-n="7"],body:not(.wide) #brand[data-n="8"]{font-size:calc(19*var(--u));top:calc(16*var(--u))}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:max(34px,calc(36*var(--u)));height:max(34px,calc(36*var(--u)));padding:0;border:0;border-radius:50%;
-  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#484859);will-change:transform}
+  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#82829a);will-change:transform}
 #gear svg{width:100%;height:100%}
 #gear:active{transform:scale(.92)}
 #gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+/* the boosters: three round flat buttons, a count badge each. Phone: one row in the HUD between the score and the gear;
+   wide frame: a column under the gear */
+#boost{position:absolute;left:calc(196*var(--u));top:calc(14*var(--u));display:flex;gap:calc(6*var(--u));transform:translateX(-50%)}
+.bst{position:relative;flex:none;display:grid;place-items:center;width:calc(34*var(--u));height:calc(34*var(--u));padding:0;border:0;border-radius:50%;
+  background:var(--bst,#2d2d3b);color:rgba(235,233,242,.86);cursor:pointer;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease,opacity .2s ease}
+.bst .ic{display:block;width:56%;height:56%}
+.bst:active{scale:.92;transition-duration:.07s}
+.bst.on{background:var(--sh-tog,#4a4a58);color:#fff}
+.bst.empty{opacity:.34;cursor:default}
+.bst.empty:active{scale:1}
+.bst.ad .ic{opacity:.5}
+.bst .bn{position:absolute;right:calc(-5*var(--u));bottom:calc(-4*var(--u));box-sizing:border-box;min-width:calc(18*var(--u));height:calc(18*var(--u));padding:0 calc(4*var(--u));
+  border-radius:999px;background:#ebe9f2;color:#1e1e2a;font:900 calc(11*var(--u))/calc(18*var(--u)) var(--font-display);text-align:center;font-variant-numeric:tabular-nums}
+.bst .bn svg{display:block;width:calc(14*var(--u));height:calc(18*var(--u));margin:0 calc(-1*var(--u))}
+.bst.empty .bn{display:none}
+.bst.pop{animation:bpop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes bpop{0%{scale:1}30%{scale:1.3}100%{scale:1}}
+.bst.nope{animation:bnope .34s ease-out}
+@keyframes bnope{20%{translate:calc(-3*var(--u)) 0}45%{translate:calc(3*var(--u)) 0}70%{translate:calc(-2*var(--u)) 0}}
+.bst:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+body.wide #boost{left:calc(50% + var(--colw)/2 + 24*var(--u));top:calc(78*var(--u));flex-direction:column;gap:calc(16*var(--u));transform:none;pointer-events:auto}
+body.wide .bst{width:calc(48*var(--u));height:calc(48*var(--u))}
+body.wide .bst .bn{min-width:calc(20*var(--u));height:calc(20*var(--u));font-size:calc(12*var(--u));line-height:calc(20*var(--u))}
+@media (prefers-reduced-motion:reduce){.bst{transition:none}.bst.pop,.bst.nope{animation:none}}
 /* settings: a bottom sheet over a dimmed screen. It rises on the sheet curve, follows a downward drag, and leaves by
    a drag, a tap on the dimmed screen, or Escape. More swaps it for a second sheet of the same build. The game runs in slow motion behind it. */
 #scrim{position:absolute;inset:0;z-index:3;background:rgba(0,0,0,.4);opacity:0;transition:opacity .35s ease}
@@ -135,7 +166,7 @@ body.wide #brand{left:auto;right:calc(50% + var(--colw)/2 + 30*var(--u));top:cal
   font-size:min(calc(64*var(--u)),calc((var(--gut,300px) - 40*var(--u))/5))}
 body.wide #gear{pointer-events:auto;left:calc(50% + var(--colw)/2 + 26*var(--u));top:calc(10*var(--u));width:max(34px,calc(44*var(--u)));height:max(34px,calc(44*var(--u)))}
 body.cg.wide #mark{display:block!important;left:auto;right:calc(50% + var(--colw)/2 + 32*var(--u));top:calc(var(--wm,12px) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + 16*var(--u));
-  transform:none;text-align:right;font-size:calc(24*var(--u));opacity:.75;mix-blend-mode:normal;color:#505062}
+  transform:none;text-align:right;font-size:calc(24*var(--u));opacity:.75;mix-blend-mode:normal;color:#8c8ca0}
 body.wide #mark{transition:opacity .25s ease}
 body.cg.wide:has(#over:not([hidden])) #mark,body.cg.wide:has(#revive:not([hidden])) #mark{opacity:0}   /* the cards stand alone */
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
@@ -255,6 +286,101 @@ body.bare #mark{display:none;top:calc(var(--safe-area-inset-top, env(safe-area-i
 body.bare.island #mark{display:block}
 #sat{position:absolute;left:0;top:0;width:0;height:var(--safe-area-inset-top, env(safe-area-inset-top,0px));visibility:hidden;pointer-events:none}
 #sab{position:absolute;left:0;bottom:0;width:0;height:var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px));visibility:hidden;pointer-events:none}
+/* the cave behind everything in the wide frame and on the title: big flat rocks a shade lighter than the screen */
+#cave{position:absolute;inset:0;pointer-events:none;display:none}
+#cave svg{display:block;position:absolute;inset:0;width:100%;height:100%}
+body.wide #cave,body.titling #cave{display:block}
+/* the goal ladder (wide frame, left of the field) and the phone's new-tier badge: drawn by drawLadder / drawBadge */
+#ladder,#badge{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;display:none}
+body.wide #ladder{display:block}
+#badge{z-index:1;display:block}
+body.titling #hud,body.titling #stage,body.titling #ladder,body.titling #badge,body.titling #mark{visibility:hidden}
+/* the title: the name, a few slimes, one Play row (the ending's row) */
+#title{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(14*var(--tu,1px));
+  padding-top:var(--safe-area-inset-top, env(safe-area-inset-top,0px));padding-bottom:var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px))}
+#title[hidden]{display:none}
+#title.out{animation:tout .32s cubic-bezier(.4,0,1,1) both;pointer-events:none}
+@keyframes tout{to{opacity:0;transform:scale(1.04)}}
+.tword{margin:0;font:800 calc(78*var(--tu,1px))/.9 var(--font-display);text-transform:uppercase;text-align:center;color:#ebe9f2;letter-spacing:0;animation:rise .5s .05s cubic-bezier(.2,.9,.3,1.2) both}
+/* the shop sheet over the title: the name steps up and fades so the sheet's edge never cuts through it (filter and
+   translate, not opacity and transform, which the rise animation holds) */
+#title .tword{transition:filter .2s ease,translate .32s cubic-bezier(.2,.9,.3,1)}
+#title.under .tword{filter:opacity(0);translate:0 calc(-18*var(--tu,1px))}
+#t-cv{display:block;width:calc(360*var(--tu,1px));height:calc(190*var(--tu,1px));touch-action:none}
+#play{display:grid;place-items:center;width:calc(338*var(--tu,1px));height:calc(85*var(--tu,1px));margin-top:calc(6*var(--tu,1px));padding:0;border:0;border-radius:calc(22*var(--tu,1px));
+  background:var(--field,#353543);color:#fff;cursor:pointer;animation:rise .4s .2s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
+#play svg{width:calc(28*var(--tu,1px));height:calc(28*var(--tu,1px))}
+#play:active{scale:.95;transition-duration:.07s;background:var(--sh-row,#272734)}
+/* the title shows no pile, so it wears none of the pile's tint: plain slate (a warm biggest blob turned it brown) */
+body.titling #back{background:linear-gradient(var(--scr-hi,#232330),var(--screen,#1e1e2a) 60%)!important}
+/* and its Shop button and coin pill are cut from the theme's own field, a step darker, not from the tinted sheet rows */
+#title #t-shop,#title #t-coins{background:#2a2a36;background:color-mix(in srgb,var(--field,#353543) 78%,#000)}
+#play:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.tword,#play,#title.out{animation:none}}
+/* coins: one flat coin (a face, a darker rim, a slime-drop mark) and the counter pill: in the HUD (phone: beside the
+   gear; wide frame: right of the gear), on the title and in the shop. A landing coin bumps it */
+.coin{display:block;flex:none}
+.cpill{position:absolute;display:flex;align-items:center;gap:calc(4*var(--u));box-sizing:border-box;height:calc(30*var(--u));padding:0 calc(10*var(--u)) 0 calc(3*var(--u));border:0;border-radius:999px;
+  background:var(--sh-row,#272734);color:#ebe9f2;font:900 calc(14*var(--u))/1 var(--font-display);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;transition:scale .22s cubic-bezier(.2,.9,.3,1)}
+.cpill .coin{width:calc(24*var(--u));height:calc(24*var(--u))}
+.cpill:active{scale:.95;transition-duration:.07s}
+.cpill.pop{animation:cpop .16s ease-out}
+.cpill.pop .coin{animation:csq .16s ease-out}
+@keyframes cpop{50%{transform:scale(1.08)}}
+@keyframes csq{50%{transform:scale(1.15,.9)}}
+.cpill:focus-visible,.card:focus-visible,.seg button:focus-visible,#t-shop:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+#coins{right:calc(59*var(--u));top:calc(17*var(--u));height:calc(28*var(--u));gap:calc(3*var(--u));padding:0 calc(8*var(--u)) 0 calc(3*var(--u))}
+#coins .coin{width:calc(22*var(--u));height:calc(22*var(--u))}
+body.wide #coins .coin{width:calc(24*var(--u));height:calc(24*var(--u))}
+body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:calc(16*var(--u));height:calc(32*var(--u));font-size:calc(17*var(--u));gap:calc(4*var(--u));padding:0 calc(11*var(--u)) 0 calc(4*var(--u));pointer-events:auto}
+#t-coins{top:calc(18*var(--tu,1px) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)));right:calc(18*var(--tu,1px));gap:calc(5*var(--tu,1px));height:calc(36*var(--tu,1px));
+  padding:0 calc(13*var(--tu,1px)) 0 calc(4*var(--tu,1px));font-size:calc(18*var(--tu,1px));animation:fade .4s .3s both}
+#t-coins .coin{width:calc(28*var(--tu,1px));height:calc(28*var(--tu,1px))}
+#t-shop{display:flex;align-items:center;justify-content:center;gap:calc(10*var(--tu,1px));width:calc(338*var(--tu,1px));height:calc(64*var(--tu,1px));padding:0;border:0;border-radius:calc(22*var(--tu,1px));
+  background:var(--sh-row,#272734);color:rgba(255,255,255,.74);font:900 calc(22*var(--tu,1px))/1 var(--font-display);cursor:pointer;animation:rise .4s .28s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1)}
+#t-shop .coin{width:calc(28*var(--tu,1px));height:calc(28*var(--tu,1px))}
+#t-shop:active{scale:.95;transition-duration:.07s}
+#fly{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:1}
+/* the shop: a third set of rows in the settings sheet. Tabs, a grid of cards (a live preview, the name, a price chip:
+   Buy, Use or In use), and Back with the coins */
+.rend{display:flex;align-items:center;gap:calc(8*var(--u))}
+.rcoin{display:flex;align-items:center;gap:calc(5*var(--u));font-size:calc(18*var(--u));color:rgba(255,255,255,.62);font-variant-numeric:tabular-nums}
+.rcoin .coin{width:calc(22*var(--u));height:calc(22*var(--u))}
+.seg{display:flex;gap:calc(4*var(--u));padding:calc(4*var(--u));border-radius:calc(22*var(--u));background:var(--sh-row,rgba(30,30,42,.6))}
+.seg button{flex:1 1 0;height:calc(44*var(--u));padding:0;border:0;border-radius:calc(18*var(--u));background:transparent;color:rgba(255,255,255,.56);
+  font:900 calc(17*var(--u))/1 var(--font-display);cursor:pointer;transition:background .15s ease,color .15s ease,scale .22s cubic-bezier(.2,.9,.3,1)}
+.seg button:active{scale:.96;transition-duration:.07s}
+.seg button[aria-selected="true"]{background:var(--sh-tog,#4a4a58);color:#fff}
+.shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(6*var(--u));height:calc(278*var(--u));align-content:start}
+.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:calc(5*var(--u));box-sizing:border-box;min-width:0;height:calc(136*var(--u));padding:calc(6*var(--u)) calc(6*var(--u)) calc(7*var(--u));
+  border:0;border-radius:calc(22*var(--u));background:var(--sh-row,rgba(30,30,42,.6));color:#fff;cursor:pointer;transition:scale .22s cubic-bezier(.2,.9,.3,1),box-shadow .15s ease}
+.card:active{scale:.96;transition-duration:.07s}
+.pv{position:relative;display:grid;place-items:center;flex:none;width:100%;height:calc(72*var(--u));border-radius:calc(16*var(--u));overflow:hidden;background:rgba(0,0,0,.16)}
+.pv canvas{display:block;width:100%;height:100%}
+.pv>.coin{width:calc(40*var(--u));height:calc(40*var(--u))}
+.bpv{position:relative;display:grid;place-items:center;width:calc(46*var(--u));height:calc(46*var(--u));border-radius:50%;background:var(--sh-tog,#4a4a58);color:rgba(235,233,242,.9)}
+.bpv .ic{display:block;width:56%;height:56%}
+.bpv .bn{position:absolute;right:calc(-6*var(--u));bottom:calc(-4*var(--u));box-sizing:border-box;min-width:calc(20*var(--u));height:calc(20*var(--u));padding:0 calc(5*var(--u));border-radius:999px;
+  background:#ebe9f2;color:#1e1e2a;font:900 calc(12*var(--u))/calc(20*var(--u)) var(--font-display);text-align:center;font-variant-numeric:tabular-nums}
+.card .nm{max-width:100%;overflow:hidden;font:900 calc(13*var(--u))/1.1 var(--font-display);color:rgba(255,255,255,.7);white-space:nowrap}
+.chip{display:flex;align-items:center;justify-content:center;gap:calc(4*var(--u));box-sizing:border-box;min-width:calc(66*var(--u));max-width:100%;height:calc(26*var(--u));margin-top:auto;padding:0 calc(9*var(--u));
+  border-radius:999px;background:rgba(0,0,0,.26);color:#ffd36b;font:900 calc(13*var(--u))/1 var(--font-display);font-variant-numeric:tabular-nums;white-space:nowrap;transition:background .15s ease,color .15s ease}
+.chip .coin{width:calc(16*var(--u));height:calc(16*var(--u))}
+.chip .ad{display:block;width:calc(18*var(--u));height:calc(18*var(--u))}
+.card.poor .chip{color:#8b8b96}
+.card.poor .chip .coin{filter:grayscale(1) brightness(.8)}
+.card.own .chip{background:var(--sh-tog,#4a4a58);color:#fff}
+.card.use{box-shadow:inset 0 0 0 calc(3*var(--u)) var(--sw-on,#8a8aa0)}
+.card.use .chip,.card.ask .chip{background:var(--sw-on,#8a8aa0);color:var(--sw-knob,#fff)}
+.card.wait{cursor:default}
+.card.wait .chip{color:rgba(255,255,255,.45)}
+.chip.shake{animation:cshake .34s ease}
+@keyframes cshake{20%{transform:translateX(calc(-6*var(--u)))}40%{transform:translateX(calc(6*var(--u)))}60%{transform:translateX(calc(-4*var(--u)))}80%{transform:translateX(calc(3*var(--u)))}}
+.card.got{animation:cardpop .32s cubic-bezier(.2,1.5,.4,1)}
+@keyframes cardpop{40%{transform:scale(1.06)}}
+#shop-back .cpill{position:static;height:calc(38*var(--u));padding:0 calc(14*var(--u)) 0 calc(5*var(--u));gap:calc(6*var(--u));background:rgba(0,0,0,.2);font-size:calc(18*var(--u));cursor:inherit}
+#shop-back .cpill .coin{width:calc(28*var(--u));height:calc(28*var(--u))}
+@media (prefers-reduced-motion:reduce){.cpill.pop,.cpill.pop .coin,.chip.shake,.card.got,#t-coins,#t-shop{animation:none}}
 </style>
 
 <div id="phone">
@@ -269,14 +395,24 @@ body.bare.island #mark{display:block}
       </div>
     </div>
    <div id="back">
+    <div id="cave" aria-hidden="true"></div>
     <div id="tint" aria-hidden="true"></div>
     <header id="hud">
       <h1 id="brand" aria-label="Score">0</h1>
       <button id="gear" type="button" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false"><svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g id="IconSettingsGear1"><path id="Vector" d="M15.1933 4.44299C16.9308 3.44268 19.0692 3.44268 20.8067 4.44299L28.6816 8.97704C30.4254 9.98096 31.5 11.8398 31.5 13.8518V22.1484C31.5 24.1605 30.4254 26.0193 28.6816 27.0231L20.8065 31.5572C19.0692 32.5575 16.9308 32.5575 15.1933 31.5573L7.31849 27.0236C5.57474 26.0198 4.5 24.1608 4.5 22.1487V13.8518C4.5 11.8397 5.57468 9.98091 7.31837 8.97699L15.1933 4.44299ZM12.5625 17.9999C12.5625 14.9968 14.997 12.5624 18 12.5624C21.0032 12.5624 23.4375 14.9968 23.4375 17.9999C23.4375 21.0029 21.0032 23.4374 18 23.4374C14.997 23.4374 12.5625 21.0029 12.5625 17.9999Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g></svg></button>
+      <button id="coins" class="cpill" type="button" aria-label="Coins, open the shop"><svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#e0961a"/><circle cx="12" cy="12" r="10" fill="#ffc83d"/><path d="M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z" fill="#b86e0a"/></svg><b class="cn">0</b></button>
+      <div id="boost">
+        <button class="bst" id="b-hint" type="button" aria-label="Hint"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2a7.1 7.1 0 0 0-4.3 12.75c.75.57 1.2 1.3 1.2 2.1v.45h6.2v-.45c0-.8.45-1.53 1.2-2.1A7.1 7.1 0 0 0 12 2.2z"/><rect x="9" y="19" width="6" height="2.8" rx="1.4"/></svg><b class="bn"></b></button>
+        <button class="bst" id="b-swap" type="button" aria-label="Swap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h14.5M15 3.8l3.7 3.7-3.7 3.7M20 16.5H5.5M9 12.8l-3.7 3.7L9 20.2"/></svg><b class="bn"></b></button>
+        <button class="bst" id="b-smash" type="button" aria-label="Smash"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g transform="rotate(-40 12 12)"><rect x="4.5" y="2.6" width="15" height="7" rx="2.2"/><rect x="10.5" y="8.5" width="3" height="13.2" rx="1.5"/></g></svg><b class="bn"></b></button>
+      </div>
     </header>
     <div id="stage">
       <canvas id="c" aria-label="Blob Blitz play field"></canvas>
     </div>
+    <canvas id="ladder" aria-hidden="true"></canvas>
+    <canvas id="badge" aria-hidden="true"></canvas>
+    <canvas id="fly" aria-hidden="true"></canvas>
     <div id="danger" aria-hidden="true"></div>
     <div id="revive" hidden>
       <div class="panel" tabindex="-1" role="dialog" aria-label="Revive" aria-describedby="revive-desc">
@@ -299,6 +435,13 @@ body.bare.island #mark{display:block}
         <button id="again" type="button" aria-label="Play again"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.1967 2.71828C8.53683 0.970354 5 2.8783 5 6.0611V17.9387C5 21.1215 8.53684 23.0294 11.1967 21.2815L20.234 15.3427C22.6384 13.7627 22.6384 10.2371 20.234 8.65706L11.1967 2.71828Z" fill="white"/></svg></button>
       </div>
     </div>
+    <div id="title" hidden>
+      <h2 class="tword" aria-label="Blob Blitz">Blob<br>Blitz</h2>
+      <canvas id="t-cv" aria-hidden="true"></canvas>
+      <button id="play" type="button" aria-label="Play"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.1967 2.71828C8.53683 0.970354 5 2.8783 5 6.0611V17.9387C5 21.1215 8.53684 23.0294 11.1967 21.2815L20.234 15.3427C22.6384 13.7627 22.6384 10.2371 20.234 8.65706L11.1967 2.71828Z" fill="white"/></svg></button>
+      <button id="t-shop" type="button"><svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#e0961a"/><circle cx="12" cy="12" r="10" fill="#ffc83d"/><path d="M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z" fill="#b86e0a"/></svg><span>Shop</span></button>
+      <button id="t-coins" class="cpill" type="button" aria-label="Coins, open the shop"><svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#e0961a"/><circle cx="12" cy="12" r="10" fill="#ffc83d"/><path d="M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z" fill="#b86e0a"/></svg><b class="cn">0</b></button>
+    </div>
    </div>
     <div id="scrim" hidden></div>
     <div id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
@@ -307,6 +450,7 @@ body.bare.island #mark{display:block}
       <div class="view" data-view="main">
         <button id="sound" class="row" type="button" aria-pressed="false"><span>Sound</span><span class="tog" aria-hidden="true"></span><span class="sr" id="sound-state">On</span></button>
         <button id="vib" class="row" type="button" aria-pressed="false"><span>Vibrations</span><span class="tog" aria-hidden="true"></span><span class="sr" id="vib-state">On</span></button>
+        <button id="shop-row" class="row" type="button" data-go="shop"><span>Shop</span><span class="rend"><span class="rcoin"><svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#e0961a"/><circle cx="12" cy="12" r="10" fill="#ffc83d"/><path d="M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z" fill="#b86e0a"/></svg><b class="cn">0</b></span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></span></button>
         <button id="restart" class="row" type="button"><span>Replay</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
         <button id="more" class="row" type="button"><span>More</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
       </div>
@@ -315,6 +459,15 @@ body.bare.island #mark{display:block}
         <button class="row" type="button" data-go="terms"><span>Terms</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
         <button class="row" type="button" data-go="licenses"><span>Licenses</span><svg class="chev" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><g style="mix-blend-mode:plus-lighter" opacity="0.4"><path d="M13.3333 21.3333L17.2524 17.4143C18.0335 16.6332 18.0335 15.3668 17.2524 14.5857L13.3333 10.6667" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" stroke="white"/></g></svg></button>
         <button class="row" type="button" data-go="main"><span>Back</span></button>
+      </div>
+      <div class="view" data-view="shop" hidden>
+        <div class="seg" role="tablist" aria-label="Shop">
+          <button type="button" role="tab" data-tab="s" aria-selected="true">Skins</button>
+          <button type="button" role="tab" data-tab="t" aria-selected="false">Themes</button>
+          <button type="button" role="tab" data-tab="b" aria-selected="false">Boosters</button>
+        </div>
+        <div class="shop-grid" id="shop-grid" role="tabpanel"></div>
+        <button id="shop-back" class="row" type="button"><span>Back</span><span class="cpill" aria-hidden="true"><svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#e0961a"/><circle cx="12" cy="12" r="10" fill="#ffc83d"/><path d="M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z" fill="#b86e0a"/></svg><b class="cn">0</b></span></button>
       </div>
       <div class="view" data-view="doc" hidden>
         <div class="doc" tabindex="0"><h3 id="doc-title"></h3><p id="doc-body"></p></div>
@@ -377,7 +530,7 @@ function cgHappy() {    // their site-wide celebration: kept rare (a record, a n
 }
 // An ad through the portal. The game stands still, takes no input and is muted while it runs. done(ok, code) always
 // comes, even if the portal never answers (a watchdog ends the request).
-function portalAd(type, done) {
+function portalAd(type, done, tag) {
   if (!cgOn && !ytOn) { done(true, 'none'); return; }
   const id = ++adSeq; let started = false, finished = false, late = false;
   const hold = () => { adBusy = true; document.body.classList.add('adbusy'); };
@@ -395,7 +548,7 @@ function portalAd(type, done) {
       CG.ad.requestAd(type, { adStarted: () => { if (id !== adSeq) return; started = true; if (finished) { late = true; hold(); } adMute = true; applyMute(); }, adFinished: () => end(true, ''), adError: e => end(false, (e && e.code) || 'other') });
     } else {
       started = true; adMute = true; applyMute();   // (YouTube does not say when its ad starts: quiet for the whole request)
-      const p = type === 'rewarded' ? YT.ads.requestRewardedAd('revive') : YT.ads.requestInterstitialAd();
+      const p = type === 'rewarded' ? YT.ads.requestRewardedAd(tag || 'revive') : YT.ads.requestInterstitialAd();
       p.then(r => end(type === 'rewarded' ? r === true : true, type === 'rewarded' && r !== true ? 'unfilled' : ''), () => end(false, 'other'));
     }
   } catch (e) { end(false, 'other'); }
@@ -457,6 +610,14 @@ const ENTER_V = 430;              // units/s a new shelf shape slides in from of
 const DANGER_HOLD = 3.35;      // how long the pile may sit past the line: the grace, then a visible 3-2-1
 const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing at all
 const MAXN = 52;
+// Stones: a rock that rides in on the shelf like a shape, never merges, and breaks when a merge happens beside it.
+// From shot STONE_FROM, every Nth shelf arrival is one; N starts at STONE_N0 and drops by one per new tier from 128 up.
+// (review: from 12 / every 9 left a good player's first two minutes empty; now the first one comes about shot 13)
+const STONE_FROM = 6, STONE_N0 = 7, STONE_NMIN = 4;
+const STONE_LV = 4;            // its size: a 16's
+const STONE_W = 0.5, STONE_G = 1.5, STONE_K = 3;   // heavier in contacts, pulled harder toward the pile, stiffer shape
+const STONE_GAP = 10;          // a merge's newborn breaks a stone within its radius plus this
+const STONE_C = '#77748a', STONE_INK = '#4c495f', STONE_CHIP = '#68657b';
 // Skin: a damped wave that runs round each outline after a knock. Drawn only, never collided with.
 const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const SKIN = !REDUCED;
@@ -543,7 +704,8 @@ function resizeBlob(b, r, onShelf) {
   }
   if (onShelf) { b.scale /= k; b.scaleT /= k; b.scaleV /= k; b.v11 /= k; b.v12 /= k; b.v21 /= k; b.v22 /= k; }
   else { b.cx = cx; b.cy = cy; b.br = (b.br - 1) * k + 1; b.maxY = cy + (b.maxY - cy) * k; }
-  b.r = r; b.area0 *= k2; b.sqq *= k2; b.w = n / Math.pow(r, 1.25);
+  b.r = r; b.area0 *= k2; b.sqq *= k2; b.w = n / Math.pow(r, 1.25) * (b.stone ? STONE_W : 1);
+  if (b.cracks) for (const c of b.cracks) for (let q = 0; q < c.length; q++) c[q] *= k;
   const digits = b.label.length;
   b.fs = Math.min(r * 0.8, r * 1.56 / digits) * (r > 44 ? Math.max(0.78, 1 - (r - 44) * 0.0045) : 1);
   const g = n / 6.2832, sb = Math.sqrt(19.8 / r);
@@ -566,7 +728,16 @@ let aiming = false, aim = 0, aimPtr = -1, ptrX = LX, ptrY = 0, ptrMouse = false,
 let pressX = 0, pressY = 0, power = 1, selX = LX, pullX = 0, pullY = 0;
 const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
 let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // peak: highest tier made this run
+// the goal ladder: the highest tier seen this run (made, or dealt onto the board), and each slot's pop and blink clocks
+const LAD_TOP = 13, BADGE_LIFE = 1.2;   // 8192 is the goal at the ladder's top (2048 came within one run, even by mashing: review)
+let reachTop = 0, titleOn = false;
+const ladPop = new Float32Array(LAD_TOP + 1).fill(9), ladBlink = new Float32Array(LAD_TOP + 1).map(() => 1 + Math.random() * 5);
+const badge = { lv: 0, t: 9 };   // the phone's new-tier badge (no ladder there)
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
+// Boosters (Hint, Swap, Smash): charges this run, which one the next new tier from 128 up refills, Hint shown until the
+// next shot, Smash waiting for a tap on the pile, and how many of the next shelf arrivals are a Swap's fresh deal.
+const BOOST_START = [1, 1, 1];
+let boost = BOOST_START.slice(), boostCy = 0, hintOn = false, smashOn = false, swapDeal = 0;
 // Losing, step by step: the line shows as the pile nears it; past it a 3-2-1 counts down on the line; at zero the run
 // stops and a revive is offered once (a ring timer); declined or timed out, the game-over card says why.
 const REVIVE_TIME = 6, REVIVE_BAND = 120;
@@ -597,7 +768,7 @@ const TRAIL = 7;
 const bits = []; for (let i = 0; i < 128; i++) bits.push({ t: 9, tt: 0, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 4, c: 0, a: 0, spin: 0, tx: new Float32Array(TRAIL), ty: new Float32Array(TRAIL) });
 let bitI = 0;
 const sparks = []; for (let i = 0; i < 96; i++) sparks.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, s: 2, c: -1 });
-const rings = []; for (let i = 0; i < 8; i++) rings.push({ t: 9, life: 1, x: 0, y: 0, r0: 0, r1: 0, c: 0 });
+const rings = []; for (let i = 0; i < 16; i++) rings.push({ t: 9, life: 1, x: 0, y: 0, r0: 0, r1: 0, c: 0 });
 let ringI = 0;
 const flares = []; for (let i = 0; i < 6; i++) flares.push({ t: 9, life: 1, x: 0, y: 0, c: 0 });
 let flareI = 0;
@@ -621,6 +792,15 @@ function mergePop(x, y, nb, c) {
 const glow = { c: 0, a: 0 };
 let fieldPaint = null, fxTop = -1, fxC = -1, fxA = -1, fxH = 0, tintCss = '0', hudCss = '', gearCss = '', hudT = 0.17;
 const mixRgb = (r0, g0, b0, c, k) => [r0 + (c.r - r0) * k, g0 + (c.g - g0) * k, b0 + (c.b - b0) * k];
+// A blob colour as UI ink may lean on: warm hues (reds, oranges, yellows, pinks) are taken almost to their own grey,
+// so a warm board never turns the slate HUD brown or mauve (owner's rule); cool hues pass as they are.
+function coolUi(c) {
+  const r = c.r, g = c.g, b = c.b, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (d < 1) return c;
+  let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360;
+  const w = h <= 70 ? 1 : h < 110 ? (110 - h) / 40 : h >= 330 ? 1 : h > 290 ? (h - 290) / 40 : 0; if (w <= 0) return c;
+  const y = 0.299 * r + 0.587 * g + 0.114 * b, k = 0.9 * w;
+  return { r: r + (y - r) * k, g: g + (y - g) * k, b: b + (y - b) * k };
+}
 const mixHex = (r0, g0, b0, c, k) => `rgb(${Math.round(r0 + (c.r - r0) * k)},${Math.round(g0 + (c.g - g0) * k)},${Math.round(b0 + (c.b - b0) * k)})`;
 const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0, big: 0 };
 
@@ -680,6 +860,26 @@ function makeBlob(level, sh) {
   for (let i = 0; i < n; i++) b.rl[i] = Math.hypot(b.qx[i], b.qy[i]) || 1;
   b.kS = SK_K * sb * sb; b.cS = SK_C * sb * sb * g * g; b.dS = SK_D * sb; b.d2S = SK_D2 * g * g * sb; b.sigI = SK_SIG * g;
   b.fresh = true; b.hit = false; b.flashDur = 1;
+  b.blinkT = 1 + Math.random() * 4; b.gx = 0; b.gy = 0; b.joy = 0; b.wide = 0;   // the face (see faceStep)
+  return b;
+}
+// A stone: the same pebble outline, no number, worth nothing, heavier and stiffer. Its cracks come from its shape's
+// own numbers, so a reloaded stone looks the same.
+function makeStone(sh) {
+  const b = makeBlob(STONE_LV, sh);
+  b.stone = true; b.label = ''; b.value = 0; b.w *= STONE_W; b.breaking = 0;
+  let s = Math.floor((b.sh[3] * 1000 + b.sh[4] * 100 + b.sh[5] * 10) * 1000) >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  // one long kinked crack from near the rim across the middle, and a short branch off it: read as a split rock,
+  // not as two marks (two short marks read as a pair of closed eyes)
+  const a0 = rnd() * 6.283, a1 = a0 + Math.PI + (rnd() - 0.5) * 0.8, r0 = b.r * (0.7 - rnd() * 0.05), r1 = b.r * (0.3 + rnd() * 0.12);
+  const x0 = Math.cos(a0) * r0, y0 = Math.sin(a0) * r0, x1 = Math.cos(a1) * r1, y1 = Math.sin(a1) * r1;
+  const L = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / L, ny = (x1 - x0) / L, main = [x0, y0];
+  for (let k = 1; k <= 3; k++) { const t = k / 4, j = (k & 1 ? 1 : -1) * b.r * (0.06 + rnd() * 0.07); main.push(x0 + (x1 - x0) * t + nx * j, y0 + (y1 - y0) * t + ny * j); }
+  main.push(x1, y1);
+  const bx = main[4], by = main[5], ba = a0 + Math.PI * 0.5 * (rnd() < 0.5 ? 1 : -1) + (rnd() - 0.5) * 0.6, bl = b.r * (0.26 + rnd() * 0.1);
+  const br = [bx, by, bx + Math.cos(ba) * bl * 0.55 + nx * b.r * 0.04, by + Math.sin(ba) * bl * 0.55 + ny * b.r * 0.04, bx + Math.cos(ba + 0.3) * bl, by + Math.sin(ba + 0.3) * bl];
+  b.cracks = [main, br];
   return b;
 }
 
@@ -719,7 +919,7 @@ function solveShape(b) {
   // m: the stretch the goal shape takes on (world axes, unit area). Identity on the shelf, while newborn, and while
   // the shelf squash is still springing out of a shot (that is not the blob's own stretch).
   let m11 = 1, m12 = 0, m22 = 1;
-  if (FLOW > 0 && !b.tray && b.young <= 0 && sc > 0.5 && b.state === 0 && !b.buried && !b.popping) {   // (not while merging, trapped or popping: those keep a round goal, or they are drawn into tendrils and slivers)
+  if (FLOW > 0 && !b.stone && !b.tray && b.young <= 0 && sc > 0.5 && b.state === 0 && !b.buried && !b.popping) {   // (not while merging, trapped or popping: those keep a round goal, or they are drawn into tendrils and slivers)
     let w11 = b.v11, w12 = (b.v12 + b.v21) * 0.5, w22 = b.v22;
     const det = w11 * w22 - w12 * w12;
     if (det > 1e-6 && det === det) {
@@ -731,12 +931,13 @@ function solveShape(b) {
       if (dm > 1e-6) { const km = 1 / Math.sqrt(dm); m11 *= km; m12 *= km; m22 *= km; } else { m11 = m22 = 1; m12 = 0; }
     }
   }
+  const kSt = b.stone ? STONE_K : 1;
   for (let i = 0; i < n; i++) {
     const rx = sxm * (c * qx[i] - s * qy[i]), ry = sym * (s * qx[i] + c * qy[i]);
     const gx = cx + m11 * rx + m12 * ry, gy = cy + m12 * rx + m22 * ry;
     let dx = gx - x[i], dy = gy - y[i];
     const d2 = dx * dx + dy * dy;
-    let k = K0 + K1 * d2 * inv2; if (k > KMAX) k = KMAX;
+    let k = (K0 + K1 * d2 * inv2) * kSt; if (k > KMAX * kSt) k = KMAX * kSt;
     x[i] += dx * k; y[i] += dy * k;
     dx = x[i] - gx; dy = y[i] - gy;
     const e2 = dx * dx + dy * dy;
@@ -900,6 +1101,7 @@ function limitNotch(b) {
 function collideWalls(b) {
   const n = b.n, x = b.x, y = b.y, px = b.px, py = b.py;
   b.wl.fill(0);   // (wallHit is counted across both contact passes and cleared in the velocity pass)
+  if (b.leaving) return;   // a Swap's leaving shape slides out through the wall
   if (b.entering) { if (b.cx - b.br > WALL_L + 1 && b.cx + b.br < WALL_R - 1) b.entering = false; else return; }
   for (let p = 0; p < planes.length; p++) {
     const pl = planes[p], nx = pl[0], ny = pl[1], dd = pl[2];
@@ -953,7 +1155,8 @@ function substep(h) {
       // shelf: no gravity, drawn toward the middle of the row, heavily damped.
       // The grabbed shape follows the pull instead, so it squashes back like a slingshot.
       let tx = LX, ty = TRAY_Y, kx = b.entering ? 40 : 14, lim = b.entering ? 3000 : 800;
-      if (b === sel && armed) { tx = selX + pullX; ty = TRAY_Y + pullY; kx = 160; lim = 5000; }
+      if (b.leaving) { tx = b.leaving < 0 ? WALL_L - b.r * b.scale * 2 - 40 : WALL_R + b.r * b.scale * 2 + 40; kx = 40; lim = 3000; }
+      else if (b === sel && armed) { tx = selX + pullX; ty = TRAY_Y + pullY; kx = 160; lim = 5000; }
       else if (b === sel) { tx = selX; kx = 60; lim = 3000; }   // held: a sliding shape stops under the finger
       else if (sel && armed) kx = 0;        // neighbours hold still while one is pulled back
       let ax = (tx - b.cx) * kx; if (ax > lim) ax = lim; else if (ax < -lim) ax = -lim;
@@ -965,7 +1168,7 @@ function substep(h) {
     } else {
       let gf = 1, sqx = 0, sqy = 0, held = 0;
       b.buried = false;
-      if (b.touched && b.state === 0 && b.young <= 0) {
+      if (b.touched && b.state === 0 && b.young <= 0 && !b.stone) {   // (a stone is never squeezed out: it sinks and stays)
         const ra = b.r * b.scale;
         for (let q = 0; q < nb; q++) {
           const o = blobs[q]; if (o === b || o.tray || o.dead || o.level <= b.level) continue;
@@ -990,7 +1193,7 @@ function substep(h) {
       // spring (FLY_RATE is its frequency) acting on the points' velocities as a pure change of shape (along the path
       // one way, across it the other, with no net push or spin), so the blob's own motion is untouched and the launch wobble settles into the
       // drawn-out shape. It lets go the moment the blob lands.
-      if (FLY_K > 0 && b.freeT > 0.05 && b.state === 0 && b.young <= 0) {
+      if (FLY_K > 0 && !b.stone && b.freeT > 0.05 && b.state === 0 && b.young <= 0) {
         const sp = Math.sqrt(b.vcx * b.vcx + b.vcy * b.vcy);
         if (sp > 40) {
           const ux = b.vcx / sp, uy = b.vcy / sp, want = 1 + Math.min(FLY_MAX, sp * FLY_K);
@@ -1015,7 +1218,7 @@ function substep(h) {
           }
         }
       }
-      const gh = G * gf * (b.touched && !b.launched && !b.buried ? PILE_G : 1) * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
+      const gh = G * gf * (b.touched && !b.launched && !b.buried ? PILE_G : 1) * (b.stone ? STONE_G : 1) * h, ax = sqx * SQUEEZE * h, ay = (sqy * SQUEEZE + (held >= 2 ? DRAIN : 0)) * h;
       for (let i = 0; i < n; i++) {
         vx[i] += ax; vy[i] += ay - gh; px[i] = x[i]; py[i] = y[i];
         x[i] += vx[i] * h; y[i] += vy[i] * h;
@@ -1038,6 +1241,7 @@ function substep(h) {
     for (let j = i + 1; j < nb; j++) {
       const B = blobs[j];
       if (A.state === 1 && A.partner === B) continue;
+      if (A.leaving || B.leaving) continue;   // a Swap's leaving shape touches nothing on its way out
       if (A.tray !== B.tray) {   // shelf vs field: only a shot on its way back down, near the shelf, touches the shelf
         const f = A.tray ? B : A;
         if (f.launched || f.vcy < 40 || f.cy < TRAY_Y - 150 || f.state === 1) continue;   // a fresh shot passes its shelf neighbours
@@ -1048,7 +1252,7 @@ function substep(h) {
       const hits = collide(A, B) + collide(B, A);
       if (hits > 0) {
         A.touched = B.touched = true; A.hit = B.hit = true;
-        if (A.level === B.level && A.state === 0 && B.state === 0 && A.noMerge <= 0 && B.noMerge <= 0 && !over) {
+        if (A.level === B.level && !A.stone && !B.stone && A.state === 0 && B.state === 0 && A.noMerge <= 0 && B.noMerge <= 0 && !over) {
           A.state = B.state = 1; A.partner = B; B.partner = A; A.mergeT = B.mergeT = MERGE_TIME;
         }
       }
@@ -1161,7 +1365,7 @@ function skinBump(b, bi, J) {
 }
 // A knock dents the side that took it. Called on the fixed 1/60 s physics cadence, never per display frame.
 function skinKnock(b, dvx, dvy) {
-  if (b.tray || b.fresh) return;
+  if (b.tray || b.fresh || b.stone) return;
   const dv = Math.sqrt(dvx * dvx + dvy * dvy);
   if (dv <= SK_DV0) return;
   const n = b.n, x = b.x, y = b.y, cx = b.cx, cy = b.cy;
@@ -1248,13 +1452,14 @@ function finishMerge(a, b) {
   nb.cx = x; nb.cy = y; nb.cs = 1; nb.sn = 0; nb.pa = 0; nb.la = 0; nb.vcx = nb.pvx = vx; nb.vcy = nb.pvy = vy;
   nb.maxY = maxY; nb.br = Math.sqrt(br2) + 1;
   nb.flash = 1; nb.flashDur = 0.22 + 0.015 * nb.level;   // a pale newborn for a few frames, like the reference
+  nb.joy = JOY_TIME;   // and it squeezes its eyes shut for a moment
   nb.noMerge = CHAIN_DELAY; nb.young = YOUNG; nb.touched = true; nb.sinceTouch = 1;
   if (SKIN) {
     const k2 = Math.random() * 6.283, k3 = Math.random() * 6.283;
     for (let i = 0; i < n; i++) { const th = i / n * 6.2832; nb.hv[i] += 1.5 * (Math.cos(2 * th + k2) + 0.6 * Math.cos(3 * th + k3)); }
     const reach = nb.r * 3;
     for (let q = 0; q < blobs.length; q++) {
-      const o = blobs[q]; if (o.dead || o.tray !== a.tray) continue;
+      const o = blobs[q]; if (o.dead || o.tray !== a.tray || o.stone) continue;
       const dx = x - o.cx, dy = y - o.cy, d = Math.sqrt(dx * dx + dy * dy);
       if (d >= reach) continue;
       let bi = 0, bd = -1e9;
@@ -1263,10 +1468,16 @@ function finishMerge(a, b) {
     }
   }
   blobs.push(nb);
+  if (!onShelf) for (let q = 0; q < blobs.length; q++) {   // a stone beside the merge cracks and breaks
+    const o = blobs[q]; if (!o.stone || o.dead || o.tray || o.breaking) continue;
+    if (Math.hypot(o.cx - x, o.cy - y) < nb.r + o.r * o.scale + STONE_GAP) breakStone(o);
+  }
   if (onShelf) { nb.tray = true; nb.sq = nb.sqT = 1; } else { combo++; comboIdle = 0; }
   const pts = nb.value * (onShelf ? 1 : combo);
   score += pts;
   if (score > best) { best = score; bestDirty = true; }
+  if (nb.level > peak && nb.level >= 7) grantBoost();   // each new tier from 128 up refills a booster, in turn
+  if (nb.level > peak && nb.level >= 6) { newTier(nb.level); earnCoins(tierCoins(nb.level), x, y); }   // the first 64 (and up) of the run: its ladder slot pops, or the phone's badge, and a few coins fly to the counter
   if (nb.level > peak) peak = nb.level;
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
@@ -1309,26 +1520,67 @@ function ripple(b, j0) {
     o.hit = true;
   }
 }
+// A popped blob leaves one flat hoop of its colour that opens out and thins away (no sparkles: owner's rule).
+function popRing(x, y, r, ci) {
+  const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;
+  rg.t = 0; rg.life = 0.36; rg.x = x; rg.y = y; rg.r0 = r * 0.8; rg.r1 = r * 1.5; rg.c = ci;
+}
 function popBlob(b) {
   b.dead = true; saveDirty = true; sfxPop();
   const x = b.cx, y = b.cy, ci = cidx(b.level);
-  score += b.value; if (score > best) { best = score; bestDirty = true; }
-  scoreBump = Math.max(scoreBump, 0.5);
-  if (REDUCED) return;
-  for (let i = 0; i < 14; i++) {
-    const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
-    const th = Math.random() * 6.283, v = 120 + Math.random() * 200;
-    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
-    sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
+  if (!b.smashed) {   // (a Smash scores nothing)
+    score += b.value; if (score > best) { best = score; bestDirty = true; }
+    scoreBump = Math.max(scoreBump, 0.5);
   }
+  if (REDUCED) return;
+  popRing(x, y, b.r, ci);
   // (no shake here: a trapped blob pops a second or more after anything the player did, and the shake read as late: user)
+}
+// A stone breaking: it shrinks for a moment (frameLogic), then crumbles into a few flat chips that drift off and fade.
+const chips = []; for (let i = 0; i < 16; i++) chips.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, a: 0, va: 0, r: 4, c: 0, p: new Float32Array(10) });
+let chipI = 0;
+function breakStone(s, quiet) {
+  if (!s.stone || s.dead || s.breaking) return;
+  s.breaking = 1e-6; s.anim = true; s.animT = 0; s.scaleT = s.scale * 0.72; s.noMerge = 9; saveDirty = true;
+  if (!quiet) { sfxTok(); buzz(6); }
+}
+function crumbleStone(s) {
+  s.dead = true; saveDirty = true;
+  if (REDUCED) return;
+  const n = 3 + Math.floor(Math.random() * 3), rs = s.r * s.scale;
+  for (let i = 0; i < n; i++) {
+    const c = chips[chipI]; chipI = (chipI + 1) % chips.length;
+    const th = i / n * 6.283 + Math.random() * 0.8, v = 50 + Math.random() * 70;
+    c.t = 0; c.life = 0.5 + Math.random() * 0.25; c.r = rs * (0.3 + Math.random() * 0.14);
+    c.x = s.cx + Math.cos(th) * rs * 0.42; c.y = s.cy + Math.sin(th) * rs * 0.42;
+    c.vx = Math.cos(th) * v; c.vy = Math.sin(th) * v; c.a = Math.random() * 6.283; c.va = (Math.random() - 0.5) * 5; c.c = i & 1;
+    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283 + (Math.random() - 0.5) * 0.7, l = 0.7 + Math.random() * 0.35; c.p[k * 2] = Math.cos(a) * l; c.p[k * 2 + 1] = Math.sin(a) * l; }
+  }
+}
+function chipStep(dt) {
+  for (let i = 0; i < chips.length; i++) {
+    const c = chips[i]; if (c.t >= c.life) continue;
+    c.t += dt; c.vx *= Math.exp(-dt * 2); c.vy = c.vy * Math.exp(-dt * 2) - 140 * dt;   // they fall the world's way, toward the ceiling
+    c.x += c.vx * dt; c.y += c.vy * dt; c.a += c.va * dt;
+  }
+}
+function drawChips() {
+  for (let i = 0; i < chips.length; i++) {
+    const c = chips[i]; if (c.t >= c.life) continue;
+    const k = c.t / c.life, r = c.r * (1 - 0.35 * k);
+    ctx.globalAlpha = 1 - k * k; ctx.fillStyle = c.c ? STONE_CHIP : STONE_C;
+    ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.a); ctx.beginPath();
+    ctx.moveTo(c.p[0] * r, c.p[1] * r); for (let q = 1; q < 5; q++) ctx.lineTo(c.p[q * 2] * r, c.p[q * 2 + 1] * r);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 function juiceMerge(x, y, nb, c, a, b) {
   scoreBump = Math.max(scoreBump, Math.min(2.4, 0.7 + 0.42 * (c - 1) + 0.13 * Math.max(0, nb.level - 5)));   // no particles: the newborn's pale stretched shape is the whole effect
 }
 let juiceLive = 0;
 function juiceStep(dt) {
-  juiceLive = 0;
+  juiceLive = 0; chipStep(dt);
   const k = Math.exp(-dt * 2.4), ks = Math.exp(-dt * 4);
   for (let i = 0; i < bits.length; i++) {
     const b = bits[i]; if (b.t >= b.life) continue;
@@ -1395,6 +1647,23 @@ function panelPath() {
   ctx.moveTo(WALL_L, CEIL + r); ctx.arcTo(WALL_L, CEIL, WALL_L + r, CEIL, r); ctx.lineTo(WALL_R - r, CEIL); ctx.arcTo(WALL_R, CEIL, WALL_R, CEIL + r, r);
   ctx.lineTo(WALL_R, H - rb); ctx.arcTo(WALL_R, H, WALL_R - rb, H, rb); ctx.lineTo(WALL_L + rb, H); ctx.arcTo(WALL_L, H, WALL_L, H - rb, rb); ctx.closePath();
 }
+// The cave ceiling: a flat band of rock along the top of the field, a shade darker than the field, with a wavy lower
+// edge and a few short rounded stalactites. Under the blobs, which hang from it as before.
+const STALACS = [[34, 11, 18], [96, 7, 10], [150, 10, 26], [226, 8, 14], [294, 11, 22], [340, 6, 9]];   // [x, half-width, length]
+let ceilPts = null;
+function ceilY(x) {
+  let y = CEIL + 11 + 2.6 * Math.sin(x * 0.043 + 1.1) + 1.4 * Math.sin(x * 0.117 + 0.4);
+  for (const [c, w, l] of STALACS) { const d = Math.abs(x - c) / w; if (d < 1) y += l * Math.pow(1 - d * d, 1.6); }
+  return y;
+}
+function drawCeiling() {
+  if (!ceilPts) { ceilPts = []; for (let x = WALL_L; x <= WALL_R + 0.01; x += 2) ceilPts.push(x, ceilY(x)); }
+  ctx.beginPath(); ctx.moveTo(WALL_L, CEIL - 2);
+  for (let i = 0; i < ceilPts.length; i += 2) ctx.lineTo(ceilPts[i], ceilPts[i + 1]);
+  ctx.lineTo(WALL_R, CEIL - 2); ctx.closePath();
+  ctx.fillStyle = CEIL_INK; ctx.fill();
+}
+const CEIL_INK = 'rgba(14,14,24,0.3)';
 // The limit's dots, on the field under the blobs. Pale and slow while the pile is near, coral and beating once it is past.
 function drawLimit() {
   const idleA = lineA * (1 - fanfareEnv()) * (1 - hotA);
@@ -1426,13 +1695,6 @@ function drawJuice() {
     ctx.globalAlpha = (1 - k) * 0.9; ctx.lineWidth = 4 * (1 - k) + 0.6; ctx.strokeStyle = COLORS[rg.c].hex;
     ctx.beginPath(); ctx.arc(rg.x, rg.y, r, 0, 6.2832); ctx.stroke();
   }
-  // sparkles: little four-point stars, white or in the new colour
-  for (let i = 0; i < sparks.length; i++) {
-    const sp = sparks[i]; if (sp.t >= sp.life) continue;
-    const k = sp.t / sp.life, l = sp.s * (1 - k) * (k < 0.2 ? k / 0.2 : 1) * 2.2;
-    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4; ctx.strokeStyle = sp.c < 0 ? '#ffffff' : COLORS[sp.c].hex;
-    ctx.beginPath(); ctx.moveTo(sp.x - l, sp.y); ctx.lineTo(sp.x + l, sp.y); ctx.moveTo(sp.x, sp.y - l); ctx.lineTo(sp.x, sp.y + l); ctx.stroke();
-  }
   // confetti bits: a comet trail (two strokes: a thick head half, a thin tail half), then a spinning square
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const half = TRAIL >> 1;
@@ -1460,19 +1722,22 @@ function layout() {
 }
 
 const trayScale = b => Math.min(baseRadiusFor(b.level), TRAY_R) / b.r;   // the grab size never shrinks with the run
-function boardHas(level) { for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level === level) return true; return false; }
+function boardHas(level) { for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].stone && blobs[i].level === level) return true; return false; }
 // The smallest launch tier retires as the run climbs: 2s stop at 128, 4s at 512, 8s at 2048, and so on.
 // Blobs already on the board stay; only new shelf arrivals obey the floor.
 const spawnFloor = () => Math.max(1, 1 + Math.ceil((peak - 6) / 2));
 function pickLevel() {
   let maxL = 4;
-  for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > maxL) maxL = blobs[i].level;
+  for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && !blobs[i].stone && blobs[i].level > maxL) maxL = blobs[i].level;
   const lo = spawnFloor();
-  const top = Math.max(lo + 2, Math.min(lo + 4, maxL - 2));
+  // The deal is wide enough that a good player has to park shapes and the board fills: four tiers from the start, five
+  // from shot 20, more as the pile climbs. (review: with three tiers and a strong pull toward matches an aiming bot kept
+  // 4-8 shapes on the board for 3 minutes; now its first danger comes at about 2 minutes instead of 3.5)
+  const top = Math.max(lo + 3 + (shotN >= 20 ? 1 : 0), Math.min(lo + 5, maxL - 1));
   let total = 0; const w = [];
   for (let l = lo; l <= top; l++) {
-    let v = Math.pow(0.62, l - lo);
-    if (boardHas(l)) v = Math.max(v * 1.5, 0.28);   // a tier with a match waiting on the board is a bit likelier
+    let v = Math.pow(0.75, l - lo);
+    if (boardHas(l)) v = Math.max(v * 1.2, 0.28);   // a tier with a match waiting on the board is a little likelier
     w.push(v); total += v;
   }
   let r = Math.random() * total;
@@ -1484,11 +1749,13 @@ function reset() {
   if (booted && !starting) cgGame(true);   // a new run is play again
   rewardedRun = false; runT0 = time;
   blobs.length = 0; shuffleRun(); runSizeScale = 1; sizeDirty = true;
-  score = shown = 0; combo = 0; peak = 0; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
+  score = shown = 0; combo = 0; peak = 0; reachTop = 0; ladPop.fill(9); badge.t = 9; shotN = 0; sinceStone = 0; for (const c of chips) c.t = 9; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; shakeHeat = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; bumpSeen = 0; scoreS = scoreV = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   fanfare.t = 9; fanfare.b = null; glow.a = 0;
   aiming = false; armed = false; sel = hover = null;
+  boost = BOOST_START.slice(); boostCy = 0; hintOn = false; smashOn = false; swapDeal = 0; boostUI();
+  coinFlush(); coinDisp = coins;   // (coins still in the air from the last run are already in the wallet)
   gateT[0] = 0.8; gateT[1] = 0.45; gateFlash[0] = gateFlash[1] = 0; openQ = [1, 2, 3];
   // Opening board: 8 4 2 8 2 4 along the ceiling. A 2 into the left 2 chains 4 → 8 → 16.
   const order = [3, 2, 1, 3, 1, 2];
@@ -1523,9 +1790,9 @@ function saveRun() {
   const bl = [];
   let moving = false;
   for (let i = 0; i < blobs.length; i++) {
-    const b = blobs[i]; if (b.dead || b.popping) continue;
+    const b = blobs[i]; if (b.dead || b.popping || b.breaking || b.leaving) continue;
     const e = [b.level, Math.round(b.cx * 10) / 10, Math.round(b.cy * 10) / 10, b.tray ? 0 : Math.round(b.vcx), b.tray ? 0 : Math.round(b.vcy),
-      (b.tray ? 1 : 0) | (!b.tray && b.launched && !b.touched ? 2 : 0), Math.round(Math.atan2(b.sn, b.cs) * 100) / 100];
+      (b.tray ? 1 : 0) | (!b.tray && b.launched && !b.touched ? 2 : 0) | (b.stone ? 4 : 0), Math.round(Math.atan2(b.sn, b.cs) * 100) / 100];
     if (!b.tray) {
       const p = new Array(b.n * 2);
       for (let k = 0; k < b.n; k++) { p[k * 2] = Math.round(b.x[k] * 10); p[k * 2 + 1] = Math.round(b.y[k] * 10); }
@@ -1536,7 +1803,7 @@ function saveRun() {
     bl.push(e);
   }
   saveDirty = moving;   // keep saving while the board is still moving, then once more at rest
-  try { store.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), blobs: bl })); } catch (e) {}
+  try { store.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_V, score, peak, order: runOrder, openQ, revive: reviveUsed, was: bestAtStart, danger: Math.max(0, Math.round(dangerT * 100) / 100), shots: shotN, since: sinceStone, boost: boost.slice(), bcy: boostCy, hint: hintOn ? 1 : 0, deal: swapDeal, blobs: bl })); } catch (e) {}
 }
 function loadRun() {
   if (MERGE_LAB) return false;
@@ -1557,12 +1824,16 @@ function loadRun() {
   runSizeScale = sizeTarget(); sizeDirty = false;
   dangerT = isFinite(+d.danger) ? Math.max(0, Math.min(DANGER_HOLD, +d.danger)) : 0;
   openQ = Array.isArray(d.openQ) ? d.openQ.filter(l => Number.isInteger(l) && l >= 1 && l <= 12).slice(0, 3) : [];
+  shotN = Number.isInteger(d.shots) && d.shots >= 0 ? d.shots : 0; sinceStone = Number.isInteger(d.since) && d.since >= 0 && d.since < 50 ? d.since : 0;   // (older saves have neither)
+  if (Array.isArray(d.boost) && d.boost.length === 3 && d.boost.every(v => Number.isInteger(v) && v >= 0 && v <= 99)) boost = d.boost.slice();   // (older saves: the run's starting 1/1/1)
+  boostCy = Number.isInteger(d.bcy) && d.bcy >= 0 && d.bcy < 3 ? d.bcy : 0; hintOn = d.hint === 1; swapDeal = Number.isInteger(d.deal) && d.deal >= 0 && d.deal <= 2 ? d.deal : 0;
+  boostUI();
   for (const e of d.blobs) {
     const x = +e[1], y = +e[2], vx = +e[3] || 0, vy = +e[4] || 0, f = e[5] | 0, a = isFinite(+e[6]) ? +e[6] : 0;
     const q = e[8];   // its own pebble shape, if the save has a sane one
     const shOk = Array.isArray(q) && q.length === 7 && q.every(v => typeof v === 'number' && isFinite(v)) && Number.isInteger(q[6]) && q[6] >= 14 && q[6] <= MAXN &&
       q[0] >= 0 && q[0] < 0.2 && q[1] >= 0 && q[1] < 0.2 && q[2] >= 0 && q[2] < 0.2;
-    const b = makeBlob(e[0], shOk ? q : undefined);
+    const b = f & 4 ? makeStone(shOk ? q : undefined) : makeBlob(e[0], shOk ? q : undefined);
     if (f & 1) {
       const ts = trayScale(b), rs = b.r * ts;
       placeBlob(b, clamp(x, WALL_L + rs + 4, WALL_R - rs - 4), TRAY_Y, a, ts, 0, 1, 1, 0, 0);
@@ -1597,12 +1868,30 @@ function loadRun() {
   return true;
 }
 
-function trayCount() { let c = 0; for (let i = 0; i < blobs.length; i++) if (blobs[i].tray) c++; return c; }
+function trayCount() { let c = 0; for (let i = 0; i < blobs.length; i++) if (blobs[i].tray && !blobs[i].leaving) c++; return c; }
 
+// Stones: from shot STONE_FROM, every Nth arrival; N shrinks with each new tier from 128 up. One on the shelf at most.
+let shotN = 0, sinceStone = 0;
+const stoneEvery = () => Math.max(STONE_NMIN, STONE_N0 - Math.max(0, peak - 6));
+function stoneNext() {
+  if (MERGE_LAB || shotN < STONE_FROM) return false;
+  if (++sinceStone < stoneEvery()) return false;
+  for (let i = 0; i < blobs.length; i++) if (blobs[i].tray && blobs[i].stone && !blobs[i].dead) { sinceStone = stoneEvery(); return false; }   // (it stays due, no more: the next arrival after that one leaves)
+  sinceStone = 0; return true;
+}
 // A new shape slides onto the shelf from the left (0) or right (1) gate.
 function spawnTray(side) {
   while (openQ.length && openQ[0] < spawnFloor()) openQ.shift();
-  const b = makeBlob(openQ.length ? openQ.shift() : pickLevel()), ts = trayScale(b);
+  let b;
+  if (swapDeal > 0) {   // a Swap's fresh deal: never a stone, never the shape that just left this side (if the pool allows)
+    swapDeal--; let lv = pickLevel();
+    // (and never the pair that left, the other way round)
+    const other = swapDeal === 0 ? blobs.find(o => o.tray && !o.dead && !o.leaving && !o.stone) : null;
+    const same = l => l === swapGone[side] || (other && ((l === swapGone[0] && other.level === swapGone[1]) || (l === swapGone[1] && other.level === swapGone[0])));
+    for (let k = 0; k < 6 && same(lv); k++) lv = pickLevel();
+    b = makeBlob(lv);
+  } else b = stoneNext() ? makeStone() : makeBlob(openQ.length ? openQ.shift() : pickLevel());
+  const ts = trayScale(b);
   const x = side === 0 ? WALL_L - b.r * ts * 1.15 : WALL_R + b.r * ts * 1.15;   // starts beyond the edge of the screen
   placeBlob(b, x, TRAY_Y, Math.random() * 6.28, ts, 0, 1, 1, side === 0 ? ENTER_V : -ENTER_V, 0);
   b.tray = true; b.entering = true; b.scale = b.scaleT = ts; b.sq = 1.18; b.sqT = 1; b.anim = true; b.animT = 0; b.noMerge = 0.3;
@@ -1612,7 +1901,7 @@ function spawnTray(side) {
 function pickTray(x, y, maxDist) {
   let bestB = null, bd = 1e18;
   for (let i = 0; i < blobs.length; i++) {
-    const b = blobs[i]; if (!b.tray || b.state !== 0) continue;
+    const b = blobs[i]; if (!b.tray || b.state !== 0 || b.leaving) continue;
     const d = Math.hypot(b.cx - x, b.cy - y) - b.r * b.scale;
     if (d < bd) { bd = d; bestB = b; }
   }
@@ -1624,9 +1913,9 @@ try { tutDone = store.getItem('udm_tut') === '1'; } catch (e) {}
 if (best > 0) tutDone = true;   // has scored before: not a first run
 const TUT_PERIOD = 2.7, TUT_PULL = 84;
 function tutBlob() {   // the shelf shape the hand demonstrates on: stays the same one while it is there
-  if (tutB && !tutB.dead && tutB.tray && !tutB.entering && tutB.state === 0) return tutB;
+  if (tutB && !tutB.dead && tutB.tray && !tutB.entering && !tutB.leaving && tutB.state === 0 && !tutB.stone) return tutB;
   tutB = null;
-  for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (b.tray && !b.dead && !b.entering && b.state === 0) { tutB = b; break; } }
+  for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (b.tray && !b.dead && !b.entering && !b.leaving && b.state === 0 && !b.stone) { tutB = b; break; } }   // (never a stone: the demo shows a merge)
   return tutB;
 }
 function labMerge(L) {   // L: the tier that comes out (2 is the "4")
@@ -1685,7 +1974,8 @@ function drawTutorial() {
   ctx.restore();
 }
 function fire(b) {
-  if (!b || !b.tray || b.dead || over) return;
+  if (!b || !b.tray || b.dead || b.leaving || over) return;
+  if (hintOn) { hintOn = false; boostUI(); }   // a Hint lasts until the next shot
   if (!tutDone) { tutDone = true; try { store.setItem('udm_tut', '1'); } catch (e) {} }
   initAudio();
   if (b.entering) {   // flicked while still sliding in: it starts from fully inside the walls
@@ -1696,7 +1986,7 @@ function fire(b) {
   const dx = Math.sin(aim) * SHOT * power, dy = -Math.cos(aim) * SHOT * power;
   for (let i = 0; i < b.n; i++) { b.vx[i] = dx; b.vy[i] = dy; }
   b.tray = false; b.launched = true; b.scaleT = 1; b.sqT = 0; b.anim = true; b.animT = 0;   // springs back to full size: the launch stretch
-  saveDirty = true;
+  saveDirty = true; shotN++;
   b.vcx = b.pvx = dx; b.vcy = b.pvy = dy; b.touched = false; b.sinceTouch = 0; b.noMerge = 0;
   combo = 0;
   // on touch it is this release that wakes the audio, a moment later: still play the launch then
@@ -1721,9 +2011,12 @@ function frameLogic(dt) {
   for (let i = 0; i < blobs.length; i++) {
     const b = blobs[i];
     if (b.flash > 0) b.flash -= dt / b.flashDur;
-    if (!b.popping && b.buriedT > POP_AFTER && b.level <= 4 && !over) { b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; }
+    if (b.leaving && !b.dead) { b.leaveT += dt; const rs = b.br * b.scale; if (b.cx + rs < WALL_L - 2 || b.cx - rs > WALL_R + 2 || b.leaveT > 1.6) b.dead = true; }
+    if (b.breaking) { b.breaking += dt; if (b.breaking > 0.09 && !b.dead) crumbleStone(b); }
+    else if (!b.popping && !b.stone && b.buriedT > POP_AFTER && b.level <= 4 && !over) { b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; }
     else if (b.popping) { b.popping += dt; if (b.popping > POP_TIME) popBlob(b); }
     if (SKIN) skinStep(b, dt);
+    faceStep(b, dt);
     // numbers tumble with the blob, then right themselves so they stay readable
     const ang = Math.atan2(b.sn, b.cs); let da = ang - b.pa; b.pa = ang;
     if (da > Math.PI) da -= 6.2832; else if (da < -Math.PI) da += 6.2832;
@@ -1760,7 +2053,8 @@ function frameLogic(dt) {
     nearT = near > 0 ? Math.min(LINE_WAIT + 0.6, nearT + dt) : Math.max(0, nearT - dt);
     const want = nearT > LINE_WAIT ? (near > 0 ? near : lineA) : 0;
     lineA += (want - lineA) * (1 - Math.exp(-dt * (want > lineA ? 1.6 : 5)));
-    dangerT = past ? dangerT + dt : dangerT > 0 ? Math.max(0, dangerT - dt * 3) : Math.min(0, dangerT + dt);
+    // (while the settings or shop sheet is up the run is paused for the portal: the losing clock holds still)
+    dangerT = past ? dangerT + (sheetOpen ? 0 : dt) : dangerT > 0 ? Math.max(0, dangerT - dt * 3) : Math.min(0, dangerT + dt);
     warn = dangerT > 0.12;
     if (dangerT > 0) dangerPh += dt * (1.1 + 2.6 * Math.min(1, dangerT / DANGER_HOLD)); else dangerPh = 0;   // heartbeat, quickening
     const c = dangerT > DANGER_GRACE ? Math.max(1, Math.ceil(DANGER_HOLD - dangerT)) : dangerT > 0 && count > 0 ? 3 : 0;   // 3, 2, 1; once up it stays until the pile has really cleared
@@ -1771,7 +2065,7 @@ function frameLogic(dt) {
     if (dangerT >= DANGER_HOLD) lose();
     saveT += dt; if (saveT >= 2) { saveT = 0; if (saveDirty || dangerT > 0) saveRun(); }
   } else if (offer) {
-    offerT += dt;
+    if (!sheetOpen) offerT += dt;
     const left = REVIVE_TIME - Math.max(0, offerT - 0.55);   // a beat to see the board, then the card and its timer
     if (offerT > 0.55 && reviveEl.hidden) { reviveEl.hidden = false; reviveEl.firstElementChild.focus({ preventScroll: true }); }
     const n = Math.max(0, Math.ceil(left));
@@ -1781,12 +2075,13 @@ function frameLogic(dt) {
     ringLeft.style.strokeDashoffset = (264 * (1 - Math.max(0, Math.min(1, left / REVIVE_TIME)))).toFixed(1);
     if (left <= 0) endRun();
   } else {
-    overT += dt;
-    if (cashI < cash.length) {   // the board is still cashing out: the finish screen waits for the last blob
+    if (!sheetOpen) overT += dt;
+    if (cashI < cash.length && !sheetOpen) {   // the board is still cashing out: the finish screen waits for the last blob
       cashT -= dt;
       while (cashT <= 0 && cashI < cash.length) { cashPop(cash[cashI], cashI, cash.length); cashI++; cashT += cashGap; }
       overT = cashI < cash.length ? 0 : -0.1;
     }
+    if (coinPend > 0 && overEl.hidden) overT = Math.min(overT, 0.2);   // and for its coins to land in the counter
     if (overT > 0.45 && overEl.hidden) {
       overN = 0; overTick = 0; overDone = false; overEl.classList.remove('counted'); oScore.textContent = '0'; oBest.textContent = String(best);
       oWhy.textContent = 'The pile stayed past the line.';
@@ -1811,6 +2106,7 @@ function frameLogic(dt) {
 function lose() {
   cgGame(false);
   saveRun();   // the losing board with the countdown spent: a reload returns to this moment, not to before it
+  if (smashOn) { smashOn = false; boostUI(); }
   over = true; overT = 0; aiming = false; armed = false; sel = null; count = 0; countShown = 0; countPop = 0; hotA = 0; nearT = 0; lineA = 0;
   flushBest(); buzz([40, 60, 90]);
   const worth = !PORTAL || (score >= Math.max(300, bestAtStart * 0.4) && time - runT0 > 45);   // (a portal: no ad offer after every short run)
@@ -1819,8 +2115,10 @@ function lose() {
 // The cash-out: what is left on the board bursts blob by blob before the finish screen shows.
 const cash = []; let cashI = 0, cashT = 0, cashGap = 0.08;
 function cashPop(b, i, n) {
-  if (b.dead) return;
+  if (b.dead) { if (!b.stone) { coinPend = Math.max(0, coinPend - coinsFor(b.level)); if (chimeDue && coinPend <= 0 && i === n - 1) { chimeDue = false; sfxChime(); } } return; }   // (gone some other way: its coins count in at once)
+  if (b.stone) { breakStone(b, true); sfxCash(n > 1 ? i / (n - 1) : 1); return; }
   b.dead = true;
+  coinQ.push({ x: b.cx, y: b.cy, v: coinsFor(b.level) });   // it turns into coins that fly to the counter (credited at endRun)
   const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;
   rg.t = 0; rg.life = 0.32; rg.x = b.cx; rg.y = b.cy; rg.r0 = b.r * 0.55; rg.r1 = b.r * 1.5; rg.c = cidx(b.level);
   sfxCash(n > 1 ? i / (n - 1) : 1); buzz(7); kickShake(0.14);
@@ -1830,6 +2128,9 @@ function endRun() {
   offer = false; ended = true; overT = 0; reviveEl.hidden = true; flushBest(); clearSave();
   cash.length = 0; cashI = 0;
   if (!REDUCED) for (let i = 0; i < blobs.length; i++) if (!blobs[i].dead && blobs[i].state === 0) cash.push(blobs[i]);
+  // the cash-out's coins: every blob left is worth some (more for bigger ones); all credited now, they fly in as they burst
+  let pay = 0; for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (!b.dead && b.state === 0 && !b.stone) pay += coinsFor(b.level); }
+  if (pay > 0 && !MERGE_LAB) { coins += pay; saveShop(); if (cash.length) { coinPend += pay; chimeDue = true; } }
   if (cash.length) { cash.sort((p, q) => p.r - q.r); cashGap = Math.max(0.04, Math.min(0.11, 1.4 / cash.length)); cashT = 0.3; } else sfxOver();
 }
 // Revive: the blobs crowding the line burst (never fewer than three, and never the run's biggest), play goes on.
@@ -1838,20 +2139,17 @@ function revive() {
   cgGame(true);
   reviveUsed = true; offer = false; over = false; ended = false; reviveEl.hidden = true;
   dangerT = -1.5; dangerPh = 0; warn = false; count = 0;   // a moment's grace before the line counts again
-  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && blobs[i].level > top) top = blobs[i].level;
-  const field = blobs.filter(b => !b.tray && !b.dead && b.level < top).sort((p, q) => q.maxY - p.maxY);
-  const stuck = blobs.filter(b => !b.tray && !b.dead && b.level === top && b.maxY > DANGER_Y - 40);   // a biggest blob that is itself at the line
+  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && !blobs[i].stone && blobs[i].level > top) top = blobs[i].level;
+  const field = blobs.filter(b => !b.tray && !b.dead && (b.level < top || b.stone)).sort((p, q) => q.maxY - p.maxY);
+  const stuck = blobs.filter(b => !b.tray && !b.dead && !b.stone && b.level === top && b.maxY > DANGER_Y - 40);   // a biggest blob that is itself at the line
   const pins = b => stuck.some(t => b.cy < t.cy && b.maxY > t.cy - t.r - REVIVE_BAND && Math.abs(b.cx - t.cx) < (b.r + t.r) * 0.9);   // what rests on it (gravity is toward the ceiling)
   let n = 0;
   for (const b of field) {
     if (n >= 3 && b.maxY < DANGER_Y - REVIVE_BAND && !pins(b)) continue;
-    b.dead = true; n++;
-    if (!REDUCED) for (let i = 0; i < 10; i++) {
-      const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
-      const th = Math.random() * 6.283, v = 120 + Math.random() * 220;
-      sp.t = 0; sp.life = 0.3 + Math.random() * 0.35; sp.s = 2 + Math.random() * 3; sp.c = cidx(b.level);
-      sp.x = b.cx; sp.y = b.cy; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
-    }
+    n++;
+    if (b.stone) { breakStone(b, true); continue; }   // (the revive's own sound and buzz cover it)
+    b.dead = true;
+    if (!REDUCED) popRing(b.cx, b.cy, b.r, cidx(b.level));
   }
   if (!REDUCED) kickShake(1); glow.a = Math.max(glow.a, 0.6);
   sfxRevive(); buzz([20, 40, 30]); saveDirty = true; saveT = 1.5;
@@ -1860,6 +2158,7 @@ function frameFx(dt) {
   const d = score - shown;
   shown = Math.abs(d) < 0.6 ? score : shown + d * (1 - Math.exp(-dt * 9));
   for (const p of popups) if (p.t < 9) p.t += dt;
+  coinStep(dt);
   if (shake > 0) { shakeT += dt; if (shakeT > 0.45) shake = 0; }
   if (shakeHeat > 0) shakeHeat = Math.max(0, shakeHeat - dt * 1.4);
   if (tilt !== 0 || tiltV !== 0) {   // damped spring back to level
@@ -1909,8 +2208,8 @@ function tick(dt) {
   if (adBusy || ytPaused) return;   // an ad is up, or the portal has paused the game: nothing moves, no timer runs
   if (ytOn && ytDirty) { ytSaveT += dt; if (ytSaveT > 3) ytFlush(); }
   time += dt;
-  if (sel && (sel.dead || sel.state === 1 || !sel.tray)) { sel = null; aiming = false; armed = false; }
-  if (hover && (hover.dead || !hover.tray)) hover = null;
+  if (sel && (sel.dead || sel.state === 1 || !sel.tray || sel.leaving)) { sel = null; aiming = false; armed = false; }
+  if (hover && (hover.dead || !hover.tray || hover.leaving)) hover = null;
   if (hitStop > 0) {   // a beat of stillness on a chain, cut short while the player is mid-pull
     if (aiming && armed) hitStop = Math.min(hitStop, 0.04);
     hitStop -= dt; juiceStep(dt); frameFx(dt); return;
@@ -2014,6 +2313,11 @@ function sfxPop() {              // a blob bursting: a quick falling blip
   if (t - lastPop < 0.05) return; lastPop = t;
   const j = 0.9 + Math.random() * 0.2;
   voice(480 * j, 300 * j, 0.06, t, [[0.012, 0.08], [0.035, 0.055], [0.09, 0]]);
+}
+function sfxTok() {              // a stone breaking: a soft low wooden tok, a falling knock with a quiet low ring under it
+  if (!audible()) return; const t = actx.currentTime, j = 0.94 + Math.random() * 0.12;
+  voice(260 * j, 150 * j, 0.05, t, [[0.014, 0.08], [0.035, 0.04], [0.11, 0]]);
+  note(131 * j, t + 0.005, 0.07, 1.2, 0);
 }
 // The low drum under a big merge: 170 Hz falling to 55 in a fifth of a second, with a brief octave on top so a
 // phone speaker tells it too. It goes straight out, not through the room.
@@ -2209,7 +2513,7 @@ let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
-const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
+const BEST_ALPHA = 0.8;   // the cut-in best score: part way between the panel and the screen colour
 const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z');   // 16x32 laurel branch from the Figma frame (Squish 19:114)
 
 // The phone scales as one piece: --u is one design pixel. On a narrow or touch screen the shell drops away.
@@ -2236,6 +2540,7 @@ function fitShell() {
   if (PORTAL) document.documentElement.style.setProperty('--vpad', wide ? '0px' : Math.max(0, (vh - (78 * colW / 402 + 820 * colW / 360)) / 2).toFixed(1) + 'px');   // a frame taller than the tallest field: centred
   const u = PORTAL ? colW / 402 : bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);   // (a portal's frame: everything is sized from the column's width)
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
+  document.documentElement.style.setProperty('--tu', (PORTAL || bare ? Math.min(vw / 402, vh / 700) : u).toFixed(4) + 'px');   // the title's unit: it fills the whole frame, not the column
   uPx = u;
 }
 let cursorS = 0;
@@ -2270,6 +2575,7 @@ function resize() {
   H = Math.max(560, Math.min(CH / S, 820));
   OX = 0; OY = 0;
   layout();
+  layoutDeco();
   hudT = Math.max(0, Math.min(1, (hudEl.offsetTop + hudEl.offsetHeight * 0.45) / (0.6 * (screenEl.offsetHeight || 1))));
   fxA = -1;
   if (grew && blobs.length) draw();
@@ -2287,7 +2593,7 @@ function pathPts(x, y, n) {
 }
 const fontOf = b => { if (b.fontFs !== b.fs) { b.fontFs = b.fs; b.font = '900 ' + b.fs.toFixed(1) + 'px ' + FONT; } return b.font; };
 function label(b, alpha) {
-  if (alpha <= 0.02) return;
+  if (alpha <= 0.02 || b.stone) return;
   const u = b.scale, k = 0.35, ca = Math.cos(b.la), sa = Math.sin(b.la);
   let v11 = u + k * (b.v11 - u), v22 = u + k * (b.v22 - u), v12 = k * b.v12, v21 = k * b.v21;
   if (v11 < 0.45) v11 = 0.45; else if (v11 > 1.7) v11 = 1.7;
@@ -2298,8 +2604,91 @@ function label(b, alpha) {
   ctx.transform(v11 * ca + v12 * sa, v21 * ca + v22 * sa, -v11 * sa + v12 * ca, -v21 * sa + v22 * ca, 0, 0);
   ctx.fillStyle = 'rgba(0,0,0,0.3)';   // Figma: 30% black over the blob's colour, the same when grabbed or on the merge flash
   ctx.globalAlpha = alpha;
-  ctx.fillText(b.label, 0, b.fs * 0.04);
+  const e = faceSize(b), drop = e * FACE_DROP;
+  ctx.fillText(b.label, 0, b.fs * 0.04 + drop);
+  // the face, above the number, in the number's own frame (so it turns and squashes with it); its gaze is a world
+  // direction, turned back into that frame
+  const gx = ca * b.gx + sa * b.gy, gy = -sa * b.gx + ca * b.gy;
+  let bl = 1; if (b.blinkT < 0) bl = 1 - Math.sin(Math.PI * Math.min(1, -b.blinkT / BLINK_LEN));
+  // a squashed body pulls the eyes down toward the number rather than letting them poke out of the top
+  let ext = 0; const ux = sa, uy = -ca;
+  for (let i = 0; i < b.n; i++) { const p = (b.x[i] - b.cx) * ux + (b.y[i] - b.cy) * uy; if (p > ext) ext = p; }
+  const ey = Math.max(-b.fs * 0.44 - e * 1.5 + drop, -(ext / Math.max(0.45, v22) - e * 1.45));
+  drawEyes(faceStyle, e, ey, gx, gy, bl, b.joy > 0 ? 1 : 0, b.wide);
   ctx.restore();
+}
+// Faces: two flat eyes above the number, in the number's ink. Each blob blinks on its own timer, looks toward the
+// shape being aimed (a shelf shape looks up), squeezes its eyes shut (^ ^) just after it is born of a merge, and
+// opens them wide while it hangs past the line in the countdown. Stones have none.
+const JOY_TIME = 0.4, BLINK_LEN = 0.14, FACE_DROP = 0.8, FACE_INK = 'rgba(0,0,0,0.36)';
+let faceStyle = 'classic', accStyle = '';   // a skin swaps these: drawEyes and drawAcc are the only places that draw a face
+// eye half-height: grows with the blob, held back on big ones (their numbers are small) so a big face stays sweet
+const faceSize = b => Math.max(b.r * 0.16, 0.5 * (b.r * 0.15 + b.fs * 0.15));
+function faceStep(b, dt) {
+  if (b.stone) return;
+  b.blinkT -= dt; if (b.blinkT < -BLINK_LEN) b.blinkT = 1.8 + Math.random() * 4.5;
+  if (b.joy > 0) b.joy = Math.max(0, b.joy - dt);
+  let tx = 0, ty = 0;
+  if (b === sel && aiming && armed) { tx = Math.sin(aim); ty = -Math.cos(aim); }
+  else if (b.tray) ty = -1;
+  else if (aiming && sel && !over) { const dx = sel.cx - b.cx, dy = sel.cy - b.cy, l = Math.sqrt(dx * dx + dy * dy) || 1; tx = dx / l; ty = dy / l; }
+  const k = 1 - Math.exp(-dt * 9); b.gx += (tx - b.gx) * k; b.gy += (ty - b.gy) * k;
+  const w = !over && !b.tray && count > 0 && b.maxY > DANGER_Y ? 1 : 0;
+  b.wide += (w - b.wide) * (1 - Math.exp(-dt * 12));
+}
+// The eyes, centred on (0, y) in the number's frame: e is the half-height, (gx, gy) the gaze (unit or less),
+// bl how open (1 open, 0 shut), joy 1 for the ^ ^ squeeze, wide 0..1 for the frightened round eyes.
+// Skins change only this and drawAcc: 'sleepy' (half-shut lids that wake up in the countdown), 'cyclops' (one big
+// eye), 'goggles' (flat round frames and a bridge, in the eyes' ink); everything else is the classic pair.
+function drawEyes(style, e, y, gx, gy, bl, joy, wide, g = ctx) {
+  const half = e * (1.6 + 0.4 * Math.max(0, Math.min(1, (8 - e) / 4)) + 0.15 * wide), ox = gx * e * 0.45, oy = gy * e * (gy > 0 ? 0.12 : 0.35) + y - e * 0.3 * wide;   // (a downward look or wide eyes never cover the number)
+  const one = style === 'cyclops', k = one ? 1.55 : 1, s0 = one ? 0 : -1, s1 = one ? 0 : 1;   // (the cyclops: one eye, centred)
+  g.fillStyle = FACE_INK; g.strokeStyle = FACE_INK;
+  if (style === 'goggles') {   // the frames stay put while the eyes inside blink and squeeze
+    const R = e * 1.38; g.lineWidth = e * 0.36; g.beginPath();
+    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox * 0.5; g.moveTo(x + R, oy); g.arc(x, oy, R, 0, 6.2832); }
+    g.moveTo(-half + ox * 0.5 + R, oy); g.lineTo(half + ox * 0.5 - R, oy); g.stroke();
+  }
+  if (joy) {   // ^ ^
+    g.lineWidth = e * 0.62 * (one ? 1.2 : 1); g.lineCap = 'round'; g.beginPath();
+    for (let s = s0; s <= s1; s += 2) { const x = s * half + ox, a = e * 0.85 * k; g.moveTo(x - a, oy + e * 0.45); g.arc(x, oy + e * 0.45, a, Math.PI, 0); }
+    g.stroke(); return;
+  }
+  const ry = e * (1 + 0.2 * wide) * k, rx = one ? ry : e * (0.72 + 0.33 * wide);   // (the cyclops eye is round)
+  let h = ry * bl;
+  if (h < e * 0.22) {   // shut: a short flat line
+    g.lineWidth = e * 0.45; g.lineCap = 'round'; g.beginPath();
+    for (let s = s0; s <= s1; s += 2) { const x = s * half + ox; g.moveTo(x - rx, oy); g.lineTo(x + rx, oy); }
+    g.stroke(); return;
+  }
+  g.beginPath();
+  if (style === 'sleepy' && wide < 0.5) {   // the lower half of each eye under a flat lid
+    h *= 0.8;
+    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox, yy = oy - h * 0.3; g.moveTo(x + rx, yy); g.ellipse(x, yy, rx, h, 0, 0, Math.PI); g.closePath(); }
+  } else for (let s = s0; s <= s1; s += 2) { const x = s * half + ox; g.moveTo(x + rx, oy); g.ellipse(x, oy, rx, h, 0, 0, 6.2832); }
+  g.fill();
+  if (one && h > ry * 0.6) {   // one flat round catch-light, up and toward the gaze, so the big eye reads as an eye
+    g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.arc(ox + rx * (0.32 + 0.12 * gx), oy - h * 0.34, rx * 0.26, 0, 6.2832); g.fill();
+  }
+}
+// A skin's silhouette parts, in the blob's own colour, drawn just before its body so the body's edge covers their
+// roots: 'cat' two rounded ear points, 'alien' two stalks with a ball each. `up` is the face's up (an angle), `reach(dx,
+// dy)` how far the body reaches from (x, y) that way, r the blob's radius.
+function drawAcc(g, kind, x, y, up, reach, r, col) {
+  if (!kind) return;
+  g.fillStyle = col; g.strokeStyle = col; g.lineJoin = 'round'; g.lineCap = 'round';
+  for (let s = -1; s <= 1; s += 2) {
+    const a = up + s * (kind === 'cat' ? 0.62 : 0.7), dx = Math.sin(a), dy = -Math.cos(a), D = reach(dx, dy);
+    if (kind === 'cat') {
+      const h = r * 0.36, w = r * 0.25, bx = x + dx * (D - h * 0.4), by = y + dy * (D - h * 0.4);
+      const t = a + s * 0.2, tx = bx + Math.sin(t) * h, ty = by - Math.cos(t) * h;
+      g.lineWidth = r * 0.1; g.beginPath(); g.moveTo(bx - dy * w, by + dx * w); g.lineTo(tx, ty); g.lineTo(bx + dy * w, by - dx * w); g.closePath(); g.fill(); g.stroke();
+    } else {
+      const t = a + s * 0.12, L = r * 0.36, bx = x + dx * (D - 3), by = y + dy * (D - 3), tx = bx + Math.sin(t) * (L + 3), ty = by - Math.cos(t) * (L + 3);
+      g.lineWidth = Math.max(2, r * 0.09); g.beginPath(); g.moveTo(bx, by); g.lineTo(tx, ty); g.stroke();
+      g.beginPath(); g.arc(tx, ty, Math.max(2.4, r * 0.13), 0, 6.2832); g.fill();
+    }
+  }
 }
 // Blobs are flat: one colour, nothing else (user: no shadows, no shading, just the shape and the number).
 function drawBlob(b, outline) {
@@ -2307,8 +2696,23 @@ function drawBlob(b, outline) {
   const sk = SKIN && !b.fresh, X = sk ? b.RX : b.x, Y = sk ? b.RY : b.y;
   const lx = b.tray ? 0 : b.vcx * acc, ly = b.tray ? 0 : b.vcy * acc, led = lx !== 0 || ly !== 0;
   if (led) ctx.translate(lx, ly);
+  if (b.stone) {   // flat grey pebble with a few thin darker cracks, turning with the body
+    ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = STONE_C; ctx.fill();
+    if (outline) { ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.stroke(); }
+    const sc = b.scale, cs = b.cs * sc, sn = b.sn * sc;
+    ctx.save(); ctx.transform(cs, sn, -sn, cs, b.cx, b.cy);
+    ctx.strokeStyle = STONE_INK; ctx.lineWidth = 2.2 / sc; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+    for (const p of b.cracks) { ctx.moveTo(p[0], p[1]); for (let q = 2; q < p.length; q += 2) ctx.lineTo(p[q], p[q + 1]); }
+    ctx.stroke(); ctx.restore();
+    if (led) ctx.translate(-lx, -ly);
+    return;
+  }
+  if (accStyle) {
+    const n = b.n, cx = b.cx, cy = b.cy;
+    drawAcc(ctx, accStyle, cx, cy, b.la, (dx, dy) => { let m = 0; for (let i = 0; i < n; i++) { const p = (X[i] - cx) * dx + (Y[i] - cy) * dy; if (p > m) m = p; } return m; }, b.r * b.scale, c.hex);
+  }
   ctx.beginPath(); pathPts(X, Y, b.n); ctx.fillStyle = c.hex; ctx.fill();
-  let fl = b.flash;                 // merge flash: a white veil over the same inside, fading away
+  let fl = b.flash;                // merge flash: a white veil over the same inside, fading away
   if (b.state === 1) fl = Math.max(fl, 0.7 * (1 - Math.max(0, b.mergeT) / MERGE_TIME));   // a merging pair brightens as it closes
   if (fl > 0) { const a = fl * fl; if (a >= 0.002) { ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`; ctx.fill(); } }
   if (outline) { ctx.strokeStyle = '#f4f1ea'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.stroke(); }
@@ -2326,7 +2730,7 @@ function draw() {
   if (st !== shakeCss) { shakeCss = st; screenEl.style.transform = st; }
   // the wordmark is the score: it rolls up and bumps with a merge
   const sv = Math.round(shown);
-  if (sv !== scoreN) { scoreN = sv; brandEl.textContent = String(sv); }
+  if (sv !== scoreN) { scoreN = sv; const t = String(sv); brandEl.textContent = t; if (brandEl.dataset && brandEl.dataset.n !== String(t.length)) brandEl.dataset.n = String(t.length); }
   const sb = 1 + scoreS;
   if (sb !== scoreScale) { scoreScale = sb; brandEl.style.transform = sb === 1 ? '' : `scale(${sb.toFixed(3)}) rotate(${(-scoreS * 7).toFixed(2)}deg)`; }
   // while the pile sits past the line the whole screen goes red: a heartbeat vignette over the screen (DOM) and a
@@ -2339,16 +2743,18 @@ function draw() {
 
   // the panel is the play field: the ceiling is the "floor". No gate bars: shapes just arrive from the sides.
   // Its slate lights up in the merge colour from the top and carries a faint standing tint of the biggest blob.
-  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && blobs[i].level > top) top = blobs[i].level;
+  let top = 0; for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].stone && blobs[i].level > top) top = blobs[i].level;
   const ti = cidx(Math.max(1, top)), gc = COLORS[glow.c], tc = COLORS[ti], ga = Math.round(glow.a * glow.a * (2 - glow.a) * 64) / 64;
   if (ti !== fxTop || glow.c !== fxC || ga !== fxA || H !== fxH || !fieldPaint) {
     fieldPaint = ctx.createLinearGradient(0, CEIL, 0, H);
     bestPaint = ctx.createLinearGradient(0, CEIL, 0, H);
     bestPaintL = ctx.createLinearGradient(0, CEIL - (H - 64), 0, 64);   // the same gradient in the laurels' own (translated) space
-    const ik = 0.3 * ga, ir = 145 + (gc.r - 145) * ik, ig = 145 + (gc.g - 145) * ik, ib = 160 + (gc.b - 160) * ik;   // the cut-in's ink
+    // (the theme sets the screen K and the field F; the cut-in's ink is the one that, multiplied into F, lands on K)
+    const F = TH.fld, K = TH.scr, I0 = [0, 1, 2].map(k => Math.min(255, 255 * K[k] / F[k]));
+    const ik = 0.3 * ga, ir = I0[0] + (gc.r - I0[0]) * ik, ig = I0[1] + (gc.g - I0[1]) * ik, ib = I0[2] + (gc.b - I0[2]) * ik;   // the cut-in's ink
     for (let q = 0; q < 3; q++) {
       const at = PANEL_STOPS[q][0], t = PANEL_STOPS[q][1], g = PANEL_STOPS[q][2] * ga;
-      const r0 = 53 + (tc.r - 53) * t, g0 = 53 + (tc.g - 53) * t, b0 = 67 + (tc.b - 67) * t;
+      const r0 = F[0] + (tc.r - F[0]) * t, g0 = F[1] + (tc.g - F[1]) * t, b0 = F[2] + (tc.b - F[2]) * t;
       const r = Math.round(r0 + (gc.r - r0) * g), gg = Math.round(g0 + (gc.g - g0) * g), bb = Math.round(b0 + (gc.b - b0) * g);
       fieldPaint.addColorStop(at, `rgb(${r},${gg},${bb})`);
       const m = `rgb(${Math.round(r * ir / 255)},${Math.round(gg * ig / 255)},${Math.round(bb * ib / 255)})`;
@@ -2357,12 +2763,14 @@ function draw() {
     // the screen behind the field: a base that only follows the biggest blob, and the glow colour laid over it
     // (a mix toward the glow colour by k is that colour at alpha k: the same picture, without repainting the screen)
     if (ti !== fxTop) {
-      backEl.style.background = `linear-gradient(${mixHex(30, 30, 42, tc, 0.06)},rgb(30,30,42) 60%)`;
+      backEl.style.background = `linear-gradient(${mixHex(K[0], K[1], K[2], tc, 0.06)},rgb(${K[0]},${K[1]},${K[2]}) 60%)`;
       // the settings sheet and the cards are cut from the same cloth: their surfaces, rows and switch tracks carry the
-      // screen's own faint tint (no stronger than the screen's, or a warm blob turns them brown)
-      screenEl.style.setProperty('--sh', mixHex(53, 53, 67, tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(39, 39, 52, tc, 0.04));
-      screenEl.style.setProperty('--sh-hi', mixHex(33, 33, 45, tc, 0.04)); screenEl.style.setProperty('--sh-tog', mixHex(74, 74, 88, tc, 0.07));
-      screenEl.style.setProperty('--card', mixHex(36, 36, 47, tc, 0.04));
+      // screen's own faint tint (no stronger than the screen's, or a warm blob turns them brown). Steps off the theme's field.
+      screenEl.style.setProperty('--sh', mixHex(F[0], F[1], F[2], tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(F[0] - 14, F[1] - 14, F[2] - 15, tc, 0.04));
+      screenEl.style.setProperty('--sh-hi', mixHex(F[0] - 20, F[1] - 20, F[2] - 22, tc, 0.04)); screenEl.style.setProperty('--sh-tog', mixHex(F[0] + 21, F[1] + 21, F[2] + 21, tc, 0.07));
+      screenEl.style.setProperty('--card', mixHex(F[0] - 17, F[1] - 17, F[2] - 20, tc, 0.04));
+      // the booster circles sit on the screen, not the field: a step lighter than the screen itself, so every theme shows them
+      screenEl.style.setProperty('--bst', mixHex(K[0] + 15, K[1] + 15, K[2] + 17, coolUi(tc), 0.04));
       burstPalette(tc); screenEl.style.setProperty('--fin-r', mixHex(238, 236, 243, tc, 0.5));   // a record's best row: the colour, softened
       { // the ending's two inks are cut from its own background: the same tinted slate, darker for the best and lighter for the score, in the
         // Figma frame's proportions (so the tint is one hue across the screen: mixing each ink toward the colour separately went muddy)
@@ -2370,17 +2778,19 @@ function draw() {
            c3 = (a, b, c) => 'rgb(' + Math.round(Math.min(255, br * a)) + ',' + Math.round(Math.min(255, bg2 * b)) + ',' + Math.round(Math.min(255, bb * c)) + ')';
         screenEl.style.setProperty('--fin-bg', c3(1, 1, 1)); screenEl.style.setProperty('--fin-k', c3(0.72, 0.72, 0.76)); screenEl.style.setProperty('--fin-n', c3(1.85, 1.85, 1.72)); }   // the ending screen's score and best: the HUD's own tinted inks
       screenEl.style.setProperty('--fin-w1', mixHex(20, 18, 30, tc, 0.88)); screenEl.style.setProperty('--fin-w2', mixHex(255, 255, 255, tc, 0.6));   // the waves' ground
-      screenEl.style.setProperty('--sw-on', mixHex(53, 53, 67, tc, 0.82));
+      screenEl.style.setProperty('--sw-on', mixHex(F[0], F[1], F[2], tc, 0.82));
       screenEl.style.setProperty('--sw-knob', 0.2126 * tc.r + 0.7152 * tc.g + 0.0722 * tc.b > 150 ? tc.ink : '#fff');   // a dark knob on a light track (yellow, lime, pink)   // a switch that is on wears the biggest blob's colour
     }
     if (glow.c !== fxC) tintEl.style.background = `linear-gradient(rgba(${gc.r},${gc.g},${gc.b},.32),rgba(${gc.r},${gc.g},${gc.b},.06) 60%)`;
     const to = ga.toFixed(3); if (to !== tintCss) { tintCss = to; tintEl.style.opacity = to; }
     // the score and the gear: the solid colour that their ink, added to the screen behind them, comes to
-    const a = 0.3 + 0.45 * ga; let bc = 'rgb(', gr = 'rgb(';
+    // (readability pass: a stronger ink than the first 0.3, and a lighter pull toward the top blob, so a warm board
+    // lifts the score instead of browning it)
+    const a = 0.62 + 0.3 * ga, uT = coolUi(tc), uG = coolUi(gc); let bc = 'rgb(', gr = 'rgb(';   // (warm colours lose their hue here: coolUi)
     for (let k = 0; k < 3; k++) {
-      const X0 = k === 2 ? 42 : 30, I0 = k === 2 ? 188 : 166, T = k === 0 ? tc.r : k === 1 ? tc.g : tc.b, G = k === 0 ? gc.r : k === 1 ? gc.g : gc.b;
+      const X0 = K[k], I0 = k === 2 ? 188 : 166, T = k === 0 ? uT.r : k === 1 ? uT.g : uT.b, G = k === 0 ? uG.r : k === 1 ? uG.g : uG.b;
       const t0 = X0 + (T - X0) * 0.06, topC = t0 + (G - t0) * 0.32 * ga, botC = X0 + (G - X0) * 0.06 * ga, bg = topC + (botC - topC) * hudT;
-      const i0 = I0 + (T - I0) * 0.42, ink = i0 + (G - i0) * 0.85 * ga;
+      const i0 = I0 + (T - I0) * 0.15, ink = i0 + (G - i0) * 0.85 * ga;
       bc += Math.min(255, Math.round(bg + ink * a)) + (k < 2 ? ',' : ')'); gr += Math.min(255, Math.round(bg + ink * (a - 0.05))) + (k < 2 ? ',' : ')');
     }
     if (bc !== hudCss) { hudCss = bc; brandEl.style.color = bc; if (PORTAL && markEl) markEl.style.color = bc; }   // (the name beside the field takes the score's colour)
@@ -2392,6 +2802,7 @@ function draw() {
   ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = fieldPaint; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // punchCorners() rounds it
+  drawCeiling();
   ctx.save();
 
   // best score, cut into the panel: the screen colour shows through it and the blobs pass over it (Figma 19:114:
@@ -2409,6 +2820,7 @@ function draw() {
     ctx.save(); ctx.translate(LX + tw / 2 + 28, by - 16); ctx.scale(-1, 1); ctx.fill(LAUREL); ctx.restore();
     ctx.globalAlpha = 1;
   }
+  drawGoalMini();
 
   if (dangerA > 0) {
     ctx.fillStyle = `rgba(255,77,94,${(0.06 * dangerA).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // (inside the panel clip)
@@ -2431,6 +2843,7 @@ function draw() {
     if (f !== lf) { lf = f; ctx.font = f; }
     label(b, 1);   // (the grabbed shape only gets the outline; no patch, no black number)
   }
+  drawChips();
   ctx.restore();
 
   // the limit: a drifting row of dots, fading in as the pile comes close; coral and beating once the
@@ -2452,6 +2865,16 @@ function draw() {
 
   drawTutorial();
 
+  // Hint: a soft pulsing ring on the target; Smash ready: the same ring on the blob under the mouse
+  if (!over) {
+    const tg = hintOn ? hintPick() : smashOn && ptrMouse && ptrIn && !aiming ? smashAt(ptrX, ptrY) : null;
+    if (tg) {
+      const ph = REDUCED ? 0 : Math.sin(time * 5.5);
+      ctx.globalAlpha = 0.5 + 0.25 * ph; ctx.lineWidth = 3.2; ctx.strokeStyle = '#f4f1ea';
+      ctx.beginPath(); ctx.arc(tg.cx, tg.cy, tg.r * tg.scale + 7 + 2.5 * ph, 0, 6.2832); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+
   // trajectory: a straight ray from the grabbed shape to the first thing it would reach (ceiling, wall or
   // blob), drawn as evenly spaced dots with a faint ghost of the shape at the end. Pure geometry, no
   // simulation, so it follows the finger with no lag.
@@ -2469,12 +2892,12 @@ function draw() {
       const t = tc - Math.sqrt(rr * rr - h2); if (t > 0 && t < tEnd) tEnd = t;
     }
     // only the first stretch of the path (user: "not the full trajectory"), a little longer for a harder pull
-    const t0 = rs + 10, show = Math.min(tEnd - 4, t0 + 95 + 45 * (power - POW_MIN) / (POW_MAX - POW_MIN)), step = 13;
+    const t0 = rs + 10, show = hintOn ? tEnd - 4 : Math.min(tEnd - 4, t0 + 95 + 45 * (power - POW_MIN) / (POW_MAX - POW_MIN)), step = 13;   // (a Hint shows the whole ray)
     ctx.fillStyle = '#f4f1ea';
     const flow = (time * AIM_FLOW) % step;                                    // dots drift outward along the ray
     if (show > t0) for (let t = t0 + flow - step; t < show; t += step) {
       const q = Math.min(1, Math.max(0, (t - t0) / (show - t0))), lead = t < t0 ? Math.max(0, (t - t0 + step) / step) : 1;   // the newest dot fades in near the shape
-      ctx.globalAlpha = 0.95 * (1 - q * q) * lead;
+      ctx.globalAlpha = 0.95 * (1 - (hintOn ? 0.55 : 1) * q * q) * lead;   // (a Hint's long ray stays visible to its end)
       const v0 = SHOT * power, disc = v0 * v0 - 2 * G * uy * t; if (disc < 0) break;   // a light shot aimed down turns back before it gets this far
       const tau = 2 * t / (v0 + Math.sqrt(disc)), bend = 0.5 * G * ux * tau * tau;   // seconds of flight to this dot; gravity (toward the ceiling) bends the path off the ray
       ctx.beginPath(); ctx.arc(sx + ux * t + uy * bend, sy + uy * t - ux * bend, 2.6 - 0.8 * q, 0, 6.2832); ctx.fill();
@@ -2522,8 +2945,12 @@ function setPtr(e) {
   else if (ptrMouse) hover = pickTray(ptrX, ptrY, 10);
 }
 canvas.addEventListener('pointerdown', e => {
-  if (over || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  if (over || titleOn || (e.pointerType === 'mouse' && e.button !== 0)) return;
   initAudio(); aiming = false; setPtr(e);
+  if (smashOn && !adBusy) {   // Smash is ready: a tap on a pile blob or a stone breaks it (anywhere else still aims)
+    const t = smashAt(ptrX, ptrY);
+    if (t) { smashBlob(t); e.preventDefault(); return; }
+  }
   sel = pickTray(ptrX, ptrY, 1e9);
   if (!sel) return;
   aiming = true; armed = false; aimPtr = e.pointerId; pressX = ptrX; pressY = ptrY; pullX = pullY = 0;
@@ -2560,8 +2987,9 @@ const SHEET_SLOW = 0.2;
 let sheetOpen = false, sheetTimer = 0;
 function showMenu(open) {
   if (open === sheetOpen) return;
-  cgGame(!open && !over);
+  cgGame(!open && !over && !titleOn);   // (the shop opens over the title too: that is still not play)
   sheetOpen = open; gearBtn.setAttribute('aria-expanded', String(open)); sfxUi(open);
+  { const te = document.getElementById('title'); if (te) te.classList.toggle('under', open); }
   clearTimeout(sheetTimer);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
@@ -2575,24 +3003,25 @@ function showMenu(open) {
     sheetEl.classList.add('open'); scrimEl.classList.add('open'); backEl.classList.add('pushed');
     sheetEl.focus({ preventScroll: true });   // the sheet itself, so no row lights up before anyone has pressed a key
   } else {
-    if (sheetEl.contains(document.activeElement)) gearBtn.focus({ preventScroll: true });
+    if (sheetEl.contains(document.activeElement)) (titleOn ? playBtn : gearBtn).focus({ preventScroll: true });
     sheetEl.classList.remove('open'); scrimEl.classList.remove('open'); backEl.classList.remove('pushed');
     sheetTimer = setTimeout(() => { if (!sheetOpen) { sheetEl.hidden = true; scrimEl.hidden = true; } }, REDUCED ? 0 : 520);
   }
 }
 // More: the sheet drops and comes straight back as a second sheet of the same build (the legal pages), and back again.
 const DOCS = {
-  privacy: ['Privacy', 'Blob Blitz keeps your best score, your current run and your sound and vibration choices on this device, in your browser\'s storage. The game itself sends nothing anywhere.\n\nThe game has no accounts, analytics or tracking of its own.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe site you are playing on hosts the game and, like any web host, may log technical request data such as your IP address. On a game portal, the privacy policy of that portal also applies, and the portal may show ads and keep your save with your account there.'],
-  terms: ['Terms', 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run live only on your device. They can be lost if the browser\'s data is cleared, and they cannot be restored.\n\nNothing in the game costs money.'],
+  privacy: ['Privacy', 'Blob Blitz keeps your best score, your current run, your coins and shop items, and your sound and vibration choices on this device, in your browser\'s storage. The game itself sends nothing anywhere.\n\nThe game has no accounts, analytics or tracking of its own.\n\nClearing this site\'s data in your browser removes everything the game has stored.\n\nThe site you are playing on hosts the game and, like any web host, may log technical request data such as your IP address. On a game portal, the privacy policy of that portal also applies, and the portal may show ads and keep your save with your account there.'],
+  terms: ['Terms', 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run live only on your device. They can be lost if the browser\'s data is cleared, and they cannot be restored.\n\nNothing in the game costs money. Coins are earned by playing and have no money value.'],
   licenses: ['Licenses', 'The game, its code, sounds and artwork were made for Blob Blitz.\n\nThe typeface is HorizonTal.\n\nThe game uses no third-party libraries.']
 };
-if (PORTAL) DOCS.privacy[1] = 'Blob Blitz keeps your best score, your current run and your sound and vibration choices. On this site they are stored through the site itself: on this device for a guest, and with your account there if you are signed in.\n\nThe game has no accounts, analytics or tracking of its own, and it sends nothing anywhere else.\n\nThe site you are playing on has its own privacy policy, and it may show ads.';
-if (PORTAL) DOCS.terms[1] = 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run are kept through the site you are playing on.\n\nNothing in the game costs money.';
+if (PORTAL) DOCS.privacy[1] = 'Blob Blitz keeps your best score, your current run, your coins and shop items, and your sound and vibration choices. On this site they are stored through the site itself: on this device for a guest, and with your account there if you are signed in.\n\nThe game has no accounts, analytics or tracking of its own, and it sends nothing anywhere else.\n\nThe site you are playing on has its own privacy policy, and it may show ads.';
+if (PORTAL) DOCS.terms[1] = 'The game is free to play. It is provided as it is, with no warranty of any kind.\n\nYour scores and saved run are kept through the site you are playing on.\n\nNothing in the game costs money. Coins are earned by playing (or by choosing to watch an ad) and have no money value.';
 const sheetViews = sheetEl.querySelectorAll('.view'), docTitle = document.getElementById('doc-title'), docBody = document.getElementById('doc-body');
 let sheetAt = 'main', viewTimer = 0, swapUntil = 0;
 function setView(v) {
   sheetAt = v; const shown = DOCS[v] ? 'doc' : v;
   for (let i = 0; i < sheetViews.length; i++) sheetViews[i].hidden = sheetViews[i].dataset.view !== shown;
+  if (v === 'shop') renderShop(); else shopCards = [];
   if (DOCS[v]) { docTitle.textContent = DOCS[v][0]; docBody.textContent = DOCS[v][1]; const d = docBody.parentNode; d.scrollTop = 0; d.classList.toggle('fits', d.scrollHeight <= d.clientHeight + 1); }
 }
 function goView(v) {
@@ -2649,10 +3078,142 @@ vibBtn.addEventListener('click', () => { setVib(!vib); buzz(25); sfxUi(vib); });
 const reviveNote = document.getElementById('revive-note');
 const AD_ICON = '<svg class="ad" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="5" width="22" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 9.6v6.8l6-3.4z" fill="currentColor"/></svg>';
 function reviveLook() {   // on a portal the button says what it costs: an ad, or nothing where the portal shows none
+  boostUI();   // (and so do the spent boosters)
   if (!PORTAL) return;
   const ad = (cgOn || ytOn) && !adsOff;
   reviveYes.innerHTML = (ad ? AD_ICON : '') + 'Revive'; reviveYes.setAttribute('aria-label', ad ? 'Watch an ad to revive' : 'Revive');
 }
+/* ───────── boosters: Hint, Swap, Smash ───────── */
+// Each run starts with one of each; every new tier from 128 up adds one, in turn. Spent, a booster asks for a rewarded
+// ad where the portal shows them (only on a press, never on its own); elsewhere it stays dim until a new tier refills it.
+const boostBtns = ['b-hint', 'b-swap', 'b-smash'].map(id => document.getElementById(id));
+const BOOST_NAME = ['Hint', 'Swap', 'Smash'], boostSeen = ['', '', ''];
+const swapGone = [0, 0];   // the tiers a Swap just sent out of each side (its fresh deal avoids dealing the same back)
+const boostAds = () => (cgOn || ytOn) && !adsOff;
+function boostUI() {
+  const ad = boostAds();
+  for (let i = 0; i < 3; i++) {
+    const el = boostBtns[i]; if (!el) continue;
+    const n = boost[i] + stock[i], on = i === 0 ? hintOn : i === 2 ? smashOn : false, mode = n > 0 ? 'n' : on ? 'on' : ad ? 'ad' : 'empty';   // (a Hint in use with none left: lit, no badge)
+    const key = n + mode + (on ? 1 : 0);
+    if (key === boostSeen[i]) continue; boostSeen[i] = key;
+    const bn = el.querySelector('.bn');
+    if (bn) { bn.innerHTML = mode === 'ad' ? AD_ICON : String(n); bn.hidden = mode === 'on'; }
+    el.classList.toggle('on', on); el.classList.toggle('ad', mode === 'ad'); el.classList.toggle('empty', mode === 'empty');
+    el.setAttribute('aria-pressed', String(on));
+    el.setAttribute('aria-label', mode === 'ad' ? BOOST_NAME[i] + ': watch an ad for one more' : BOOST_NAME[i] + ', ' + n + ' left');
+    if (mode === 'empty') el.setAttribute('aria-disabled', 'true'); else el.removeAttribute('aria-disabled');
+  }
+}
+function boostPop(i, cls = 'pop') {
+  const el = boostBtns[i]; if (!el || REDUCED) return;
+  el.classList.remove('pop', 'nope'); void el.offsetWidth; el.classList.add(cls);
+}
+// A press spends the run's own charges first (the free one and the new-tier ones), then the stock bought in the shop.
+function spendBoost(i) {
+  if (boost[i] > 0) boost[i]--;
+  else if (stock[i] > 0) { stock[i]--; saveShop(); }
+}
+function grantBoost() {
+  const i = boostCy; boostCy = (boostCy + 1) % 3;
+  boost[i] = Math.min(99, boost[i] + 1); saveDirty = true; boostUI(); boostPop(i);
+}
+// Not while the run is stopped: the title, an ad, the revive offer, the cash-out and the ending, the sheet, a portal's pause.
+const boostLocked = () => titleOn || over || offer || ended || adBusy || sheetOpen || ytPaused || MERGE_LAB;
+function useBoost(i) {
+  initAudio();
+  if (boostLocked() || (i === 0 && hintOn)) return;   // (a Hint already showing: nothing to add)
+  if (boost[i] + stock[i] <= 0) {
+    if (!boostAds()) return;   // dim: nothing to do until a new tier refills it
+    if (i === 2 && smashOn) { smashOn = false; boostUI(); }
+    aiming = false; armed = false; sel = null;
+    // a rewarded ad: a finished one gives one of this booster, and nothing else. Play stops for it (CrazyGames: a break)
+    cgGame(false);
+    portalAd('rewarded', (ok, code) => {
+      cgGame(!over && !sheetOpen && !titleOn);
+      if (ok) { if (!over) { boost[i] = Math.min(99, boost[i] + 1); saveDirty = true; boostPop(i); sfxUi(true); } }
+      else if (code === 'adsDisabled') { adsOff = true; reviveLook(); }
+      boostUI();
+    }, 'booster');
+    return;
+  }
+  if (i === 0) {   // Hint: until the next shot. With no match anywhere on the field it keeps its charge and just shakes its head
+    if (!hintFrom()) { boostPop(0, 'nope'); sfxUi(false); return; }
+    spendBoost(0); hintOn = true; sfxUi(true); buzz(8);
+  } else if (i === 1) {   // Swap: both shelf shapes slide out, two fresh ones slide in
+    if (!swapShelf()) return;
+    spendBoost(1); sfxUi(false); buzz(10);
+  } else {   // Smash: armed by a press, spent on the tap that breaks something; a second press puts it away
+    smashOn = !smashOn; sfxUi(smashOn);
+  }
+  saveDirty = true; boostUI();
+}
+boostBtns.forEach((el, i) => { if (el) el.addEventListener('click', () => useBoost(i)); });
+function swapShelf() {
+  let n = 0;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]; if (!b.tray || b.dead || b.leaving || b.state !== 0) continue;
+    const side = b.cx < LX ? 0 : 1;
+    b.leaving = side ? 1 : -1; b.leaveT = 0; b.entering = false; swapGone[side] = b.stone ? 0 : b.level;
+    for (let k = 0; k < b.n; k++) b.vx[k] += side ? ENTER_V * 0.6 : -ENTER_V * 0.6;
+    n++;
+  }
+  if (!n) return false;   // (nothing on the shelf yet: nothing to swap)
+  if (sel && sel.leaving) { sel = null; aiming = false; armed = false; }
+  if (hover && hover.leaving) hover = null;
+  swapDeal = TRAY_MAX - trayCount();
+  for (let s = 0; s < 2; s++) gateT[s] = Math.max(gateT[s], 1 - 0.4 / GATE_TIME);   // the new ones come in as the old ones reach the edge (not a full gate wait later)
+  return true;
+}
+// The pile blob or stone under a point (world units), for Smash: the one whose middle is nearest, relative to its size.
+function smashAt(x, y) {
+  let hit = null, bd = 1e9;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]; if (b.tray || b.dead || b.state !== 0 || b.popping || b.breaking) continue;
+    const rs = b.r * b.scale, d = Math.hypot(b.cx - x, b.cy - y);
+    if (d < rs + 6 && d / rs < bd) { bd = d / rs; hit = b; }
+  }
+  return hit;
+}
+function smashBlob(b) {
+  spendBoost(2); smashOn = false; saveDirty = true; boostUI();
+  if (b.stone) { breakStone(b); return; }
+  b.smashed = true; b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; buzz(14);   // it pops like a trapped blob, for no points
+}
+// Hint's target: a pile blob that matches the shape being aimed (or the shelf shape nearest the pointer, or the bigger
+// one), preferring one the shape can reach in a straight line, then the nearest.
+// The shelf shape a Hint helps: one that has a match in the pile (the one nearest the pointer, or the bigger one).
+const pileHas = lv => blobs.some(t => !t.tray && !t.dead && !t.stone && t.level === lv && t.state === 0 && !t.popping);
+function hintFrom() {
+  let from = null, bd = 1e9;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]; if (!b.tray || b.dead || b.leaving || b.state !== 0 || b.stone || !pileHas(b.level)) continue;
+    const d = ptrIn ? Math.hypot(b.cx - ptrX, b.cy - ptrY) : -b.level;
+    if (d < bd) { bd = d; from = b; }
+  }
+  return from;
+}
+function hintPick() {
+  if (!hintOn || over) return null;
+  const from = aiming && sel ? sel : hintFrom();
+  if (!from || from.stone) return null;
+  const rs = from.r * from.scale;
+  let pick = null, pd = 1e18;
+  for (let i = 0; i < blobs.length; i++) {
+    const t = blobs[i]; if (t.tray || t.dead || t.stone || t.level !== from.level || t.state !== 0 || t.popping) continue;
+    const dx = t.cx - from.cx, dy = t.cy - from.cy, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    let blocked = false;
+    for (let q = 0; q < blobs.length && !blocked; q++) {
+      const o = blobs[q]; if (o === t || o === from || o.tray || o.dead) continue;
+      const ox = o.cx - from.cx, oy = o.cy - from.cy, tc = ox * ux + oy * uy; if (tc <= 0 || tc >= L) continue;
+      const h2 = ox * ox + oy * oy - tc * tc, rr = o.r * o.scale + rs * 0.7; if (h2 < rr * rr) blocked = true;
+    }
+    const sc = L + (blocked ? 1e6 : 0);
+    if (sc < pd) { pd = sc; pick = t; }
+  }
+  return pick;
+}
+
 reviveYes.addEventListener('click', () => {
   initAudio();
   if (adBusy || !offer || reviveYes.disabled) return;
@@ -2691,7 +3252,507 @@ againBtn.addEventListener('click', () => {
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button:not(:disabled)')) buzz(6); }, { passive: true });   // every press of a button is felt
 ['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
 
+/* ───────── coins, the shop, skins and themes ───────── */
+// Coins come from the end-of-run cash-out (every blob that bursts turns into coins that fly to the counter, more for a
+// bigger blob) and from each new tier from 64 up. They buy skins (the slimes' faces and silhouettes), themes (the field,
+// the screen and the cave behind them; the blob colours are still dealt per run) and boosters for the stock. No real
+// money anywhere. All of it is one record in the store (the browser's, CrazyGames' data module, or YouTube's save).
+const COIN_SVG = '<svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#e0961a"/><circle cx="12" cy="12" r="10" fill="#ffc83d"/><path d="M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z" fill="#b86e0a"/></svg>';
+const SKINS = [
+  { id: 'classic', name: 'Classic', price: 0, eyes: 'classic' },
+  { id: 'sleepy', name: 'Sleepy', price: 150, eyes: 'sleepy' },
+  { id: 'cyclops', name: 'Cyclops', price: 250, eyes: 'cyclops' },
+  { id: 'cat', name: 'Cat', price: 350, eyes: 'classic', acc: 'cat' },
+  { id: 'goggles', name: 'Goggles', price: 450, eyes: 'goggles' },
+  { id: 'alien', name: 'Alien', price: 600, eyes: 'classic', acc: 'alien' }
+];
+// Themes stay dark and near neutral so the bright blobs carry the colour: [r, g, b] of the screen and of the field.
+const THEMES = [
+  { id: 'cave', name: 'Cave', price: 0, scr: [30, 30, 42], fld: [53, 53, 67], deco: '' },
+  { id: 'sea', name: 'Deep Sea', price: 300, scr: [17, 32, 43], fld: [32, 56, 70], deco: 'bubbles' },
+  { id: 'moss', name: 'Moss', price: 400, scr: [25, 32, 29], fld: [45, 57, 51], deco: 'leaves' },
+  { id: 'night', name: 'Night', price: 550, scr: [17, 21, 41], fld: [33, 40, 70], deco: 'stars' },
+  { id: 'candy', name: 'Candy', price: 800, scr: [37, 25, 41], fld: [62, 43, 68], deco: 'sprinkles' }
+];
+const BOOST_PRICE = [40, 40, 60], AD_COINS = 50, AD_GAP = 5 * 60 * 1000, SHOP_KEY = 'udm_shop';
+const coinsFor = level => Math.max(1, Math.round(level * 0.7));   // a cash-out blob: 1 for a 2, 4 for a 64, 7 for a 1024
+const tierCoins = level => level - 3;                              // a new tier: 3 for the first 64, 4 for 128 ... 8 for 2048
+let coins = 0, coinPend = 0, coinDisp = 0, coinTxt = '', stock = [0, 0, 0], adCoinAt = 0;
+const owned = { s: new Set(['classic']), t: new Set(['cave']) };
+let skinId = 'classic', themeId = 'cave', TH = THEMES[0];
+const rgbOf = (c, d) => 'rgb(' + Math.max(0, c[0] + (d || 0)) + ',' + Math.max(0, c[1] + (d || 0)) + ',' + Math.max(0, c[2] + (d || 0)) + ')';
+function applySkin(id) {
+  const s = SKINS.find(x => x.id === id) || SKINS[0];
+  skinId = s.id; faceStyle = s.eyes; accStyle = s.acc || '';
+}
+function applyTheme(id) {
+  TH = THEMES.find(x => x.id === id) || THEMES[0]; themeId = TH.id;
+  const K = TH.scr, rs = document.documentElement.style;
+  rs.setProperty('--screen', rgbOf(K)); rs.setProperty('--field', rgbOf(TH.fld)); rs.setProperty('--scr-hi', 'rgb(' + (K[0] + 5) + ',' + (K[1] + 5) + ',' + (K[2] + 6) + ')');
+  LAD_DIM = 'rgb(' + (K[0] + 16) + ',' + (K[1] + 16) + ',' + (K[2] + 18) + ')'; BADGE_RING = 'rgb(' + (K[0] + 12) + ',' + (K[1] + 12) + ',' + (K[2] + 13) + ')';
+  fxTop = -1; caveKey = ''; buildCave();
+  if (booted && CW) { try { draw(); } catch (e) {} }   // (the sheet and the title take the new tints at once)
+}
+function loadShop() {
+  let d = null; try { d = JSON.parse(store.getItem(SHOP_KEY) || 'null'); } catch (e) { d = null; }
+  coins = 0; stock = [0, 0, 0]; adCoinAt = 0; owned.s = new Set(['classic']); owned.t = new Set(['cave']);
+  let sk = 'classic', th = 'cave';
+  if (d && typeof d === 'object') {
+    if (Number.isInteger(d.c) && d.c >= 0) coins = Math.min(9999999, d.c);
+    if (Array.isArray(d.s)) for (const id of d.s) if (SKINS.some(x => x.id === id)) owned.s.add(id);
+    if (Array.isArray(d.t)) for (const id of d.t) if (THEMES.some(x => x.id === id)) owned.t.add(id);
+    if (owned.s.has(d.sk)) sk = d.sk;
+    if (owned.t.has(d.th)) th = d.th;
+    if (Array.isArray(d.st) && d.st.length === 3 && d.st.every(v => Number.isInteger(v) && v >= 0 && v <= 99)) stock = d.st.slice();
+    if (typeof d.ad === 'number' && isFinite(d.ad) && d.ad <= Date.now()) adCoinAt = d.ad;
+  }
+  coinFlush(); coinDisp = coins;
+  applySkin(sk); applyTheme(th); coinUI(true); boostUI();
+}
+function saveShop() {
+  if (MERGE_LAB) return;
+  try { store.setItem(SHOP_KEY, JSON.stringify({ c: coins, s: Array.from(owned.s), t: Array.from(owned.t), sk: skinId, th: themeId, st: stock.slice(), ad: adCoinAt })); } catch (e) {}
+}
+// Coins earned: credited and saved at once; on screen they still have to fly to the counter, which counts them in.
+const coinQ = [], flies = []; for (let i = 0; i < 64; i++) flies.push({ t: 9, end: 1, x: 0, y: 0, bx: 0, by: 0, side: 1, off: 80, v: 1, k: 0 });
+let flySide = 1, flyShown = false, flyTgtOk = false, tgtX = 0, tgtY = 0, stageX = 0, stageY = 0, popAt = 0, chimeDue = false;
+function earnCoins(v, x, y) {
+  if (MERGE_LAB || v <= 0) return;
+  coins += v; saveShop();
+  if (!REDUCED) { coinPend += v; coinQ.push({ x, y, v }); }
+}
+function coinFlush() { coinQ.length = 0; for (const f of flies) f.t = 9; coinPend = 0; chimeDue = false; }
+// (game time: the flight runs in tick, so it stops for an ad or a pause like everything else; drawFly only draws it)
+function coinStep(dt) {
+  while (coinQ.length) {
+    const q = coinQ.shift(), n = Math.min(5, q.v);
+    for (let k = 0; k < n; k++) {
+      const f = flies.find(o => o.t >= 9), v = Math.floor(q.v / n) + (k < q.v % n ? 1 : 0);
+      if (!f) { landCoin(v, k); continue; }
+      const a = Math.random() * 6.2832, d = 20 + 20 * Math.random();
+      f.t = -k * 0.04; f.end = 0.12 + 0.45 + 0.15 * Math.random(); f.x = q.x; f.y = q.y; f.bx = Math.cos(a) * d; f.by = Math.sin(a) * d;
+      f.side = flySide = -flySide; f.off = 60 + 60 * Math.random(); f.v = v; f.k = k;
+    }
+  }
+  for (let i = 0; i < flies.length; i++) { const f = flies[i]; if (f.t >= 9) continue; f.t += dt; if (f.t >= f.end) { f.t = 9; landCoin(f.v, f.k); } }
+  // nothing left in the air or still to burst: nothing is pending (a count that went astray must never hold the ending back)
+  if (coinPend > 0 && cashI >= cash.length && !coinQ.length && !flies.some(f => f.t < 9)) { coinPend = 0; chimeDue = false; }
+}
+function landCoin(v, k) {
+  coinPend = Math.max(0, coinPend - v);
+  sfxCoin(k);
+  const now = performance.now(), el = titleOn ? tCoinsBtn : coinsBtn;
+  if (!REDUCED && el && now - popAt > 70) { popAt = now; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  if (chimeDue && coinPend <= 0 && cashI >= cash.length) { chimeDue = false; sfxChime(); }
+}
+// the counter: eases toward what has landed (up as coins arrive, down after a purchase)
+function coinShow(dt) {
+  const target = coins - coinPend;
+  if (coinDisp === target) return;
+  const d = target - coinDisp;
+  coinDisp = Math.abs(d) < 0.5 ? target : coinDisp + d * (1 - Math.exp(-dt * 10));
+  coinUI();
+}
+const coinsBtn = document.getElementById('coins'), tCoinsBtn = document.getElementById('t-coins'), tShopBtn = document.getElementById('t-shop');
+const shopRow = document.getElementById('shop-row'), shopBack = document.getElementById('shop-back'), shopGrid = document.getElementById('shop-grid');
+const coinEls = [coinsBtn, tCoinsBtn, shopRow, shopBack].map(el => el && el.querySelector ? el.querySelector('.cn') : null).filter(Boolean);
+function coinUI(force) {
+  const t = String(Math.max(0, Math.round(coinDisp)));
+  if (t === coinTxt && !force) return;
+  if (t.length !== coinTxt.length) flyTgtOk = false;   // (a wider number moves the phone pill's coin)
+  coinTxt = t;
+  for (let i = 0; i < coinEls.length; i++) coinEls[i].textContent = t;
+  for (const el of [coinsBtn, tCoinsBtn]) if (el) el.setAttribute('aria-label', t + ' coins, open the shop');
+}
+const flyCv = document.getElementById('fly'), flyG = flyCv && flyCv.getContext ? flyCv.getContext('2d') : null;
+let flyW = 0, flyH = 0, DROP = null;
+function drawCoin(g, x, y, r) {   // the flat coin: rim, face, and the slime-drop mark while it is big enough to read
+  g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fillStyle = '#e0961a'; g.fill();
+  g.beginPath(); g.arc(x, y, r * 0.833, 0, 6.2832); g.fillStyle = '#ffc83d'; g.fill();
+  if (r >= 7) {
+    if (!DROP) DROP = new Path2D('M12 6.4c-2 2.5-3.3 4.4-3.3 6.3a3.3 3.3 0 0 0 6.6 0c0-1.9-1.3-3.8-3.3-6.3z');
+    g.save(); g.translate(x - r, y - r); g.scale(r / 12, r / 12); g.fillStyle = '#b86e0a'; g.fill(DROP); g.restore();
+  }
+}
+// Each coin bursts out a little from where its blob was (ease-out), then flies a bent path into the pill's coin (ease-in),
+// shrinking a touch. No trails, no sparkle.
+function drawFly() {
+  if (!flyG) return;
+  let any = false; for (let i = 0; i < flies.length; i++) if (flies[i].t < 9 && flies[i].t >= 0) { any = true; break; }
+  if (!any) { if (flyShown) { flyG.setTransform(1, 0, 0, 1, 0, 0); flyG.clearRect(0, 0, flyCv.width, flyCv.height); flyShown = false; } return; }
+  if (!flyW) { flyW = backEl.offsetWidth; flyH = backEl.offsetHeight; sizeCv(flyCv, flyW, flyH); }
+  if (!flyTgtOk) { tgtX = hudEl.offsetLeft + coinsBtn.offsetLeft + coinsBtn.offsetHeight / 2; tgtY = hudEl.offsetTop + coinsBtn.offsetTop + coinsBtn.offsetHeight / 2; flyTgtOk = true; }
+  const g = flyG; g.setTransform(decoDpr, 0, 0, decoDpr, 0, 0); g.clearRect(0, 0, flyW, flyH); flyShown = true;
+  const u = uPx;
+  for (let i = 0; i < flies.length; i++) {
+    const f = flies[i]; if (f.t >= 9 || f.t < 0) continue;
+    const b = Math.min(1, f.t / 0.12), be = 1 - (1 - b) * (1 - b);
+    const ax = stageX + f.x * S + f.bx * u * be, ay = stageY + f.y * S + f.by * u * be;
+    let x = ax, y = ay, e = 0;
+    if (f.t > 0.12) {
+      const s = Math.min(1, (f.t - 0.12) / (f.end - 0.12)); e = s * s * (0.35 + 0.65 * s);
+      const dx = tgtX - ax, dy = tgtY - ay, l = Math.hypot(dx, dy) || 1, cx = (ax + tgtX) / 2 - dy / l * f.side * f.off * u, cy = (ay + tgtY) / 2 + dx / l * f.side * f.off * u;
+      x = (1 - e) * (1 - e) * ax + 2 * (1 - e) * e * cx + e * e * tgtX; y = (1 - e) * (1 - e) * ay + 2 * (1 - e) * e * cy + e * e * tgtY;
+    }
+    drawCoin(g, x, y, 10 * u * (1 - 0.3 * e));
+  }
+}
+let lastCoinS = 0;
+function sfxCoin(k) {   // a coin landing: a soft low mallet tick, a semitone higher for each coin of the same burst
+  if (!audible()) return; const t = actx.currentTime;
+  if (t - lastCoinS < 0.045) return; lastCoinS = t;
+  note(440 * Math.pow(2, Math.min(7, k) / 12), t, 0.04, 0.55, 0);
+}
+function sfxChime() { if (!audible()) return; const t = actx.currentTime; note(523.3, t, 0.05, 1, 0); note(784, t + 0.11, 0.05, 1, 0.6); }   // the cash-out's last coin
+function sfxBuy() { if (!audible()) return; const t = actx.currentTime; note(392, t, 0.07, 1, 0); note(587.3, t + 0.09, 0.07, 1, 0.5); }
+function sfxNo() { if (!audible()) return; voice(220, 175, 0.09, actx.currentTime, [[0.014, 0.05], [0.06, 0.03], [0.13, 0]]); }
+
+// The shop: a third set of rows in the settings sheet (the same sheet, rows and tints). Tabs swap the grid; a card
+// buys (a skin or theme asks once more: "Buy?"), equips, or adds a booster to the stock. Too few coins shake the price.
+let shopTab = 's', shopFrom = 'main', askKey = '', askT = 0, shopCards = [];
+const segBtns = Array.from(sheetEl.querySelectorAll('.seg button'));
+const cardHtml = (k, id, name, pv) => '<button class="card" type="button" data-k="' + k + '" data-id="' + id + '"><span class="pv">' + pv + '</span><span class="nm">' + name + '</span><span class="chip"></span></button>';
+function renderShop() {
+  for (const b of segBtns) b.setAttribute('aria-selected', String(b.dataset.tab === shopTab));
+  let h = '';
+  if (shopTab === 's') for (const s of SKINS) h += cardHtml('s', s.id, s.name, '<canvas></canvas>');
+  else if (shopTab === 't') for (const t of THEMES) h += cardHtml('t', t.id, t.name, '<canvas></canvas>');
+  else {
+    for (let i = 0; i < 3; i++) { const ic = boostBtns[i] && boostBtns[i].querySelector('.ic'); h += cardHtml('b', String(i), BOOST_NAME[i], '<span class="bpv">' + (ic ? ic.outerHTML : '') + '<b class="bn"></b></span>'); }
+    if (boostAds()) h += cardHtml('a', 'ad', 'Coins', COIN_SVG);   // a rewarded ad for coins, where the portal shows ads
+  }
+  shopGrid.innerHTML = h;
+  shopCards = Array.from(shopGrid.querySelectorAll('.card'));
+  for (const c of shopCards) {
+    c._key = ''; c._cv = c.querySelector('canvas'); c._g = c._cv ? c._cv.getContext('2d') : null; c._w = 0;
+    c._bl = [Math.random() * 3, Math.random() * 3 + 1, Math.random() * 3 + 2]; c._ph = Math.random() * 6;
+  }
+  shopState();
+}
+function shopState() {
+  const now = Date.now();
+  for (const c of shopCards) {
+    const k = c.dataset.k, id = c.dataset.id;
+    let cls = '', html = '', label = '';
+    if (k === 's' || k === 't') {
+      const it = (k === 's' ? SKINS : THEMES).find(x => x.id === id), kind = k === 's' ? ' skin' : ' theme';
+      if ((k === 's' ? skinId : themeId) === id) { cls = 'use'; html = 'In use'; label = it.name + kind + ', in use'; }
+      else if (owned[k].has(id)) { cls = 'own'; html = 'Use'; label = 'Use the ' + it.name + kind; }
+      else if (askKey === k + id) { cls = 'ask'; html = 'Buy?'; label = 'Buy the ' + it.name + kind + ' for ' + it.price + ' coins: press again'; }
+      else { cls = coins < it.price ? 'poor' : ''; html = COIN_SVG + it.price; label = it.name + kind + ', ' + it.price + ' coins'; }
+    } else if (k === 'b') {
+      const i = +id; cls = coins < BOOST_PRICE[i] ? 'poor' : ''; html = COIN_SVG + BOOST_PRICE[i];
+      label = 'One more ' + BOOST_NAME[i] + ' for ' + BOOST_PRICE[i] + ' coins, ' + stock[i] + ' in stock';
+      const bn = c.querySelector('.bn'); if (bn && bn.textContent !== String(stock[i])) bn.textContent = String(stock[i]);
+    } else {
+      const left = AD_GAP - (now - adCoinAt);
+      if (left > 0) { const s = Math.ceil(left / 1000); cls = 'wait'; html = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); label = 'More coins for an ad in ' + html; }
+      else { html = AD_ICON + '+' + AD_COINS; label = 'Watch an ad for ' + AD_COINS + ' coins'; }
+    }
+    const key = cls + '|' + html;
+    if (key === c._key) continue; c._key = key;
+    c.classList.remove('use', 'own', 'ask', 'poor', 'wait'); if (cls) c.classList.add(cls);
+    c.querySelector('.chip').innerHTML = html; c.setAttribute('aria-label', label);
+  }
+}
+// the previews: a skin on this theme's field (a 64, an 8 and a 2 in this run's colours, blinking), a theme as a tiny screen
+const decoShape = (kind, x, y, s, a) => {
+  const f = v => v.toFixed(1), dx = Math.cos(a), dy = Math.sin(a);
+  if (kind === 'bubbles') return 'M' + f(x + s) + ' ' + f(y) + 'A' + f(s) + ' ' + f(s) + ' 0 1 0 ' + f(x - s) + ' ' + f(y) + 'A' + f(s) + ' ' + f(s) + ' 0 1 0 ' + f(x + s) + ' ' + f(y) + 'Z';
+  if (kind === 'sprinkles') {
+    const L = s * 1.3, r = s * 0.45;
+    return 'M' + f(x + dx * L - dy * r) + ' ' + f(y + dy * L + dx * r) + 'L' + f(x - dx * L - dy * r) + ' ' + f(y - dy * L + dx * r) + 'A' + f(r) + ' ' + f(r) + ' 0 0 1 ' + f(x - dx * L + dy * r) + ' ' + f(y - dy * L - dx * r) +
+      'L' + f(x + dx * L + dy * r) + ' ' + f(y + dy * L - dx * r) + 'A' + f(r) + ' ' + f(r) + ' 0 0 1 ' + f(x + dx * L - dy * r) + ' ' + f(y + dy * L + dx * r) + 'Z';
+  }
+  if (kind === 'stars') { let d = ''; for (let i = 0; i < 10; i++) { const q = a + i * 0.6283, r = i & 1 ? s * 0.45 : s; d += (i ? 'L' : 'M') + f(x + Math.sin(q) * r) + ' ' + f(y - Math.cos(q) * r); } return d + 'Z'; }
+  if (kind === 'leaves') { const L = s * 1.6, w = s * 1.1; return 'M' + f(x - dx * L) + ' ' + f(y - dy * L) + 'Q' + f(x - dy * w) + ' ' + f(y + dx * w) + ' ' + f(x + dx * L) + ' ' + f(y + dy * L) + 'Q' + f(x + dy * w) + ' ' + f(y - dx * w) + ' ' + f(x - dx * L) + ' ' + f(y - dy * L) + 'Z'; }
+  return '';
+};
+const decoCache = {};
+function cardCanvas(c) {
+  const cv = c._cv; if (!cv || !c._g) return false;
+  if (!c._w) { c._w = cv.offsetWidth; c._h = cv.offsetHeight; if (!c._w) return false; cv.width = Math.round(c._w * decoDpr); cv.height = Math.round(c._h * decoDpr); }
+  const k = c._w / 100; c._g.setTransform(decoDpr * k, 0, 0, decoDpr * k, 0, 0);
+  return true;
+}
+function drawShop(dt) {
+  if (!sheetOpen || sheetAt !== 'shop' || !shopCards.length) return;
+  if (askT > 0) { askT -= dt; if (askT <= 0) askKey = ''; }
+  shopState();
+  for (const c of shopCards) {
+    const k = c.dataset.k; if ((k !== 's' && k !== 't') || !cardCanvas(c)) continue;
+    const g = c._g, H = c._h / (c._w / 100);
+    for (let i = 0; i < 3; i++) { c._bl[i] -= dt; if (c._bl[i] < -BLINK_LEN) c._bl[i] = 1.5 + Math.random() * 4; }
+    c._ph += dt;
+    if (k === 's') {
+      const sk = SKINS.find(x => x.id === c.dataset.id), bob = REDUCED ? 0 : Math.sin(c._ph * 1.6) * 1.2;
+      g.fillStyle = rgbOf(TH.fld); g.fillRect(0, 0, 100, H);
+      g.fillStyle = CEIL_INK; g.fillRect(0, 0, 100, 5);
+      const gx = Math.sin(c._ph * 0.5) * 0.6, gy = -0.2;
+      drawMini(g, 39, H * 0.56 + bob, 27, 6, blinkOpen(c._bl[0]), 0, gx, gy, 1, 1, sk);
+      drawMini(g, 81, H * 0.36 - bob * 0.6, 13, 3, blinkOpen(c._bl[1]), 0, -0.5, 0.3, 1, 1, sk);
+      drawMini(g, 83, H * 0.78 + bob * 0.5, 9, 1, blinkOpen(c._bl[2]), 0, -0.6, -0.3, 1, 1, sk);
+    } else {
+      const T = THEMES.find(x => x.id === c.dataset.id);
+      g.fillStyle = rgbOf(T.scr); g.fillRect(0, 0, 100, H);
+      if (T.deco) {
+        let p = decoCache[T.id];
+        if (!p) { let sd = 7, d = ''; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 9; i++) { const x = rnd() < 0.5 ? rnd() * 18 : 82 + rnd() * 18; d += decoShape(T.deco, x, 4 + rnd() * (H - 8), 2 + 2.5 * rnd(), rnd() * 6.28); } p = decoCache[T.id] = new Path2D(d); }
+        g.fillStyle = 'rgba(255,255,255,0.1)'; g.fill(p);
+      }
+      // a tiny screen: the field hangs from the top edge, two slimes hang from its ceiling
+      g.fillStyle = rgbOf(T.fld); g.beginPath(); g.moveTo(24, 0); g.lineTo(76, 0); g.lineTo(76, H - 16); g.arcTo(76, H - 6, 66, H - 6, 10); g.lineTo(34, H - 6); g.arcTo(24, H - 6, 24, H - 16, 10); g.closePath(); g.fill();
+      g.fillStyle = CEIL_INK; g.fillRect(24, 0, 52, 5);
+      drawMini(g, 39, 19, 11, 3, blinkOpen(c._bl[0]), 0, 0.3, 0.4, 1, 1, SKINS[0]);
+      drawMini(g, 63, 15, 8, 1, blinkOpen(c._bl[1]), 0, -0.3, 0.4, 1, 1, SKINS[0]);
+      drawMini(g, 55, 36, 7, 2, blinkOpen(c._bl[2]), 0, 0, -0.4, 1, 1, SKINS[0]);
+    }
+  }
+}
+function popCard(c) { if (REDUCED || !c) return; c.classList.remove('got'); void c.offsetWidth; c.classList.add('got'); }
+function noMoney(c) {
+  const ch = c && c.querySelector('.chip'); sfxNo(); buzz([8, 40, 8]);
+  if (ch && !REDUCED) { ch.classList.remove('shake'); void ch.offsetWidth; ch.classList.add('shake'); }
+}
+function shopPress(c) {
+  initAudio();
+  if (adBusy || !sheetOpen) return;
+  const k = c.dataset.k, id = c.dataset.id;
+  if (k === 's' || k === 't') {
+    const it = (k === 's' ? SKINS : THEMES).find(x => x.id === id); if (!it) return;
+    if (owned[k].has(id)) {
+      if ((k === 's' ? skinId : themeId) !== id) { if (k === 's') applySkin(id); else applyTheme(id); saveShop(); sfxUi(true); buzz(8); popCard(c); }
+    } else if (coins < it.price) noMoney(c);
+    else if (askKey !== k + id) { askKey = k + id; askT = 2.5; sfxUi(true); }
+    else {   // bought: it goes straight on
+      askKey = ''; coins -= it.price; owned[k].add(id);
+      if (k === 's') applySkin(id); else applyTheme(id);
+      saveShop(); sfxBuy(); buzz([10, 30, 14]); popCard(c);
+    }
+  } else if (k === 'b') {
+    const i = +id;
+    if (coins < BOOST_PRICE[i]) noMoney(c);
+    else { coins -= BOOST_PRICE[i]; stock[i] = Math.min(99, stock[i] + 1); saveShop(); boostUI(); sfxBuy(); buzz(10); popCard(c); }
+  } else if (k === 'a') {
+    if (!boostAds() || Date.now() - adCoinAt < AD_GAP) { noMoney(c); return; }
+    portalAd('rewarded', (ok, code) => {   // only a finished ad pays, and only on a press (never on its own)
+      if (ok) { coins += AD_COINS; adCoinAt = Date.now(); saveShop(); sfxBuy(); popCard(c); }
+      else if (code === 'adsDisabled') { adsOff = true; reviveLook(); if (sheetAt === 'shop') renderShop(); }
+      shopState();
+    }, 'coins');
+  }
+  shopState();
+}
+function openShop(from) {
+  initAudio();
+  if (adBusy) return;
+  shopFrom = from; askKey = '';
+  if (!sheetOpen) { showMenu(true); setView('shop'); } else goView('shop');
+}
+shopGrid.addEventListener('click', e => { const c = e.target.closest && e.target.closest('.card'); if (c) shopPress(c); });
+segBtns.forEach(b => b.addEventListener('click', () => { if (shopTab === b.dataset.tab) return; shopTab = b.dataset.tab; askKey = ''; renderShop(); sfxUi(true); }));
+shopRow.addEventListener('click', () => { shopFrom = 'main'; askKey = ''; });   // (the sheet's own handler swaps the rows)
+shopBack.addEventListener('click', () => { if (shopFrom === 'main') goView('main'); else showMenu(false); });
+coinsBtn.addEventListener('click', () => { if (!titleOn && !over) openShop('hud'); });
+tCoinsBtn.addEventListener('click', () => { if (titleOn) openShop('title'); });
+tShopBtn.addEventListener('click', () => { if (titleOn) openShop('title'); });
+
 /* ───────────────────────── boot ───────────────────────── */
+/* ───────── the goal ladder, the new-tier badge, the cave backdrop, the title ───────── */
+const ladderCv = document.getElementById('ladder'), badgeCv = document.getElementById('badge'), caveEl = document.getElementById('cave');
+const titleEl = document.getElementById('title'), titleCv = document.getElementById('t-cv'), playBtn = document.getElementById('play');
+const ladG = ladderCv.getContext ? ladderCv.getContext('2d') : null, badG = badgeCv.getContext ? badgeCv.getContext('2d') : null, titG = titleCv.getContext ? titleCv.getContext('2d') : null;
+let LAD_DIM = '#2e2e3c', BADGE_RING = '#2a2a37';   // (a theme shifts both: applyTheme)
+const CROWN_C = '#f2c14e', MINI_INK = 'rgba(0,0,0,0.3)';
+let ladW = 0, ladH = 0, ladOn = false, badW = 0, badShown = false, titW = 0, titH = 0, decoDpr = 1, caveKey = '', decoT = 0, titleT = 0;
+// One small flat blob with its face and number, on any canvas: (x, y) its centre, r its radius, sx/sy a squash.
+function drawMini(g, x, y, r, level, bl, joy, gx, gy, sx, sy, sk) {   // sk: a skin to wear instead of the one in use
+  const eyes = sk ? sk.eyes : faceStyle, acc = sk ? sk.acc || '' : accStyle, col = colorFor(level).hex;
+  g.save(); g.translate(x, y); g.scale(sx, sy);
+  if (acc) drawAcc(g, acc, 0, 0, 0, () => r, r, col);
+  g.beginPath(); g.arc(0, 0, r, 0, 6.2832); g.fillStyle = col; g.fill();
+  const v = String(Math.pow(2, level)), fs = Math.min(r * 0.8, r * 1.56 / v.length), e = Math.max(r * 0.16, 0.5 * (r * 0.15 + fs * 0.15)), drop = e * FACE_DROP;
+  g.font = '900 ' + fs.toFixed(2) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = MINI_INK;
+  g.fillText(v, 0, fs * 0.04 + drop);
+  drawEyes(eyes, e, Math.max(-fs * 0.44 - e * 1.5 + drop, -(r - e * 1.45)), gx, gy, bl, joy ? 1 : 0, 0, g);
+  g.restore();
+}
+const blinkOpen = t => t < 0 ? 1 - Math.sin(Math.PI * Math.min(1, -t / BLINK_LEN)) : 1;
+function sizeCv(cv, w, h) {   // a canvas's box and its backing store, at the screen's density
+  cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  const pw = Math.round(w * decoDpr), ph = Math.round(h * decoDpr);
+  if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+}
+// Lays out the ladder (left of the field in the wide frame, under the score), the badge (under the HUD), the title's
+// slimes and the cave. Positions come from the layout boxes (never from transformed ones).
+function layoutDeco() {
+  if (typeof stage.offsetTop !== 'number' || !backEl.offsetWidth) return;
+  decoDpr = Math.min(2, window.devicePixelRatio || 1);
+  const u = uPx, wide = document.body.classList.contains('wide');
+  ladOn = wide;
+  if (wide) {
+    const xR = stage.offsetLeft - 30 * u, top = hudEl.offsetTop + brandEl.offsetTop + brandEl.offsetHeight + 18 * u, bot = stage.offsetTop + stage.offsetHeight - 4 * u;
+    ladW = Math.round(76 * u); ladH = Math.max(120, Math.round(bot - top));
+    ladderCv.style.left = Math.round(xR - 70 * u) + 'px'; ladderCv.style.top = Math.round(top) + 'px'; sizeCv(ladderCv, ladW, ladH);
+  }
+  badW = Math.round(92 * u);
+  badgeCv.style.left = Math.round(stage.offsetLeft + stage.offsetWidth / 2 - badW / 2) + 'px'; badgeCv.style.top = Math.round(stage.offsetTop + 2 * u) + 'px'; sizeCv(badgeCv, badW, badW);
+  badShown = true;   // (cleared on the next draw)
+  if (titleOn) { titW = titleCv.offsetWidth; titH = titleCv.offsetHeight; if (titW) sizeCv(titleCv, titW, titH); }
+  stageX = stage.offsetLeft || 0; stageY = stage.offsetTop || 0; flyW = 0; flyTgtOk = false;   // (the coins' start and end points)
+  for (const c of shopCards) c._w = 0;
+  buildCave();
+}
+// The cave: big rounded rocks along the bottom and the sides, a wavy rock band and a few stalactites along the top.
+// Flat fills a little lighter than the screen, laid out once per size from a fixed seed.
+function buildCave() {
+  const w = backEl.offsetWidth, h = backEl.offsetHeight; if (!w || !h) return;
+  const key = w + 'x' + h + TH.id; if (key === caveKey) return; caveKey = key;
+  let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const m = Math.min(w, h), f = v => v.toFixed(1);
+  const rock = (x, y, R) => {   // a pebble: eight points round a circle, pushed in and out, joined by smooth curves
+    const px = [], py = [], n = 8, a0 = rnd() * 6.28;
+    for (let i = 0; i < n; i++) { const a = a0 + i * 6.2832 / n + (rnd() - 0.5) * 0.4, rr = R * (0.84 + 0.26 * rnd()); px.push(x + Math.cos(a) * rr); py.push(y + Math.sin(a) * rr * 0.86); }
+    let d = 'M' + f((px[n - 1] + px[0]) / 2) + ' ' + f((py[n - 1] + py[0]) / 2);
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n; d += 'Q' + f(px[i]) + ' ' + f(py[i]) + ' ' + f((px[i] + px[j]) / 2) + ' ' + f((py[i] + py[j]) / 2); }
+    return d + 'Z';
+  };
+  let far = '', near = '', top = '';
+  for (let x = -0.05 * m; x < w + 0.2 * m;) { const R = m * (0.15 + 0.11 * rnd()); far += rock(x, h + R * 0.2, R); x += R * (1.1 + 0.4 * rnd()); }
+  for (let x = 0.08 * m * rnd(); x < w + 0.1 * m;) { const R = m * (0.07 + 0.07 * rnd()); near += rock(x, h + R * 0.3, R); x += R * (1.5 + 1.2 * rnd()); }
+  for (let s = 0; s < 2; s++) for (let i = 0; i < 3; i++) {
+    const R = m * (0.1 + 0.08 * rnd()), y = h * (0.3 + 0.2 * i + 0.1 * rnd());
+    far += rock(s ? w + R * 0.45 : -R * 0.45, y, R);
+  }
+  // the rock band along the top and its stalactites
+  const bandY = x => m * 0.02 + m * 0.006 * Math.sin(x / m * 9 + 1) + m * 0.004 * Math.sin(x / m * 23);
+  top = 'M0 0';
+  for (let x = 0; x <= w + 1; x += Math.max(4, w / 120)) top += 'L' + f(x) + ' ' + f(bandY(x));
+  top += 'L' + f(w) + ' 0Z';
+  for (const fx of [0.05, 0.12, 0.2, 0.29, 0.71, 0.8, 0.88, 0.95]) {
+    const x = w * (fx + (rnd() - 0.5) * 0.03), hw = m * (0.012 + 0.014 * rnd()), L = m * (0.04 + 0.09 * rnd()), y0 = bandY(x) - 1;
+    top += 'M' + f(x - hw) + ' ' + f(y0) + 'Q' + f(x - hw * 0.35) + ' ' + f(y0 + L * 0.55) + ' ' + f(x) + ' ' + f(y0 + L) + 'Q' + f(x + hw * 0.35) + ' ' + f(y0 + L * 0.55) + ' ' + f(x + hw) + ' ' + f(y0) + 'Z';
+  }
+  // the theme's own shapes, scattered over the whole backdrop behind the rocks (bubbles, sprinkles, stars, leaves)
+  let deco = '';
+  if (TH.deco) for (let i = 0; i < 46; i++) deco += decoShape(TH.deco, rnd() * w, rnd() * h, m * (0.007 + 0.016 * rnd() * rnd()), rnd() * 6.2832);
+  caveEl.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+    (deco ? '<path fill="#fff" fill-opacity=".05" d="' + deco + '"/>' : '') +
+    '<path fill="#fff" fill-opacity=".024" d="' + far + '"/><path fill="#fff" fill-opacity=".035" d="' + near + '"/><path fill="#fff" fill-opacity=".03" d="' + top + '"/></svg>';
+}
+// A tier from 64 up made for the first time this run: its ladder slot pops, or on a phone a small badge pops in.
+function newTier(level) {
+  if (level <= LAD_TOP) ladPop[level] = 0;
+  if (!ladOn) { badge.lv = level; badge.t = 0; }
+}
+// The ladder: 2 at the bottom to 8192 at the top (it wears the crown). Tiers seen this run in their colours, the
+// rest dim and blank; the highest seen sits a little bigger with a notch beside it. The faces look up at the goal.
+function drawLadder(dt) {
+  let tp = peak; for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (!b.stone && !b.dead && b.level > tp) tp = b.level; }
+  if (tp > reachTop) reachTop = tp;
+  for (let L = 1; L <= LAD_TOP; L++) { if (ladPop[L] < 9) ladPop[L] += dt; ladBlink[L] -= dt; if (ladBlink[L] < -BLINK_LEN) ladBlink[L] = 2 + Math.random() * 5; }
+  if (!ladOn || !ladG || !ladW) return;
+  const g = ladG, u = uPx, cx = ladW * 38 / 76, y0 = ladH - 24 * u, y1 = 36 * u, step = (y0 - y1) / (LAD_TOP - 1), hi = Math.min(reachTop, LAD_TOP);
+  g.setTransform(decoDpr, 0, 0, decoDpr, 0, 0); g.clearRect(0, 0, ladW, ladH);
+  g.lineCap = 'round'; g.lineWidth = 3 * u;
+  g.strokeStyle = 'rgba(255,255,255,0.05)'; g.beginPath(); g.moveTo(cx, y0); g.lineTo(cx, y1); g.stroke();
+  if (hi > 1) { g.strokeStyle = 'rgba(255,255,255,0.14)'; g.beginPath(); g.moveTo(cx, y0); g.lineTo(cx, y0 - (hi - 1) * step); g.stroke(); }
+  for (let L = 1; L <= LAD_TOP; L++) {
+    const y = y0 - (L - 1) * step, r = Math.min(step * 0.44, (11.5 + 0.8 * (L - 1)) * u), p = ladPop[L], got = L <= reachTop;
+    let s = L === hi ? 1.2 : 1;
+    if (p < 1 && !REDUCED) s *= 1 + 0.5 * Math.sin(p * 14) * Math.exp(-5 * p);
+    const R = r * s, bob = Math.sin(decoT * 1.7 + L * 0.9) * 0.025;
+    if (!got || p < 0.2) { g.beginPath(); g.arc(cx, y, R, 0, 6.2832); g.fillStyle = LAD_DIM; g.fill(); }
+    if (got) {
+      const fill = p < 0.2 && !REDUCED ? p / 0.2 : 1;   // the colour floods in from the middle
+      if (fill < 1) { g.save(); g.beginPath(); g.arc(cx, y, R * fill + 0.5, 0, 6.2832); g.clip(); }
+      drawMini(g, cx, y, R, L, blinkOpen(ladBlink[L]), p < 0.65, 0.15, -0.8, 1 + bob, 1 - bob);
+      if (fill < 1) g.restore();
+    }
+    if (L === hi && hi > 0) {   // the notch: a small flat arrowhead pointing at the highest tier
+      const nx = cx - R - 5 * u;
+      g.beginPath(); g.moveTo(nx - 6 * u, y - 5 * u); g.lineTo(nx, y); g.lineTo(nx - 6 * u, y + 5 * u); g.closePath(); g.fillStyle = 'rgba(235,233,242,0.55)'; g.fill();
+    }
+    if (L === LAD_TOP) drawCrown(g, cx, y, R, 2 * u);
+  }
+}
+// The goal's small flat crown, on top of a blob of radius R at (cx, y).
+function drawCrown(g, cx, y, R, lw) {
+  const w = R * 0.62, hh = R * 0.56, by = y - R * 0.8;
+  g.beginPath(); g.moveTo(-w + cx, by); g.lineTo(-w + cx, by - hh); g.lineTo(-w * 0.45 + cx, by - hh * 0.45); g.lineTo(cx, by - hh * 1.05);
+  g.lineTo(w * 0.45 + cx, by - hh * 0.45); g.lineTo(w + cx, by - hh); g.lineTo(w + cx, by); g.closePath();
+  g.fillStyle = CROWN_C; g.strokeStyle = CROWN_C; g.lineJoin = 'round'; g.lineWidth = lw; g.fill(); g.stroke();
+}
+// The phone's goal (no ladder there): in the field's bottom corners, either side of the best row, the biggest tier
+// made this run on the left and the crowned 8192 on the right, a dim silhouette until it is made.
+function drawGoalMini() {
+  if (ladOn || MERGE_LAB) return;
+  const y = H - 46, r = 13, top = Math.min(reachTop, LAD_TOP);
+  if (top > 0) drawMini(ctx, WALL_L + 30, y, r, top, blinkOpen(ladBlink[top]), false, 0.3, -0.6, 1, 1);
+  const gx = WALL_R - 30;
+  if (top >= LAD_TOP) drawMini(ctx, gx, y, r, LAD_TOP, blinkOpen(ladBlink[LAD_TOP]), false, -0.3, -0.6, 1, 1);
+  else { ctx.beginPath(); ctx.arc(gx, y, r, 0, 6.2832); ctx.fillStyle = LAD_DIM; ctx.fill(); }
+  drawCrown(ctx, gx, y, r, 1.4);
+}
+// The phone's badge: the new tier's blob pops in under the HUD, holds a beat with its eyes squeezed, then slides up and away.
+function drawBadge(dt) {
+  if (!badG || !badW) return;
+  if (badge.t >= BADGE_LIFE) { if (badShown) { badG.setTransform(1, 0, 0, 1, 0, 0); badG.clearRect(0, 0, badgeCv.width, badgeCv.height); badShown = false; } return; }
+  badge.t += dt; badShown = true;
+  const q = badge.t, u = uPx, g = badG, k = Math.max(0, (q - 0.9) / 0.3);
+  let s = q < 0.4 && !REDUCED ? 1 + 0.35 * Math.sin(q * 13) * Math.exp(-7 * q) - 0.9 * Math.exp(-28 * q) : 1;
+  s *= 1 - 0.35 * k;
+  const r = 30 * u, cx = badW / 2, cy = badW / 2 - (REDUCED ? 0 : k * k * 26 * u);
+  g.setTransform(decoDpr, 0, 0, decoDpr, 0, 0); g.clearRect(0, 0, badW, badW);
+  g.globalAlpha = 1 - k;
+  g.beginPath(); g.arc(cx, cy, (r + 4 * u) * s, 0, 6.2832); g.fillStyle = BADGE_RING; g.fill();   // a slate ring parts it from the pile under it
+  drawMini(g, cx, cy, r * s, badge.lv, 1, q < 0.6, 0, 0.6, 1, 1);
+  g.globalAlpha = 1;
+}
+// The title: the name, four slimes that bob and blink and watch the pointer, and Play.
+const TBLOBS = [[5, 182, 100, 58, 0], [3, 76, 118, 38, 1.7], [4, 288, 92, 46, 3.1], [1, 252, 162, 22, 4.4]].map(([lv, x, y, r, ph]) => ({ lv, x, y, r, ph, blink: 1 + Math.random() * 3, joy: 0, jy: 0, jv: 0, gx: 0, gy: 0 }));
+let tPtrX = 180, tPtrY = -200, tPtrT = -9;
+function titleStep(dt) {
+  titleT += dt;
+  for (const b of TBLOBS) {
+    b.blink -= dt; if (b.blink < -BLINK_LEN) b.blink = 1.5 + Math.random() * 4;
+    if (b.joy > 0) b.joy = Math.max(0, b.joy - dt);
+    b.jv += (-b.jy * 160 - b.jv * 9) * dt; b.jy += b.jv * dt;   // a tapped slime hops and settles
+    let tx, ty;
+    if (titleT - tPtrT < 3) { const dx = tPtrX - b.x, dy = tPtrY - b.y, l = Math.hypot(dx, dy) || 1; tx = dx / l; ty = dy / l; }
+    else { tx = Math.sin(titleT * 0.5 + b.ph) * 0.6; ty = -0.3 + 0.3 * Math.sin(titleT * 0.37 + b.ph * 2); }
+    const kk = 1 - Math.exp(-dt * 7); b.gx += (tx - b.gx) * kk; b.gy += (ty - b.gy) * kk;
+  }
+}
+function drawTitle() {
+  if (!titG || !titW) return;
+  const g = titG, k = titW / 360;
+  g.setTransform(decoDpr * k, 0, 0, decoDpr * k, 0, 0); g.clearRect(0, 0, 360, titH / k);
+  for (const b of TBLOBS) {
+    const w = REDUCED ? 0 : Math.sin(titleT * 1.6 + b.ph), sq = REDUCED ? 0 : 0.03 * Math.sin(titleT * 3.2 + b.ph);
+    drawMini(g, b.x, b.y + w * 4 + b.jy, b.r, b.lv, blinkOpen(b.blink), b.joy > 0, b.gx, b.gy, 1 + sq, 1 - sq);
+  }
+}
+const titlePt = e => { const r = titleCv.getBoundingClientRect(), k = 360 / (r.width || 1); return [(e.clientX - r.left) * k, (e.clientY - r.top) * k]; };
+titleEl.addEventListener('pointermove', e => { if (!titleOn) return; [tPtrX, tPtrY] = titlePt(e); tPtrT = titleT; });
+titleCv.addEventListener('pointerdown', e => {   // a poke: the slime under it squeezes its eyes and hops
+  if (!titleOn) return; const [x, y] = titlePt(e); tPtrX = x; tPtrY = y; tPtrT = titleT;
+  for (const b of TBLOBS) if (Math.hypot(x - b.x, y - b.y) < b.r + 6) { b.joy = 0.45; b.jv = -150; initAudio(); sfxPick(); buzz(8); break; }
+});
+function showTitle() {
+  titleOn = true; titleT = 0; titleEl.hidden = false; titleEl.classList.remove('out'); document.body.classList.add('titling');
+  layoutDeco(); try { draw(); } catch (e) {}   // (the screen's tints, which the Play row wears)
+}
+function leaveTitle() {   // Play: the run (a saved one if there is one) starts, and only now does the portal hear that play began
+  if (!titleOn || adBusy) return;
+  titleOn = false; document.body.classList.remove('titling');
+  titleEl.classList.add('out'); setTimeout(() => { if (!titleOn) { titleEl.hidden = true; titleEl.classList.remove('out'); } }, REDUCED ? 0 : 340);
+  last = performance.now(); initAudio(); sfxUi(true);
+  cgGame(!over && !sheetOpen);
+}
+playBtn.addEventListener('click', leaveTitle);
+window.addEventListener('keydown', e => { if (titleOn && !sheetOpen && !e.repeat && (e.key === 'Enter' || e.key === ' ') && !(e.target instanceof HTMLButtonElement && e.target !== playBtn)) { e.preventDefault(); leaveTitle(); } });
+
 let last = 0, rafDone = 0, rafOk = 0, dtS = 1 / 60, debt = 0, outN = 0, frameErr = false;
 const perfC = { raf: 0, wd: 0, shed: 0, err: 0, maxGap: 0, tickMs: 0, drawMs: 0 };   // where the frames come from, for the test hook
 // Frame times arrive noisy (whole milliseconds on iOS, late callbacks in embedded views) although the display ticks
@@ -2716,9 +3777,12 @@ function frame(t) {
   if (ytPaused) { last = t; rafDone = performance.now(); return; }
   try {
     const a = performance.now();
-    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); }   // t can predate a watchdog step: nothing to simulate
+    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; if (titleOn) titleStep(Math.min(0.1, raw)); else tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); }   // (the title holds the run still)   // t can predate a watchdog step: nothing to simulate
     const b = performance.now();
-    draw();
+    const fd = raw > 0 ? Math.min(0.1, raw) : 0;
+    if (titleOn) drawTitle(); else { draw(); decoT += fd; drawLadder(fd); drawBadge(fd); drawFly(); }
+    coinShow(fd); drawShop(fd);
+    if ((titleOn || sheetOpen) && ytOn && ytDirty) { ytSaveT += fd; if (ytSaveT > 3) ytFlush(); }   // (a purchase on the title or in the sheet goes out in real time: tick is still or slowed there)
     perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
   } catch (e) { perfC.err++; if (!frameErr) { frameErr = true; if (window.console) console.error(e); if (ytOn) { try { YT.health.logError(); } catch (e2) {} } } }
   rafDone = performance.now();
@@ -2730,7 +3794,7 @@ setInterval(() => {
   const now = performance.now();
   if (!booted || ytPaused || (!YTB && document.hidden) || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
-  if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); } catch (e) { perfC.err++; } }
+  if (dt > 0 && !titleOn) { last = now; debt = 0; perfC.wd++; try { tick(dt * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); } catch (e) { perfC.err++; } }
 }, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
@@ -2738,18 +3802,20 @@ if (window.ResizeObserver) { const ro = new ResizeObserver(resize); ro.observe(s
 function loadPrefs() {
   try { best = +store.getItem('udm_best') || 0; muted = store.getItem('udm_muted') === '1'; vib = store.getItem('udm_vib') !== '0'; } catch (e) {}
   try { tutDone = store.getItem('udm_tut') === '1'; } catch (e) {}
+  loadShop();   // coins, what is owned and worn, the booster stock
   bestN = -1;
 }
 function start() {
   if (booted) return; booted = true; starting = true;
-  if (cgOn || ytOn) loadPrefs();   // the same settings and best score, now from the portal's store
+  if (cgOn || ytOn) loadPrefs(); else loadShop();   // the same settings and best score, now from the portal's store
   resize(); setMuted(muted); setVib(vib); if (!loadRun()) reset();
   if (document.fonts && document.fonts.load) document.fonts.load('900 20px HorizonTal').then(() => { bestN = -1; }, () => {});
   if (PORTAL) { reviveNo.hidden = false; reviveNo.className = 'cgno'; reviveNo.textContent = 'No thanks'; reviveEl.classList.add('portal'); reviveLook(); }   // a decline button stands beside Revive
   if (YTB) soundBtn.hidden = true;   // YouTube has its own sound switch, and asks for no second one
   if (YTB) sheetEl.querySelectorAll('[data-go="terms"],[data-go="privacy"]').forEach(b => { b.hidden = true; });   // nor for legal pages of the game's own
   starting = false;
-  if (cgOn) { try { CG.game.loadingStop(); } catch (e) {} cgGame(!over); }
+  if (!MERGE_LAB) showTitle();   // boot only: Play again goes straight into a new run
+  if (cgOn) { try { CG.game.loadingStop(); } catch (e) {} cgGame(!over && !titleOn); }
   if (ytOn) {
     try { draw(); } catch (e) {}
     try { YT.game.firstFrameReady(); YT.game.gameReady(); } catch (e) {}   // the first frame is drawn and the game takes input from it
@@ -2767,7 +3833,7 @@ if (CG) {
         CG.game.addSettingsChangeListener(st => { cgMute = !!(st && st.muteAudio); applyMute(); });
         if (booted) {   // their SDK came up after the game had already started on its own: join it where the game is
           const b0 = best; loadPrefs(); if (b0 > best) { best = b0; bestDirty = true; }
-          setMuted(muted); applyMute(); cgGame(!over && !sheetOpen);
+          setMuted(muted); applyMute(); cgGame(!over && !sheetOpen && !titleOn);
         } else CG.game.loadingStart();
       }
     } catch (e) { cgOn = false; }
@@ -2809,17 +3875,25 @@ if (CG) {
 
 // small hook for automated play-testing
 window.__udm = { blobs, tick, draw, reset,
-  tray: () => blobs.filter(b => b.tray && b.state === 0),
+  tray: () => blobs.filter(b => b.tray && b.state === 0 && !b.leaving),
+  boost: () => ({ n: boost.slice(), cy: boostCy, hint: hintOn, smash: smashOn, deal: swapDeal, target: (() => { const t = hintPick(); return t ? { level: t.level, x: t.cx, y: t.cy } : null; })(), leaving: blobs.filter(b => b.leaving).length }),
+  setBoost: (a) => { boost = a.slice(); boostUI(); }, grantBoost,
+  shop: () => ({ coins, disp: Math.round(coinDisp), pend: coinPend, flying: flies.filter(f => f.t < 9).length, queued: coinQ.length, skin: skinId, theme: themeId, owned: { s: Array.from(owned.s), t: Array.from(owned.t) }, stock: stock.slice(), adAt: adCoinAt, tab: shopTab, view: sheetAt, open: sheetOpen, ask: askKey, cards: shopCards.map(c => ({ k: c.dataset.k, id: c.dataset.id, cls: c.className, chip: c.querySelector('.chip').textContent })) }),
+  setCoins: n => { coins = n; coinDisp = n; coinPend = 0; saveShop(); coinUI(true); }, openShop, coinsFor, tierCoins, loadShop, wipeShop: () => { try { store.removeItem(SHOP_KEY); } catch (e) {} loadShop(); },
   shoot(a, i, pw) { const t = this.tray(); if (!t.length) return false; aim = a; power = pw || 1; fire(t[(i || 0) % t.length]); return true; },
   pull(i, dx, dy) { const t = this.tray(); sel = t[(i || 0) % t.length] || null; aiming = !!sel; if (sel) { selX = sel.cx; pressX = sel.cx; pressY = sel.cy; ptrX = pressX + dx; ptrY = pressY + dy; setPull(dx, dy); } },
   audio() { initAudio(); return { actx, master, pick: sfxPick, shoot: sfxShoot, merge: sfxMerge, thump: sfxThump, over: sfxOver, music: musicTick }; },
   audioLab,
   spawn(level, x, y) { const b = makeBlob(level); placeBlob(b, x, y, 0, 1, 0, 1, 1, 0, 0); blobs.push(b); return b; },
+  stone(x, y) { const b = makeStone(); placeBlob(b, x, y, Math.random() * 6.28, 1, 0, 1, 1, 0, 0); b.touched = true; b.sinceTouch = 1; blobs.push(b); return b; },
+  breakStone, stones: () => ({ shotN, sinceStone, every: stoneEvery(), field: blobs.filter(b => b.stone && !b.tray && !b.dead).length, shelf: blobs.filter(b => b.stone && b.tray && !b.dead).length }),
   fx: () => ({ hitStop, scoreBump, shake, tilt, tiltV, glow: glow.a, bits: bits.filter(b => b.t < b.life).length, sparks: sparks.filter(s => s.t < s.life).length, rings: rings.filter(r => r.t < r.life).length }),
   pickLevel, popBlob, setPeak: v => { peak = v; }, saveRun, loadRun, clearSave, lose, revive, endRun, setDanger: v => { dangerT = v; },
   lose2: () => ({ over, offer, ended, reviveUsed, count, lineA, dangerT }),
   tut: v => { if (v !== undefined) { tutDone = !v; tutT = 0; try { if (v) store.removeItem('udm_tut'); } catch (e) {} } return { tutDone, tutT }; },
-  perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
+  view: () => ({ S, OX, OY }),
+  play: () => { leaveTitle(); return titleOn; }, title: () => titleOn, ladder: () => ({ on: ladOn, reach: reachTop, pop: Array.from(ladPop), badge: Object.assign({}, badge) }), newTier,
+  perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, stones: blobs.filter(b => b.stone && !b.dead).length, shots: shotN, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
 </body>
