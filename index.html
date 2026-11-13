@@ -679,6 +679,7 @@ function makeBlob(level, sh) {
   for (let i = 0; i < n; i++) b.rl[i] = Math.hypot(b.qx[i], b.qy[i]) || 1;
   b.kS = SK_K * sb * sb; b.cS = SK_C * sb * sb * g * g; b.dS = SK_D * sb; b.d2S = SK_D2 * g * g * sb; b.sigI = SK_SIG * g;
   b.fresh = true; b.hit = false; b.flashDur = 1;
+  b.blinkT = 1 + Math.random() * 4; b.gx = 0; b.gy = 0; b.joy = 0; b.wide = 0;   // the face (see faceStep)
   return b;
 }
 // A stone: the same pebble outline, no number, worth nothing, heavier and stiffer. Its cracks come from its shape's
@@ -1267,6 +1268,7 @@ function finishMerge(a, b) {
   nb.cx = x; nb.cy = y; nb.cs = 1; nb.sn = 0; nb.pa = 0; nb.la = 0; nb.vcx = nb.pvx = vx; nb.vcy = nb.pvy = vy;
   nb.maxY = maxY; nb.br = Math.sqrt(br2) + 1;
   nb.flash = 1; nb.flashDur = 0.22 + 0.015 * nb.level;   // a pale newborn for a few frames, like the reference
+  nb.joy = JOY_TIME;   // and it squeezes its eyes shut for a moment
   nb.noMerge = CHAIN_DELAY; nb.young = YOUNG; nb.touched = true; nb.sinceTouch = 1;
   if (SKIN) {
     const k2 = Math.random() * 6.283, k3 = Math.random() * 6.283;
@@ -1457,6 +1459,23 @@ function panelPath() {
   ctx.moveTo(WALL_L, CEIL + r); ctx.arcTo(WALL_L, CEIL, WALL_L + r, CEIL, r); ctx.lineTo(WALL_R - r, CEIL); ctx.arcTo(WALL_R, CEIL, WALL_R, CEIL + r, r);
   ctx.lineTo(WALL_R, H - rb); ctx.arcTo(WALL_R, H, WALL_R - rb, H, rb); ctx.lineTo(WALL_L + rb, H); ctx.arcTo(WALL_L, H, WALL_L, H - rb, rb); ctx.closePath();
 }
+// The cave ceiling: a flat band of rock along the top of the field, a shade darker than the field, with a wavy lower
+// edge and a few short rounded stalactites. Under the blobs, which hang from it as before.
+const STALACS = [[34, 11, 18], [96, 7, 10], [150, 10, 26], [226, 8, 14], [294, 11, 22], [340, 6, 9]];   // [x, half-width, length]
+let ceilPts = null;
+function ceilY(x) {
+  let y = CEIL + 11 + 2.6 * Math.sin(x * 0.043 + 1.1) + 1.4 * Math.sin(x * 0.117 + 0.4);
+  for (const [c, w, l] of STALACS) { const d = Math.abs(x - c) / w; if (d < 1) y += l * Math.pow(1 - d * d, 1.6); }
+  return y;
+}
+function drawCeiling() {
+  if (!ceilPts) { ceilPts = []; for (let x = WALL_L; x <= WALL_R + 0.01; x += 2) ceilPts.push(x, ceilY(x)); }
+  ctx.beginPath(); ctx.moveTo(WALL_L, CEIL - 2);
+  for (let i = 0; i < ceilPts.length; i += 2) ctx.lineTo(ceilPts[i], ceilPts[i + 1]);
+  ctx.lineTo(WALL_R, CEIL - 2); ctx.closePath();
+  ctx.fillStyle = CEIL_INK; ctx.fill();
+}
+const CEIL_INK = 'rgba(14,14,24,0.3)';
 // The limit's dots, on the field under the blobs. Pale and slow while the pile is near, coral and beating once it is past.
 function drawLimit() {
   const idleA = lineA * (1 - fanfareEnv()) * (1 - hotA);
@@ -1798,6 +1817,7 @@ function frameLogic(dt) {
     else if (!b.popping && !b.stone && b.buriedT > POP_AFTER && b.level <= 4 && !over) { b.popping = 1e-6; b.anim = true; b.animT = 0; b.scaleT = 0.3; b.noMerge = 9; }
     else if (b.popping) { b.popping += dt; if (b.popping > POP_TIME) popBlob(b); }
     if (SKIN) skinStep(b, dt);
+    faceStep(b, dt);
     // numbers tumble with the blob, then right themselves so they stay readable
     const ang = Math.atan2(b.sn, b.cs); let da = ang - b.pa; b.pa = ang;
     if (da > Math.PI) da -= 6.2832; else if (da < -Math.PI) da += 6.2832;
@@ -2380,8 +2400,58 @@ function label(b, alpha) {
   ctx.transform(v11 * ca + v12 * sa, v21 * ca + v22 * sa, -v11 * sa + v12 * ca, -v21 * sa + v22 * ca, 0, 0);
   ctx.fillStyle = 'rgba(0,0,0,0.3)';   // Figma: 30% black over the blob's colour, the same when grabbed or on the merge flash
   ctx.globalAlpha = alpha;
-  ctx.fillText(b.label, 0, b.fs * 0.04);
+  const e = faceSize(b), drop = e * FACE_DROP;
+  ctx.fillText(b.label, 0, b.fs * 0.04 + drop);
+  // the face, above the number, in the number's own frame (so it turns and squashes with it); its gaze is a world
+  // direction, turned back into that frame
+  const gx = ca * b.gx + sa * b.gy, gy = -sa * b.gx + ca * b.gy;
+  let bl = 1; if (b.blinkT < 0) bl = 1 - Math.sin(Math.PI * Math.min(1, -b.blinkT / BLINK_LEN));
+  // a squashed body pulls the eyes down toward the number rather than letting them poke out of the top
+  let ext = 0; const ux = sa, uy = -ca;
+  for (let i = 0; i < b.n; i++) { const p = (b.x[i] - b.cx) * ux + (b.y[i] - b.cy) * uy; if (p > ext) ext = p; }
+  const ey = Math.max(-b.fs * 0.44 - e * 1.5 + drop, -(ext / Math.max(0.45, v22) - e * 1.45));
+  drawEyes(faceStyle, e, ey, gx, gy, bl, b.joy > 0 ? 1 : 0, b.wide);
   ctx.restore();
+}
+// Faces: two flat eyes above the number, in the number's ink. Each blob blinks on its own timer, looks toward the
+// shape being aimed (a shelf shape looks up), squeezes its eyes shut (^ ^) just after it is born of a merge, and
+// opens them wide while it hangs past the line in the countdown. Stones have none.
+const JOY_TIME = 0.4, BLINK_LEN = 0.14, FACE_DROP = 0.8, FACE_INK = 'rgba(0,0,0,0.36)';
+let faceStyle = 'classic';   // a skin swaps this: drawEyes is the one place that draws eyes
+// eye half-height: grows with the blob, held back on big ones (their numbers are small) so a big face stays sweet
+const faceSize = b => Math.max(b.r * 0.16, 0.5 * (b.r * 0.15 + b.fs * 0.15));
+function faceStep(b, dt) {
+  if (b.stone) return;
+  b.blinkT -= dt; if (b.blinkT < -BLINK_LEN) b.blinkT = 1.8 + Math.random() * 4.5;
+  if (b.joy > 0) b.joy = Math.max(0, b.joy - dt);
+  let tx = 0, ty = 0;
+  if (b === sel && aiming && armed) { tx = Math.sin(aim); ty = -Math.cos(aim); }
+  else if (b.tray) ty = -1;
+  else if (aiming && sel && !over) { const dx = sel.cx - b.cx, dy = sel.cy - b.cy, l = Math.sqrt(dx * dx + dy * dy) || 1; tx = dx / l; ty = dy / l; }
+  const k = 1 - Math.exp(-dt * 9); b.gx += (tx - b.gx) * k; b.gy += (ty - b.gy) * k;
+  const w = !over && !b.tray && count > 0 && b.maxY > DANGER_Y ? 1 : 0;
+  b.wide += (w - b.wide) * (1 - Math.exp(-dt * 12));
+}
+// The eyes, centred on (0, y) in the number's frame: e is the half-height, (gx, gy) the gaze (unit or less),
+// bl how open (1 open, 0 shut), joy 1 for the ^ ^ squeeze, wide 0..1 for the frightened round eyes.
+function drawEyes(style, e, y, gx, gy, bl, joy, wide) {
+  const half = e * (1.6 + 0.4 * Math.max(0, Math.min(1, (8 - e) / 4)) + 0.15 * wide), ox = gx * e * 0.45, oy = gy * e * (gy > 0 ? 0.12 : 0.35) + y - e * 0.3 * wide;   // (a downward look or wide eyes never cover the number)
+  ctx.fillStyle = FACE_INK; ctx.strokeStyle = FACE_INK;
+  if (joy) {   // ^ ^
+    ctx.lineWidth = e * 0.62; ctx.lineCap = 'round'; ctx.beginPath();
+    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; ctx.moveTo(x - e * 0.85, oy + e * 0.45); ctx.arc(x, oy + e * 0.45, e * 0.85, Math.PI, 0); }
+    ctx.stroke(); return;
+  }
+  const ry = e * (1 + 0.2 * wide), rx = e * (0.72 + 0.33 * wide);
+  let h = ry * bl;
+  if (h < e * 0.22) {   // shut: a short flat line
+    ctx.lineWidth = e * 0.45; ctx.lineCap = 'round'; ctx.beginPath();
+    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; ctx.moveTo(x - rx, oy); ctx.lineTo(x + rx, oy); }
+    ctx.stroke(); return;
+  }
+  ctx.beginPath();
+  for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; ctx.moveTo(x + rx, oy); ctx.ellipse(x, oy, rx, h, 0, 0, 6.2832); }
+  ctx.fill();
 }
 // Blobs are flat: one colour, nothing else (user: no shadows, no shading, just the shape and the number).
 function drawBlob(b, outline) {
@@ -2485,6 +2555,7 @@ function draw() {
   ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = fieldPaint; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // punchCorners() rounds it
+  drawCeiling();
   ctx.save();
 
   // best score, cut into the panel: the screen colour shows through it and the blobs pass over it (Figma 19:114:
