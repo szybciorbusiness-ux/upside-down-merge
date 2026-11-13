@@ -245,6 +245,29 @@ body.bare #mark{display:none;top:calc(var(--safe-area-inset-top, env(safe-area-i
 body.bare.island #mark{display:block}
 #sat{position:absolute;left:0;top:0;width:0;height:var(--safe-area-inset-top, env(safe-area-inset-top,0px));visibility:hidden;pointer-events:none}
 #sab{position:absolute;left:0;bottom:0;width:0;height:var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px));visibility:hidden;pointer-events:none}
+/* the cave behind everything in the wide frame and on the title: big flat rocks a shade lighter than the screen */
+#cave{position:absolute;inset:0;pointer-events:none;display:none}
+#cave svg{display:block;position:absolute;inset:0;width:100%;height:100%}
+body.wide #cave,body.titling #cave{display:block}
+/* the goal ladder (wide frame, left of the field) and the phone's new-tier badge: drawn by drawLadder / drawBadge */
+#ladder,#badge{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;display:none}
+body.wide #ladder{display:block}
+#badge{z-index:1;display:block}
+body.titling #hud,body.titling #stage,body.titling #ladder,body.titling #badge,body.titling #mark{visibility:hidden}
+/* the title: the name, a few slimes, one Play row (the ending's row) */
+#title{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(14*var(--tu,1px));
+  padding-top:var(--safe-area-inset-top, env(safe-area-inset-top,0px));padding-bottom:var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px))}
+#title[hidden]{display:none}
+#title.out{animation:tout .32s cubic-bezier(.4,0,1,1) both;pointer-events:none}
+@keyframes tout{to{opacity:0;transform:scale(1.04)}}
+.tword{margin:0;font:800 calc(78*var(--tu,1px))/.9 var(--font-display);text-transform:uppercase;text-align:center;color:#ebe9f2;letter-spacing:0;animation:rise .5s .05s cubic-bezier(.2,.9,.3,1.2) both}
+#t-cv{display:block;width:calc(360*var(--tu,1px));height:calc(190*var(--tu,1px));touch-action:none}
+#play{display:grid;place-items:center;width:calc(338*var(--tu,1px));height:calc(85*var(--tu,1px));margin-top:calc(6*var(--tu,1px));padding:0;border:0;border-radius:calc(22*var(--tu,1px));
+  background:var(--sh,#353543);color:#fff;cursor:pointer;animation:rise .4s .2s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
+#play svg{width:calc(28*var(--tu,1px));height:calc(28*var(--tu,1px))}
+#play:active{scale:.95;transition-duration:.07s;background:var(--sh-row,rgba(30,30,42,.75))}
+#play:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.tword,#play,#title.out{animation:none}}
 </style>
 
 <div id="phone">
@@ -259,6 +282,7 @@ body.bare.island #mark{display:block}
       </div>
     </div>
    <div id="back">
+    <div id="cave" aria-hidden="true"></div>
     <div id="tint" aria-hidden="true"></div>
     <header id="hud">
       <h1 id="brand" aria-label="Score">0</h1>
@@ -267,6 +291,8 @@ body.bare.island #mark{display:block}
     <div id="stage">
       <canvas id="c" aria-label="Blob Blitz play field"></canvas>
     </div>
+    <canvas id="ladder" aria-hidden="true"></canvas>
+    <canvas id="badge" aria-hidden="true"></canvas>
     <div id="danger" aria-hidden="true"></div>
     <div id="revive" hidden>
       <div class="panel" tabindex="-1" role="dialog" aria-label="Revive" aria-describedby="revive-desc">
@@ -288,6 +314,11 @@ body.bare.island #mark{display:block}
         <div class="oblob"><div class="burst" aria-hidden="true"><i style="width:calc(11.2*var(--u));height:calc(11.2*var(--u));background:#fece00;--dx:calc(6*var(--u));--dy:calc(149*var(--u));--r:257deg;animation-delay:0.07s;animation-duration:1.25s"></i><i style="width:calc(8.9*var(--u));height:calc(8.9*var(--u));background:#ff7300;--dx:calc(-41*var(--u));--dy:calc(-178*var(--u));--r:176deg;animation-delay:0.01s;animation-duration:1.57s"></i><i style="width:calc(8.6*var(--u));height:calc(19.5*var(--u));background:#fea1cd;--dx:calc(-9*var(--u));--dy:calc(127*var(--u));--r:15deg;animation-delay:0.03s;animation-duration:1.39s"></i><i style="width:calc(10.4*var(--u));height:calc(10.4*var(--u));background:#00a3fe;--dx:calc(120*var(--u));--dy:calc(-278*var(--u));--r:277deg;animation-delay:0.02s;animation-duration:1.15s"></i><i style="width:calc(11.2*var(--u));height:calc(11.2*var(--u));background:#2ecc40;--dx:calc(-144*var(--u));--dy:calc(200*var(--u));--r:117deg;animation-delay:0.01s;animation-duration:1.61s"></i><i style="width:calc(14.5*var(--u));height:calc(14.5*var(--u));background:#a06bff;--dx:calc(-54*var(--u));--dy:calc(91*var(--u));--r:26deg;animation-delay:0.04s;animation-duration:1.38s"></i><i style="width:calc(6.9*var(--u));height:calc(17.2*var(--u));background:#ff4d5e;--dx:calc(-234*var(--u));--dy:calc(-220*var(--u));--r:52deg;animation-delay:0.05s;animation-duration:1.44s"></i><i style="width:calc(7.1*var(--u));height:calc(14.7*var(--u));background:#19c6b6;--dx:calc(130*var(--u));--dy:calc(-80*var(--u));--r:222deg;animation-delay:0.04s;animation-duration:1.14s"></i><i style="width:calc(8.1*var(--u));height:calc(8.1*var(--u));background:#fece00;--dx:calc(-62*var(--u));--dy:calc(81*var(--u));--r:10deg;animation-delay:0.07s;animation-duration:1.35s"></i><i style="width:calc(8.2*var(--u));height:calc(19.0*var(--u));background:#ff7300;--dx:calc(144*var(--u));--dy:calc(-31*var(--u));--r:260deg;animation-delay:0.03s;animation-duration:1.46s"></i><i style="width:calc(14.7*var(--u));height:calc(14.7*var(--u));background:#fea1cd;--dx:calc(-282*var(--u));--dy:calc(-143*var(--u));--r:28deg;animation-delay:0.08s;animation-duration:1.34s"></i><i style="width:calc(15.0*var(--u));height:calc(15.0*var(--u));background:#00a3fe;--dx:calc(-76*var(--u));--dy:calc(125*var(--u));--r:97deg;animation-delay:0.05s;animation-duration:1.43s"></i><i style="width:calc(14.3*var(--u));height:calc(14.3*var(--u));background:#2ecc40;--dx:calc(112*var(--u));--dy:calc(70*var(--u));--r:15deg;animation-delay:0.07s;animation-duration:1.43s"></i><i style="width:calc(7.6*var(--u));height:calc(7.6*var(--u));background:#a06bff;--dx:calc(126*var(--u));--dy:calc(-201*var(--u));--r:325deg;animation-delay:0.01s;animation-duration:1.50s"></i><i style="width:calc(12.0*var(--u));height:calc(12.0*var(--u));background:#ff4d5e;--dx:calc(216*var(--u));--dy:calc(16*var(--u));--r:143deg;animation-delay:0.05s;animation-duration:1.20s"></i><i style="width:calc(8.1*var(--u));height:calc(22.9*var(--u));background:#19c6b6;--dx:calc(40*var(--u));--dy:calc(149*var(--u));--r:335deg;animation-delay:0.05s;animation-duration:1.48s"></i><i style="width:calc(10.4*var(--u));height:calc(10.4*var(--u));background:#fece00;--dx:calc(-16*var(--u));--dy:calc(-146*var(--u));--r:165deg;animation-delay:0.06s;animation-duration:1.35s"></i><i style="width:calc(9.3*var(--u));height:calc(25.7*var(--u));background:#ff7300;--dx:calc(-237*var(--u));--dy:calc(17*var(--u));--r:342deg;animation-delay:0.07s;animation-duration:1.43s"></i><i style="width:calc(7.5*var(--u));height:calc(18.2*var(--u));background:#fea1cd;--dx:calc(-168*var(--u));--dy:calc(-258*var(--u));--r:197deg;animation-delay:0.07s;animation-duration:1.56s"></i><i style="width:calc(7.7*var(--u));height:calc(19.0*var(--u));background:#00a3fe;--dx:calc(-10*var(--u));--dy:calc(-241*var(--u));--r:117deg;animation-delay:0.04s;animation-duration:1.30s"></i><i style="width:calc(7.2*var(--u));height:calc(19.3*var(--u));background:#2ecc40;--dx:calc(226*var(--u));--dy:calc(78*var(--u));--r:287deg;animation-delay:0.05s;animation-duration:1.25s"></i><i style="width:calc(6.2*var(--u));height:calc(16.2*var(--u));background:#a06bff;--dx:calc(256*var(--u));--dy:calc(-167*var(--u));--r:36deg;animation-delay:0.03s;animation-duration:1.54s"></i><i style="width:calc(7.5*var(--u));height:calc(21.4*var(--u));background:#ff4d5e;--dx:calc(-125*var(--u));--dy:calc(234*var(--u));--r:256deg;animation-delay:0.01s;animation-duration:1.46s"></i><i style="width:calc(6.1*var(--u));height:calc(16.4*var(--u));background:#19c6b6;--dx:calc(103*var(--u));--dy:calc(-155*var(--u));--r:279deg;animation-delay:0.04s;animation-duration:1.57s"></i><i style="width:calc(9.9*var(--u));height:calc(29.5*var(--u));background:#fece00;--dx:calc(87*var(--u));--dy:calc(70*var(--u));--r:338deg;animation-delay:0.06s;animation-duration:1.61s"></i><i style="width:calc(9.2*var(--u));height:calc(23.2*var(--u));background:#ff7300;--dx:calc(94*var(--u));--dy:calc(180*var(--u));--r:285deg;animation-delay:0.02s;animation-duration:1.54s"></i><i style="width:calc(6.5*var(--u));height:calc(15.6*var(--u));background:#fea1cd;--dx:calc(-265*var(--u));--dy:calc(-50*var(--u));--r:302deg;animation-delay:0.00s;animation-duration:1.28s"></i><i style="width:calc(7.5*var(--u));height:calc(7.5*var(--u));background:#00a3fe;--dx:calc(105*var(--u));--dy:calc(79*var(--u));--r:25deg;animation-delay:0.01s;animation-duration:1.21s"></i><i style="width:calc(8.4*var(--u));height:calc(22.4*var(--u));background:#2ecc40;--dx:calc(44*var(--u));--dy:calc(142*var(--u));--r:146deg;animation-delay:0.00s;animation-duration:1.22s"></i><i style="width:calc(6.7*var(--u));height:calc(18.1*var(--u));background:#a06bff;--dx:calc(-99*var(--u));--dy:calc(-171*var(--u));--r:106deg;animation-delay:0.05s;animation-duration:1.59s"></i><i style="width:calc(9.5*var(--u));height:calc(20.6*var(--u));background:#ff4d5e;--dx:calc(-31*var(--u));--dy:calc(148*var(--u));--r:101deg;animation-delay:0.00s;animation-duration:1.69s"></i><i style="width:calc(8.4*var(--u));height:calc(8.4*var(--u));background:#19c6b6;--dx:calc(199*var(--u));--dy:calc(46*var(--u));--r:4deg;animation-delay:0.07s;animation-duration:1.69s"></i><i style="width:calc(14.6*var(--u));height:calc(14.6*var(--u));background:#fece00;--dx:calc(-99*var(--u));--dy:calc(135*var(--u));--r:306deg;animation-delay:0.00s;animation-duration:1.66s"></i><i style="width:calc(7.7*var(--u));height:calc(16.6*var(--u));background:#ff7300;--dx:calc(-96*var(--u));--dy:calc(-271*var(--u));--r:226deg;animation-delay:0.05s;animation-duration:1.25s"></i><i style="width:calc(12.6*var(--u));height:calc(12.6*var(--u));background:#fea1cd;--dx:calc(271*var(--u));--dy:calc(-17*var(--u));--r:18deg;animation-delay:0.01s;animation-duration:1.50s"></i><i style="width:calc(6.5*var(--u));height:calc(18.5*var(--u));background:#00a3fe;--dx:calc(59*var(--u));--dy:calc(-284*var(--u));--r:239deg;animation-delay:0.07s;animation-duration:1.47s"></i><i style="width:calc(8.6*var(--u));height:calc(23.7*var(--u));background:#2ecc40;--dx:calc(163*var(--u));--dy:calc(-2*var(--u));--r:44deg;animation-delay:0.02s;animation-duration:1.34s"></i><i style="width:calc(13.3*var(--u));height:calc(13.3*var(--u));background:#a06bff;--dx:calc(-273*var(--u));--dy:calc(-106*var(--u));--r:5deg;animation-delay:0.06s;animation-duration:1.14s"></i><i style="width:calc(7.8*var(--u));height:calc(21.1*var(--u));background:#ff4d5e;--dx:calc(-109*var(--u));--dy:calc(-139*var(--u));--r:15deg;animation-delay:0.08s;animation-duration:1.45s"></i><i style="width:calc(9.2*var(--u));height:calc(24.8*var(--u));background:#19c6b6;--dx:calc(-77*var(--u));--dy:calc(-140*var(--u));--r:222deg;animation-delay:0.02s;animation-duration:1.33s"></i><i style="width:calc(9.3*var(--u));height:calc(25.8*var(--u));background:#fece00;--dx:calc(174*var(--u));--dy:calc(-196*var(--u));--r:173deg;animation-delay:0.01s;animation-duration:1.61s"></i><i style="width:calc(14.0*var(--u));height:calc(14.0*var(--u));background:#ff7300;--dx:calc(146*var(--u));--dy:calc(-88*var(--u));--r:28deg;animation-delay:0.05s;animation-duration:1.51s"></i><i style="width:calc(9.7*var(--u));height:calc(28.2*var(--u));background:#fea1cd;--dx:calc(-150*var(--u));--dy:calc(22*var(--u));--r:237deg;animation-delay:0.05s;animation-duration:1.25s"></i><i style="width:calc(6.5*var(--u));height:calc(15.9*var(--u));background:#00a3fe;--dx:calc(303*var(--u));--dy:calc(-28*var(--u));--r:14deg;animation-delay:0.02s;animation-duration:1.21s"></i><i style="width:calc(8.3*var(--u));height:calc(21.5*var(--u));background:#2ecc40;--dx:calc(-132*var(--u));--dy:calc(-71*var(--u));--r:9deg;animation-delay:0.04s;animation-duration:1.54s"></i><i style="width:calc(9.2*var(--u));height:calc(9.2*var(--u));background:#a06bff;--dx:calc(-86*var(--u));--dy:calc(159*var(--u));--r:230deg;animation-delay:0.04s;animation-duration:1.20s"></i></div><span class="sr">Score</span><b id="o-score">0</b></div>
         <button id="again" type="button" aria-label="Play again"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.1967 2.71828C8.53683 0.970354 5 2.8783 5 6.0611V17.9387C5 21.1215 8.53684 23.0294 11.1967 21.2815L20.234 15.3427C22.6384 13.7627 22.6384 10.2371 20.234 8.65706L11.1967 2.71828Z" fill="white"/></svg></button>
       </div>
+    </div>
+    <div id="title" hidden>
+      <h2 class="tword" aria-label="Blob Blitz">Blob<br>Blitz</h2>
+      <canvas id="t-cv" aria-hidden="true"></canvas>
+      <button id="play" type="button" aria-label="Play"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.1967 2.71828C8.53683 0.970354 5 2.8783 5 6.0611V17.9387C5 21.1215 8.53684 23.0294 11.1967 21.2815L20.234 15.3427C22.6384 13.7627 22.6384 10.2371 20.234 8.65706L11.1967 2.71828Z" fill="white"/></svg></button>
     </div>
    </div>
     <div id="scrim" hidden></div>
@@ -565,6 +596,11 @@ let aiming = false, aim = 0, aimPtr = -1, ptrX = LX, ptrY = 0, ptrMouse = false,
 let pressX = 0, pressY = 0, power = 1, selX = LX, pullX = 0, pullY = 0;
 const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
 let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // peak: highest tier made this run
+// the goal ladder: the highest tier seen this run (made, or dealt onto the board), and each slot's pop and blink clocks
+const LAD_TOP = 11, BADGE_LIFE = 1.2;   // 2048 is the goal at the ladder's top
+let reachTop = 0, titleOn = false;
+const ladPop = new Float32Array(LAD_TOP + 1).fill(9), ladBlink = new Float32Array(LAD_TOP + 1).map(() => 1 + Math.random() * 5);
+const badge = { lv: 0, t: 9 };   // the phone's new-tier badge (no ladder there)
 let over = false, overT = 0, dangerT = 0, warn = false, dangerPh = 0;
 // Losing, step by step: the line shows as the pile nears it; past it a 3-2-1 counts down on the line; at zero the run
 // stops and a revive is offered once (a ring timer); declined or timed out, the game-over card says why.
@@ -1292,6 +1328,7 @@ function finishMerge(a, b) {
   const pts = nb.value * (onShelf ? 1 : combo);
   score += pts;
   if (score > best) { best = score; bestDirty = true; }
+  if (nb.level > peak && nb.level >= 6) newTier(nb.level);   // the first 64 (and up) of the run: its ladder slot pops, or the phone's badge
   if (nb.level > peak) peak = nb.level;
   if (onShelf) { sfxMerge(nb.level, 1); scoreBump = Math.max(scoreBump, 0.5); return; }
   juiceMerge(x, y, nb, combo, a, b);
@@ -1566,7 +1603,7 @@ function reset() {
   if (booted && !starting) cgGame(true);   // a new run is play again
   rewardedRun = false; runT0 = time;
   blobs.length = 0; shuffleRun(); runSizeScale = 1; sizeDirty = true;
-  score = shown = 0; combo = 0; peak = 0; shotN = 0; sinceStone = 0; for (const c of chips) c.t = 9; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
+  score = shown = 0; combo = 0; peak = 0; reachTop = 0; ladPop.fill(9); badge.t = 9; shotN = 0; sinceStone = 0; for (const c of chips) c.t = 9; over = false; overT = 0; dangerT = 0; warn = false; dangerPh = 0;
   shake = 0; shakeHeat = 0; tilt = tiltV = 0; for (const p of popups) p.t = 9;
   hitStop = 0; scoreBump = 0; bumpSeen = 0; scoreS = scoreV = 0; for (const b of bits) b.t = 9; for (const sp of sparks) sp.t = 9; for (const rg of rings) rg.t = 9;
   fanfare.t = 9; fanfare.b = null; glow.a = 0;
@@ -2338,6 +2375,7 @@ function fitShell() {
   if (PORTAL) document.documentElement.style.setProperty('--vpad', wide ? '0px' : Math.max(0, (vh - (78 * colW / 402 + 820 * colW / 360)) / 2).toFixed(1) + 'px');   // a frame taller than the tallest field: centred
   const u = PORTAL ? colW / 402 : bare ? Math.min(vw / 402, vh / 700) : Math.min((vh - 20) / 920, (vw - 20) / 450, 1.15);   // (a portal's frame: everything is sized from the column's width)
   document.documentElement.style.setProperty('--u', u.toFixed(4) + 'px');
+  document.documentElement.style.setProperty('--tu', (PORTAL || bare ? Math.min(vw / 402, vh / 700) : u).toFixed(4) + 'px');   // the title's unit: it fills the whole frame, not the column
   uPx = u;
 }
 let cursorS = 0;
@@ -2372,6 +2410,7 @@ function resize() {
   H = Math.max(560, Math.min(CH / S, 820));
   OX = 0; OY = 0;
   layout();
+  layoutDeco();
   hudT = Math.max(0, Math.min(1, (hudEl.offsetTop + hudEl.offsetHeight * 0.45) / (0.6 * (screenEl.offsetHeight || 1))));
   fxA = -1;
   if (grew && blobs.length) draw();
@@ -2434,24 +2473,24 @@ function faceStep(b, dt) {
 }
 // The eyes, centred on (0, y) in the number's frame: e is the half-height, (gx, gy) the gaze (unit or less),
 // bl how open (1 open, 0 shut), joy 1 for the ^ ^ squeeze, wide 0..1 for the frightened round eyes.
-function drawEyes(style, e, y, gx, gy, bl, joy, wide) {
+function drawEyes(style, e, y, gx, gy, bl, joy, wide, g = ctx) {
   const half = e * (1.6 + 0.4 * Math.max(0, Math.min(1, (8 - e) / 4)) + 0.15 * wide), ox = gx * e * 0.45, oy = gy * e * (gy > 0 ? 0.12 : 0.35) + y - e * 0.3 * wide;   // (a downward look or wide eyes never cover the number)
-  ctx.fillStyle = FACE_INK; ctx.strokeStyle = FACE_INK;
+  g.fillStyle = FACE_INK; g.strokeStyle = FACE_INK;
   if (joy) {   // ^ ^
-    ctx.lineWidth = e * 0.62; ctx.lineCap = 'round'; ctx.beginPath();
-    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; ctx.moveTo(x - e * 0.85, oy + e * 0.45); ctx.arc(x, oy + e * 0.45, e * 0.85, Math.PI, 0); }
-    ctx.stroke(); return;
+    g.lineWidth = e * 0.62; g.lineCap = 'round'; g.beginPath();
+    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; g.moveTo(x - e * 0.85, oy + e * 0.45); g.arc(x, oy + e * 0.45, e * 0.85, Math.PI, 0); }
+    g.stroke(); return;
   }
   const ry = e * (1 + 0.2 * wide), rx = e * (0.72 + 0.33 * wide);
   let h = ry * bl;
   if (h < e * 0.22) {   // shut: a short flat line
-    ctx.lineWidth = e * 0.45; ctx.lineCap = 'round'; ctx.beginPath();
-    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; ctx.moveTo(x - rx, oy); ctx.lineTo(x + rx, oy); }
-    ctx.stroke(); return;
+    g.lineWidth = e * 0.45; g.lineCap = 'round'; g.beginPath();
+    for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; g.moveTo(x - rx, oy); g.lineTo(x + rx, oy); }
+    g.stroke(); return;
   }
-  ctx.beginPath();
-  for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; ctx.moveTo(x + rx, oy); ctx.ellipse(x, oy, rx, h, 0, 0, 6.2832); }
-  ctx.fill();
+  g.beginPath();
+  for (let s = -1; s <= 1; s += 2) { const x = s * half + ox; g.moveTo(x + rx, oy); g.ellipse(x, oy, rx, h, 0, 0, 6.2832); }
+  g.fill();
 }
 // Blobs are flat: one colour, nothing else (user: no shadows, no shading, just the shape and the number).
 function drawBlob(b, outline) {
@@ -2687,7 +2726,7 @@ function setPtr(e) {
   else if (ptrMouse) hover = pickTray(ptrX, ptrY, 10);
 }
 canvas.addEventListener('pointerdown', e => {
-  if (over || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  if (over || titleOn || (e.pointerType === 'mouse' && e.button !== 0)) return;
   initAudio(); aiming = false; setPtr(e);
   sel = pickTray(ptrX, ptrY, 1e9);
   if (!sel) return;
@@ -2857,6 +2896,179 @@ document.addEventListener('pointerdown', e => { if (e.target.closest && e.target
 ['pointerup', 'touchend', 'click', 'keydown'].forEach(t => window.addEventListener(t, () => initAudio(), { capture: true, passive: true }));
 
 /* ───────────────────────── boot ───────────────────────── */
+/* ───────── the goal ladder, the new-tier badge, the cave backdrop, the title ───────── */
+const ladderCv = document.getElementById('ladder'), badgeCv = document.getElementById('badge'), caveEl = document.getElementById('cave');
+const titleEl = document.getElementById('title'), titleCv = document.getElementById('t-cv'), playBtn = document.getElementById('play');
+const ladG = ladderCv.getContext ? ladderCv.getContext('2d') : null, badG = badgeCv.getContext ? badgeCv.getContext('2d') : null, titG = titleCv.getContext ? titleCv.getContext('2d') : null;
+const LAD_DIM = '#2e2e3c', CROWN_C = '#f2c14e', MINI_INK = 'rgba(0,0,0,0.3)';
+let ladW = 0, ladH = 0, ladOn = false, badW = 0, badShown = false, titW = 0, titH = 0, decoDpr = 1, caveKey = '', decoT = 0, titleT = 0;
+// One small flat blob with its face and number, on any canvas: (x, y) its centre, r its radius, sx/sy a squash.
+function drawMini(g, x, y, r, level, bl, joy, gx, gy, sx, sy) {
+  g.save(); g.translate(x, y); g.scale(sx, sy);
+  g.beginPath(); g.arc(0, 0, r, 0, 6.2832); g.fillStyle = colorFor(level).hex; g.fill();
+  const v = String(Math.pow(2, level)), fs = Math.min(r * 0.8, r * 1.56 / v.length), e = Math.max(r * 0.16, 0.5 * (r * 0.15 + fs * 0.15)), drop = e * FACE_DROP;
+  g.font = '900 ' + fs.toFixed(2) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = MINI_INK;
+  g.fillText(v, 0, fs * 0.04 + drop);
+  drawEyes(faceStyle, e, Math.max(-fs * 0.44 - e * 1.5 + drop, -(r - e * 1.45)), gx, gy, bl, joy ? 1 : 0, 0, g);
+  g.restore();
+}
+const blinkOpen = t => t < 0 ? 1 - Math.sin(Math.PI * Math.min(1, -t / BLINK_LEN)) : 1;
+function sizeCv(cv, w, h) {   // a canvas's box and its backing store, at the screen's density
+  cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  const pw = Math.round(w * decoDpr), ph = Math.round(h * decoDpr);
+  if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+}
+// Lays out the ladder (left of the field in the wide frame, under the score), the badge (under the HUD), the title's
+// slimes and the cave. Positions come from the layout boxes (never from transformed ones).
+function layoutDeco() {
+  if (typeof stage.offsetTop !== 'number' || !backEl.offsetWidth) return;
+  decoDpr = Math.min(2, window.devicePixelRatio || 1);
+  const u = uPx, wide = document.body.classList.contains('wide');
+  ladOn = wide;
+  if (wide) {
+    const xR = stage.offsetLeft - 30 * u, top = hudEl.offsetTop + brandEl.offsetTop + brandEl.offsetHeight + 18 * u, bot = stage.offsetTop + stage.offsetHeight - 4 * u;
+    ladW = Math.round(76 * u); ladH = Math.max(120, Math.round(bot - top));
+    ladderCv.style.left = Math.round(xR - 70 * u) + 'px'; ladderCv.style.top = Math.round(top) + 'px'; sizeCv(ladderCv, ladW, ladH);
+  }
+  badW = Math.round(92 * u);
+  badgeCv.style.left = Math.round(stage.offsetLeft + stage.offsetWidth / 2 - badW / 2) + 'px'; badgeCv.style.top = Math.round(stage.offsetTop + 2 * u) + 'px'; sizeCv(badgeCv, badW, badW);
+  badShown = true;   // (cleared on the next draw)
+  if (titleOn) { titW = titleCv.offsetWidth; titH = titleCv.offsetHeight; if (titW) sizeCv(titleCv, titW, titH); }
+  buildCave();
+}
+// The cave: big rounded rocks along the bottom and the sides, a wavy rock band and a few stalactites along the top.
+// Flat fills a little lighter than the screen, laid out once per size from a fixed seed.
+function buildCave() {
+  const w = backEl.offsetWidth, h = backEl.offsetHeight; if (!w || !h) return;
+  const key = w + 'x' + h; if (key === caveKey) return; caveKey = key;
+  let sd = 11; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const m = Math.min(w, h), f = v => v.toFixed(1);
+  const rock = (x, y, R) => {   // a pebble: eight points round a circle, pushed in and out, joined by smooth curves
+    const px = [], py = [], n = 8, a0 = rnd() * 6.28;
+    for (let i = 0; i < n; i++) { const a = a0 + i * 6.2832 / n + (rnd() - 0.5) * 0.4, rr = R * (0.84 + 0.26 * rnd()); px.push(x + Math.cos(a) * rr); py.push(y + Math.sin(a) * rr * 0.86); }
+    let d = 'M' + f((px[n - 1] + px[0]) / 2) + ' ' + f((py[n - 1] + py[0]) / 2);
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n; d += 'Q' + f(px[i]) + ' ' + f(py[i]) + ' ' + f((px[i] + px[j]) / 2) + ' ' + f((py[i] + py[j]) / 2); }
+    return d + 'Z';
+  };
+  let far = '', near = '', top = '';
+  for (let x = -0.05 * m; x < w + 0.2 * m;) { const R = m * (0.15 + 0.11 * rnd()); far += rock(x, h + R * 0.2, R); x += R * (1.1 + 0.4 * rnd()); }
+  for (let x = 0.08 * m * rnd(); x < w + 0.1 * m;) { const R = m * (0.07 + 0.07 * rnd()); near += rock(x, h + R * 0.3, R); x += R * (1.5 + 1.2 * rnd()); }
+  for (let s = 0; s < 2; s++) for (let i = 0; i < 3; i++) {
+    const R = m * (0.1 + 0.08 * rnd()), y = h * (0.3 + 0.2 * i + 0.1 * rnd());
+    far += rock(s ? w + R * 0.45 : -R * 0.45, y, R);
+  }
+  // the rock band along the top and its stalactites
+  const bandY = x => m * 0.02 + m * 0.006 * Math.sin(x / m * 9 + 1) + m * 0.004 * Math.sin(x / m * 23);
+  top = 'M0 0';
+  for (let x = 0; x <= w + 1; x += Math.max(4, w / 120)) top += 'L' + f(x) + ' ' + f(bandY(x));
+  top += 'L' + f(w) + ' 0Z';
+  for (const fx of [0.05, 0.12, 0.2, 0.29, 0.71, 0.8, 0.88, 0.95]) {
+    const x = w * (fx + (rnd() - 0.5) * 0.03), hw = m * (0.012 + 0.014 * rnd()), L = m * (0.04 + 0.09 * rnd()), y0 = bandY(x) - 1;
+    top += 'M' + f(x - hw) + ' ' + f(y0) + 'Q' + f(x - hw * 0.35) + ' ' + f(y0 + L * 0.55) + ' ' + f(x) + ' ' + f(y0 + L) + 'Q' + f(x + hw * 0.35) + ' ' + f(y0 + L * 0.55) + ' ' + f(x + hw) + ' ' + f(y0) + 'Z';
+  }
+  caveEl.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path fill="#fff" fill-opacity=".024" d="' + far + '"/><path fill="#fff" fill-opacity=".035" d="' + near + '"/><path fill="#fff" fill-opacity=".03" d="' + top + '"/></svg>';
+}
+// A tier from 64 up made for the first time this run: its ladder slot pops, or on a phone a small badge pops in.
+function newTier(level) {
+  if (level <= LAD_TOP) ladPop[level] = 0;
+  if (!ladOn) { badge.lv = level; badge.t = 0; }
+}
+// The ladder: 2 at the bottom to 2048 at the top (it wears the crown). Tiers seen this run in their colours, the
+// rest dim and blank; the highest seen sits a little bigger with a notch beside it. The faces look up at the goal.
+function drawLadder(dt) {
+  let tp = peak; for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (!b.stone && !b.dead && b.level > tp) tp = b.level; }
+  if (tp > reachTop) reachTop = tp;
+  for (let L = 1; L <= LAD_TOP; L++) { if (ladPop[L] < 9) ladPop[L] += dt; ladBlink[L] -= dt; if (ladBlink[L] < -BLINK_LEN) ladBlink[L] = 2 + Math.random() * 5; }
+  if (!ladOn || !ladG || !ladW) return;
+  const g = ladG, u = uPx, cx = ladW * 38 / 76, y0 = ladH - 24 * u, y1 = 36 * u, step = (y0 - y1) / (LAD_TOP - 1), hi = Math.min(reachTop, LAD_TOP);
+  g.setTransform(decoDpr, 0, 0, decoDpr, 0, 0); g.clearRect(0, 0, ladW, ladH);
+  g.lineCap = 'round'; g.lineWidth = 3 * u;
+  g.strokeStyle = 'rgba(255,255,255,0.05)'; g.beginPath(); g.moveTo(cx, y0); g.lineTo(cx, y1); g.stroke();
+  if (hi > 1) { g.strokeStyle = 'rgba(255,255,255,0.14)'; g.beginPath(); g.moveTo(cx, y0); g.lineTo(cx, y0 - (hi - 1) * step); g.stroke(); }
+  for (let L = 1; L <= LAD_TOP; L++) {
+    const y = y0 - (L - 1) * step, r = Math.min(step * 0.44, (11.5 + 0.8 * (L - 1)) * u), p = ladPop[L], got = L <= reachTop;
+    let s = L === hi ? 1.2 : 1;
+    if (p < 1 && !REDUCED) s *= 1 + 0.5 * Math.sin(p * 14) * Math.exp(-5 * p);
+    const R = r * s, bob = Math.sin(decoT * 1.7 + L * 0.9) * 0.025;
+    if (!got || p < 0.2) { g.beginPath(); g.arc(cx, y, R, 0, 6.2832); g.fillStyle = LAD_DIM; g.fill(); }
+    if (got) {
+      const fill = p < 0.2 && !REDUCED ? p / 0.2 : 1;   // the colour floods in from the middle
+      if (fill < 1) { g.save(); g.beginPath(); g.arc(cx, y, R * fill + 0.5, 0, 6.2832); g.clip(); }
+      drawMini(g, cx, y, R, L, blinkOpen(ladBlink[L]), p < 0.65, 0.15, -0.8, 1 + bob, 1 - bob);
+      if (fill < 1) g.restore();
+    }
+    if (L === hi && hi > 0) {   // the notch: a small flat arrowhead pointing at the highest tier
+      const nx = cx - R - 5 * u;
+      g.beginPath(); g.moveTo(nx - 6 * u, y - 5 * u); g.lineTo(nx, y); g.lineTo(nx - 6 * u, y + 5 * u); g.closePath(); g.fillStyle = 'rgba(235,233,242,0.55)'; g.fill();
+    }
+    if (L === LAD_TOP) {   // the crown
+      const w = R * 0.62, hh = R * 0.56, by = y - R * 0.8;
+      g.beginPath(); g.moveTo(-w + cx, by); g.lineTo(-w + cx, by - hh); g.lineTo(-w * 0.45 + cx, by - hh * 0.45); g.lineTo(cx, by - hh * 1.05);
+      g.lineTo(w * 0.45 + cx, by - hh * 0.45); g.lineTo(w + cx, by - hh); g.lineTo(w + cx, by); g.closePath();
+      g.fillStyle = CROWN_C; g.strokeStyle = CROWN_C; g.lineJoin = 'round'; g.lineWidth = 2 * u; g.fill(); g.stroke();
+    }
+  }
+}
+// The phone's badge: the new tier's blob pops in under the HUD, holds a beat with its eyes squeezed, then slides up and away.
+function drawBadge(dt) {
+  if (!badG || !badW) return;
+  if (badge.t >= BADGE_LIFE) { if (badShown) { badG.setTransform(1, 0, 0, 1, 0, 0); badG.clearRect(0, 0, badgeCv.width, badgeCv.height); badShown = false; } return; }
+  badge.t += dt; badShown = true;
+  const q = badge.t, u = uPx, g = badG, k = Math.max(0, (q - 0.9) / 0.3);
+  let s = q < 0.4 && !REDUCED ? 1 + 0.35 * Math.sin(q * 13) * Math.exp(-7 * q) - 0.9 * Math.exp(-28 * q) : 1;
+  s *= 1 - 0.35 * k;
+  const r = 30 * u, cx = badW / 2, cy = badW / 2 - (REDUCED ? 0 : k * k * 26 * u);
+  g.setTransform(decoDpr, 0, 0, decoDpr, 0, 0); g.clearRect(0, 0, badW, badW);
+  g.globalAlpha = 1 - k;
+  g.beginPath(); g.arc(cx, cy, (r + 4 * u) * s, 0, 6.2832); g.fillStyle = '#2a2a37'; g.fill();   // a slate ring parts it from the pile under it
+  drawMini(g, cx, cy, r * s, badge.lv, 1, q < 0.6, 0, 0.6, 1, 1);
+  g.globalAlpha = 1;
+}
+// The title: the name, four slimes that bob and blink and watch the pointer, and Play.
+const TBLOBS = [[5, 182, 100, 58, 0], [3, 76, 118, 38, 1.7], [4, 288, 92, 46, 3.1], [1, 252, 162, 22, 4.4]].map(([lv, x, y, r, ph]) => ({ lv, x, y, r, ph, blink: 1 + Math.random() * 3, joy: 0, jy: 0, jv: 0, gx: 0, gy: 0 }));
+let tPtrX = 180, tPtrY = -200, tPtrT = -9;
+function titleStep(dt) {
+  titleT += dt;
+  for (const b of TBLOBS) {
+    b.blink -= dt; if (b.blink < -BLINK_LEN) b.blink = 1.5 + Math.random() * 4;
+    if (b.joy > 0) b.joy = Math.max(0, b.joy - dt);
+    b.jv += (-b.jy * 160 - b.jv * 9) * dt; b.jy += b.jv * dt;   // a tapped slime hops and settles
+    let tx, ty;
+    if (titleT - tPtrT < 3) { const dx = tPtrX - b.x, dy = tPtrY - b.y, l = Math.hypot(dx, dy) || 1; tx = dx / l; ty = dy / l; }
+    else { tx = Math.sin(titleT * 0.5 + b.ph) * 0.6; ty = -0.3 + 0.3 * Math.sin(titleT * 0.37 + b.ph * 2); }
+    const kk = 1 - Math.exp(-dt * 7); b.gx += (tx - b.gx) * kk; b.gy += (ty - b.gy) * kk;
+  }
+}
+function drawTitle() {
+  if (!titG || !titW) return;
+  const g = titG, k = titW / 360;
+  g.setTransform(decoDpr * k, 0, 0, decoDpr * k, 0, 0); g.clearRect(0, 0, 360, titH / k);
+  for (const b of TBLOBS) {
+    const w = REDUCED ? 0 : Math.sin(titleT * 1.6 + b.ph), sq = REDUCED ? 0 : 0.03 * Math.sin(titleT * 3.2 + b.ph);
+    drawMini(g, b.x, b.y + w * 4 + b.jy, b.r, b.lv, blinkOpen(b.blink), b.joy > 0, b.gx, b.gy, 1 + sq, 1 - sq);
+  }
+}
+const titlePt = e => { const r = titleCv.getBoundingClientRect(), k = 360 / (r.width || 1); return [(e.clientX - r.left) * k, (e.clientY - r.top) * k]; };
+titleEl.addEventListener('pointermove', e => { if (!titleOn) return; [tPtrX, tPtrY] = titlePt(e); tPtrT = titleT; });
+titleCv.addEventListener('pointerdown', e => {   // a poke: the slime under it squeezes its eyes and hops
+  if (!titleOn) return; const [x, y] = titlePt(e); tPtrX = x; tPtrY = y; tPtrT = titleT;
+  for (const b of TBLOBS) if (Math.hypot(x - b.x, y - b.y) < b.r + 6) { b.joy = 0.45; b.jv = -150; initAudio(); sfxPick(); buzz(8); break; }
+});
+function showTitle() {
+  titleOn = true; titleT = 0; titleEl.hidden = false; titleEl.classList.remove('out'); document.body.classList.add('titling');
+  layoutDeco(); try { draw(); } catch (e) {}   // (the screen's tints, which the Play row wears)
+}
+function leaveTitle() {   // Play: the run (a saved one if there is one) starts, and only now does the portal hear that play began
+  if (!titleOn || adBusy) return;
+  titleOn = false; document.body.classList.remove('titling');
+  titleEl.classList.add('out'); setTimeout(() => { if (!titleOn) { titleEl.hidden = true; titleEl.classList.remove('out'); } }, REDUCED ? 0 : 340);
+  last = performance.now(); initAudio(); sfxUi(true);
+  cgGame(!over && !sheetOpen);
+}
+playBtn.addEventListener('click', leaveTitle);
+window.addEventListener('keydown', e => { if (titleOn && !e.repeat && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); leaveTitle(); } });
+
 let last = 0, rafDone = 0, rafOk = 0, dtS = 1 / 60, debt = 0, outN = 0, frameErr = false;
 const perfC = { raf: 0, wd: 0, shed: 0, err: 0, maxGap: 0, tickMs: 0, drawMs: 0 };   // where the frames come from, for the test hook
 // Frame times arrive noisy (whole milliseconds on iOS, late callbacks in embedded views) although the display ticks
@@ -2881,9 +3093,9 @@ function frame(t) {
   if (ytPaused) { last = t; rafDone = performance.now(); return; }
   try {
     const a = performance.now();
-    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); }   // t can predate a watchdog step: nothing to simulate
+    if (raw > 0) { last = t; if (raw > perfC.maxGap) perfC.maxGap = raw; if (titleOn) titleStep(Math.min(0.1, raw)); else tick((raw > 0.1 ? 0.1 : pace(raw)) * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); }   // (the title holds the run still)   // t can predate a watchdog step: nothing to simulate
     const b = performance.now();
-    draw();
+    if (titleOn) drawTitle(); else { draw(); const fd = raw > 0 ? Math.min(0.1, raw) : 0; decoT += fd; drawLadder(fd); drawBadge(fd); }
     perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
   } catch (e) { perfC.err++; if (!frameErr) { frameErr = true; if (window.console) console.error(e); if (ytOn) { try { YT.health.logError(); } catch (e2) {} } } }
   rafDone = performance.now();
@@ -2895,7 +3107,7 @@ setInterval(() => {
   const now = performance.now();
   if (!booted || ytPaused || (!YTB && document.hidden) || now - rafDone < (rafOk >= 3 ? 120 : 34)) return;
   const dt = Math.min(0.1, (now - last) / 1000);
-  if (dt > 0) { last = now; debt = 0; perfC.wd++; try { tick(dt * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); } catch (e) { perfC.err++; } }
+  if (dt > 0 && !titleOn) { last = now; debt = 0; perfC.wd++; try { tick(dt * labSpeed * (sheetOpen ? SHEET_SLOW : 1)); } catch (e) { perfC.err++; } }
 }, 33);
 window.addEventListener('resize', resize);
 tickClock(); setInterval(tickClock, 10000);
@@ -2914,7 +3126,8 @@ function start() {
   if (YTB) soundBtn.hidden = true;   // YouTube has its own sound switch, and asks for no second one
   if (YTB) sheetEl.querySelectorAll('[data-go="terms"],[data-go="privacy"]').forEach(b => { b.hidden = true; });   // nor for legal pages of the game's own
   starting = false;
-  if (cgOn) { try { CG.game.loadingStop(); } catch (e) {} cgGame(!over); }
+  if (!MERGE_LAB) showTitle();   // boot only: Play again goes straight into a new run
+  if (cgOn) { try { CG.game.loadingStop(); } catch (e) {} cgGame(!over && !titleOn); }
   if (ytOn) {
     try { draw(); } catch (e) {}
     try { YT.game.firstFrameReady(); YT.game.gameReady(); } catch (e) {}   // the first frame is drawn and the game takes input from it
@@ -2932,7 +3145,7 @@ if (CG) {
         CG.game.addSettingsChangeListener(st => { cgMute = !!(st && st.muteAudio); applyMute(); });
         if (booted) {   // their SDK came up after the game had already started on its own: join it where the game is
           const b0 = best; loadPrefs(); if (b0 > best) { best = b0; bestDirty = true; }
-          setMuted(muted); applyMute(); cgGame(!over && !sheetOpen);
+          setMuted(muted); applyMute(); cgGame(!over && !sheetOpen && !titleOn);
         } else CG.game.loadingStart();
       }
     } catch (e) { cgOn = false; }
@@ -2987,6 +3200,7 @@ window.__udm = { blobs, tick, draw, reset,
   lose2: () => ({ over, offer, ended, reviveUsed, count, lineA, dangerT }),
   tut: v => { if (v !== undefined) { tutDone = !v; tutT = 0; try { if (v) store.removeItem('udm_tut'); } catch (e) {} } return { tutDone, tutT }; },
   view: () => ({ S, OX, OY }),
+  play: () => { leaveTitle(); return titleOn; }, title: () => titleOn, ladder: () => ({ on: ladOn, reach: reachTop, pop: Array.from(ladPop), badge: Object.assign({}, badge) }), newTier,
   perf: () => { const o = Object.assign({ dtS }, perfC); for (const k in perfC) perfC[k] = 0; return o; }, order: () => runOrder.slice(), info: () => ({ peak, floor: spawnFloor(), n: blobs.filter(b => !b.tray).length, stones: blobs.filter(b => b.stone && !b.dead).length, shots: shotN, tray: blobs.filter(b => b.tray).map(b => b.value), score, combo, over, dangerT, H, TRAY_Y, DANGER_Y, armed, aim, power }) };
 })();
 </script>
