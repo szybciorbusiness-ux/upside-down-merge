@@ -67,10 +67,13 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#8c8ca0;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
-/* phone HUD: a long score steps its size down so it never runs under the boosters (the row also holds the coins) */
-body:not(.wide) #brand[data-n="5"]{font-size:calc(29*var(--u));top:calc(10*var(--u))}
-body:not(.wide) #brand[data-n="6"]{font-size:calc(24*var(--u));top:calc(13*var(--u))}
-body:not(.wide) #brand[data-n="7"],body:not(.wide) #brand[data-n="8"]{font-size:calc(20*var(--u));top:calc(15*var(--u))}
+/* phone HUD: a long score steps its size down so it never runs under the boosters (the row also holds the coins);
+   its merge bump grows mostly leftward, into the margin, so even mid-bump it keeps clear of the Hint button */
+body:not(.wide) #brand{transform-origin:85% 60%}
+body:not(.wide) #brand[data-n="4"]{font-size:calc(34*var(--u));top:calc(7*var(--u))}
+body:not(.wide) #brand[data-n="5"]{font-size:calc(27*var(--u));top:calc(11*var(--u))}
+body:not(.wide) #brand[data-n="6"]{font-size:calc(22.5*var(--u));top:calc(14*var(--u))}
+body:not(.wide) #brand[data-n="7"],body:not(.wide) #brand[data-n="8"]{font-size:calc(19*var(--u));top:calc(16*var(--u))}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:max(34px,calc(36*var(--u)));height:max(34px,calc(36*var(--u)));padding:0;border:0;border-radius:50%;
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#82829a);will-change:transform}
 #gear svg{width:100%;height:100%}
@@ -80,7 +83,7 @@ body:not(.wide) #brand[data-n="7"],body:not(.wide) #brand[data-n="8"]{font-size:
    wide frame: a column under the gear */
 #boost{position:absolute;left:calc(196*var(--u));top:calc(14*var(--u));display:flex;gap:calc(6*var(--u));transform:translateX(-50%)}
 .bst{position:relative;flex:none;display:grid;place-items:center;width:calc(34*var(--u));height:calc(34*var(--u));padding:0;border:0;border-radius:50%;
-  background:var(--sh-row,#272734);color:rgba(235,233,242,.86);cursor:pointer;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease,opacity .2s ease}
+  background:var(--bst,#2d2d3b);color:rgba(235,233,242,.86);cursor:pointer;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease,opacity .2s ease}
 .bst .ic{display:block;width:56%;height:56%}
 .bst:active{scale:.92;transition-duration:.07s}
 .bst.on{background:var(--sh-tog,#4a4a58);color:#fff}
@@ -93,11 +96,13 @@ body:not(.wide) #brand[data-n="7"],body:not(.wide) #brand[data-n="8"]{font-size:
 .bst.empty .bn{display:none}
 .bst.pop{animation:bpop .5s cubic-bezier(.2,1.5,.4,1)}
 @keyframes bpop{0%{scale:1}30%{scale:1.3}100%{scale:1}}
+.bst.nope{animation:bnope .34s ease-out}
+@keyframes bnope{20%{translate:calc(-3*var(--u)) 0}45%{translate:calc(3*var(--u)) 0}70%{translate:calc(-2*var(--u)) 0}}
 .bst:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 body.wide #boost{left:calc(50% + var(--colw)/2 + 24*var(--u));top:calc(78*var(--u));flex-direction:column;gap:calc(16*var(--u));transform:none;pointer-events:auto}
 body.wide .bst{width:calc(48*var(--u));height:calc(48*var(--u))}
 body.wide .bst .bn{min-width:calc(20*var(--u));height:calc(20*var(--u));font-size:calc(12*var(--u));line-height:calc(20*var(--u))}
-@media (prefers-reduced-motion:reduce){.bst{transition:none}.bst.pop{animation:none}}
+@media (prefers-reduced-motion:reduce){.bst{transition:none}.bst.pop,.bst.nope{animation:none}}
 /* settings: a bottom sheet over a dimmed screen. It rises on the sheet curve, follows a downward drag, and leaves by
    a drag, a tap on the dimmed screen, or Escape. More swaps it for a second sheet of the same build. The game runs in slow motion behind it. */
 #scrim{position:absolute;inset:0;z-index:3;background:rgba(0,0,0,.4);opacity:0;transition:opacity .35s ease}
@@ -287,6 +292,10 @@ body.titling #hud,body.titling #stage,body.titling #ladder,body.titling #badge,b
 #title.out{animation:tout .32s cubic-bezier(.4,0,1,1) both;pointer-events:none}
 @keyframes tout{to{opacity:0;transform:scale(1.04)}}
 .tword{margin:0;font:800 calc(78*var(--tu,1px))/.9 var(--font-display);text-transform:uppercase;text-align:center;color:#ebe9f2;letter-spacing:0;animation:rise .5s .05s cubic-bezier(.2,.9,.3,1.2) both}
+/* the shop sheet over the title: the name steps up and fades so the sheet's edge never cuts through it (filter and
+   translate, not opacity and transform, which the rise animation holds) */
+#title .tword{transition:filter .2s ease,translate .32s cubic-bezier(.2,.9,.3,1)}
+#title.under .tword{filter:opacity(0);translate:0 calc(-18*var(--tu,1px))}
 #t-cv{display:block;width:calc(360*var(--tu,1px));height:calc(190*var(--tu,1px));touch-action:none}
 #play{display:grid;place-items:center;width:calc(338*var(--tu,1px));height:calc(85*var(--tu,1px));margin-top:calc(6*var(--tu,1px));padding:0;border:0;border-radius:calc(22*var(--tu,1px));
   background:var(--field,#353543);color:#fff;cursor:pointer;animation:rise .4s .2s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
@@ -594,7 +603,8 @@ const DANGER_GRACE = 0.35;     // a brush past the line this short shows nothing
 const MAXN = 52;
 // Stones: a rock that rides in on the shelf like a shape, never merges, and breaks when a merge happens beside it.
 // From shot STONE_FROM, every Nth shelf arrival is one; N starts at STONE_N0 and drops by one per new tier from 128 up.
-const STONE_FROM = 12, STONE_N0 = 9, STONE_NMIN = 4;
+// (review: from 12 / every 9 left a good player's first two minutes empty; now the first one comes about shot 13)
+const STONE_FROM = 6, STONE_N0 = 7, STONE_NMIN = 4;
 const STONE_LV = 4;            // its size: a 16's
 const STONE_W = 0.5, STONE_G = 1.5, STONE_K = 3;   // heavier in contacts, pulled harder toward the pile, stiffer shape
 const STONE_GAP = 10;          // a merge's newborn breaks a stone within its radius plus this
@@ -710,7 +720,7 @@ let pressX = 0, pressY = 0, power = 1, selX = LX, pullX = 0, pullY = 0;
 const gateT = [0, 0], gateFlash = [0, 0]; let openQ = [];
 let score = 0, shown = 0, best = 0, combo = 0, comboIdle = 0, peak = 0;   // peak: highest tier made this run
 // the goal ladder: the highest tier seen this run (made, or dealt onto the board), and each slot's pop and blink clocks
-const LAD_TOP = 11, BADGE_LIFE = 1.2;   // 2048 is the goal at the ladder's top
+const LAD_TOP = 13, BADGE_LIFE = 1.2;   // 8192 is the goal at the ladder's top (2048 came within one run, even by mashing: review)
 let reachTop = 0, titleOn = false;
 const ladPop = new Float32Array(LAD_TOP + 1).fill(9), ladBlink = new Float32Array(LAD_TOP + 1).map(() => 1 + Math.random() * 5);
 const badge = { lv: 0, t: 9 };   // the phone's new-tier badge (no ladder there)
@@ -749,7 +759,7 @@ const TRAIL = 7;
 const bits = []; for (let i = 0; i < 128; i++) bits.push({ t: 9, tt: 0, life: 1, x: 0, y: 0, vx: 0, vy: 0, r: 4, c: 0, a: 0, spin: 0, tx: new Float32Array(TRAIL), ty: new Float32Array(TRAIL) });
 let bitI = 0;
 const sparks = []; for (let i = 0; i < 96; i++) sparks.push({ t: 9, life: 1, x: 0, y: 0, vx: 0, vy: 0, s: 2, c: -1 });
-const rings = []; for (let i = 0; i < 8; i++) rings.push({ t: 9, life: 1, x: 0, y: 0, r0: 0, r1: 0, c: 0 });
+const rings = []; for (let i = 0; i < 16; i++) rings.push({ t: 9, life: 1, x: 0, y: 0, r0: 0, r1: 0, c: 0 });
 let ringI = 0;
 const flares = []; for (let i = 0; i < 6; i++) flares.push({ t: 9, life: 1, x: 0, y: 0, c: 0 });
 let flareI = 0;
@@ -773,6 +783,15 @@ function mergePop(x, y, nb, c) {
 const glow = { c: 0, a: 0 };
 let fieldPaint = null, fxTop = -1, fxC = -1, fxA = -1, fxH = 0, tintCss = '0', hudCss = '', gearCss = '', hudT = 0.17;
 const mixRgb = (r0, g0, b0, c, k) => [r0 + (c.r - r0) * k, g0 + (c.g - g0) * k, b0 + (c.b - b0) * k];
+// A blob colour as UI ink may lean on: warm hues (reds, oranges, yellows, pinks) are taken almost to their own grey,
+// so a warm board never turns the slate HUD brown or mauve (owner's rule); cool hues pass as they are.
+function coolUi(c) {
+  const r = c.r, g = c.g, b = c.b, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (d < 1) return c;
+  let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360;
+  const w = h <= 70 ? 1 : h < 110 ? (110 - h) / 40 : h >= 330 ? 1 : h > 290 ? (h - 290) / 40 : 0; if (w <= 0) return c;
+  const y = 0.299 * r + 0.587 * g + 0.114 * b, k = 0.9 * w;
+  return { r: r + (y - r) * k, g: g + (y - g) * k, b: b + (y - b) * k };
+}
 const mixHex = (r0, g0, b0, c, k) => `rgb(${Math.round(r0 + (c.r - r0) * k)},${Math.round(g0 + (c.g - g0) * k)},${Math.round(b0 + (c.b - b0) * k)})`;
 const fanfare = { t: 9, life: 1.6, x: 0, y: 0, c: 0, b: null, rot: 0, sp: 0, big: 0 };
 
@@ -1492,6 +1511,11 @@ function ripple(b, j0) {
     o.hit = true;
   }
 }
+// A popped blob leaves one flat hoop of its colour that opens out and thins away (no sparkles: owner's rule).
+function popRing(x, y, r, ci) {
+  const rg = rings[ringI]; ringI = (ringI + 1) % rings.length;
+  rg.t = 0; rg.life = 0.36; rg.x = x; rg.y = y; rg.r0 = r * 0.8; rg.r1 = r * 1.5; rg.c = ci;
+}
 function popBlob(b) {
   b.dead = true; saveDirty = true; sfxPop();
   const x = b.cx, y = b.cy, ci = cidx(b.level);
@@ -1500,12 +1524,7 @@ function popBlob(b) {
     scoreBump = Math.max(scoreBump, 0.5);
   }
   if (REDUCED) return;
-  for (let i = 0; i < 14; i++) {
-    const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
-    const th = Math.random() * 6.283, v = 120 + Math.random() * 200;
-    sp.t = 0; sp.life = 0.3 + Math.random() * 0.3; sp.s = 2 + Math.random() * 2.5; sp.c = ci;
-    sp.x = x; sp.y = y; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
-  }
+  popRing(x, y, b.r, ci);
   // (no shake here: a trapped blob pops a second or more after anything the player did, and the shake read as late: user)
 }
 // A stone breaking: it shrinks for a moment (frameLogic), then crumbles into a few flat chips that drift off and fade.
@@ -1667,13 +1686,6 @@ function drawJuice() {
     ctx.globalAlpha = (1 - k) * 0.9; ctx.lineWidth = 4 * (1 - k) + 0.6; ctx.strokeStyle = COLORS[rg.c].hex;
     ctx.beginPath(); ctx.arc(rg.x, rg.y, r, 0, 6.2832); ctx.stroke();
   }
-  // sparkles: little four-point stars, white or in the new colour
-  for (let i = 0; i < sparks.length; i++) {
-    const sp = sparks[i]; if (sp.t >= sp.life) continue;
-    const k = sp.t / sp.life, l = sp.s * (1 - k) * (k < 0.2 ? k / 0.2 : 1) * 2.2;
-    ctx.globalAlpha = 1 - k * k; ctx.lineWidth = 1.4; ctx.strokeStyle = sp.c < 0 ? '#ffffff' : COLORS[sp.c].hex;
-    ctx.beginPath(); ctx.moveTo(sp.x - l, sp.y); ctx.lineTo(sp.x + l, sp.y); ctx.moveTo(sp.x, sp.y - l); ctx.lineTo(sp.x, sp.y + l); ctx.stroke();
-  }
   // confetti bits: a comet trail (two strokes: a thick head half, a thin tail half), then a spinning square
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const half = TRAIL >> 1;
@@ -1709,12 +1721,14 @@ function pickLevel() {
   let maxL = 4;
   for (let i = 0; i < blobs.length; i++) if (!blobs[i].tray && !blobs[i].dead && !blobs[i].stone && blobs[i].level > maxL) maxL = blobs[i].level;
   const lo = spawnFloor();
-  // from 512 up the shelf deals one tier higher: with stones alone, a +-60 sloppy bot still lasted 6-7 min (the difficulty target is 2-5)
-  const top = Math.max(lo + 2, Math.min(lo + 4, maxL - 2)) + (peak >= 9 ? 1 : 0);
+  // The deal is wide enough that a good player has to park shapes and the board fills: four tiers from the start, five
+  // from shot 20, more as the pile climbs. (review: with three tiers and a strong pull toward matches an aiming bot kept
+  // 4-8 shapes on the board for 3 minutes; now its first danger comes at about 2 minutes instead of 3.5)
+  const top = Math.max(lo + 3 + (shotN >= 20 ? 1 : 0), Math.min(lo + 5, maxL - 1));
   let total = 0; const w = [];
   for (let l = lo; l <= top; l++) {
-    let v = Math.pow(0.62, l - lo);
-    if (boardHas(l)) v = Math.max(v * 1.5, 0.28);   // a tier with a match waiting on the board is a bit likelier
+    let v = Math.pow(0.75, l - lo);
+    if (boardHas(l)) v = Math.max(v * 1.2, 0.28);   // a tier with a match waiting on the board is a little likelier
     w.push(v); total += v;
   }
   let r = Math.random() * total;
@@ -2030,7 +2044,8 @@ function frameLogic(dt) {
     nearT = near > 0 ? Math.min(LINE_WAIT + 0.6, nearT + dt) : Math.max(0, nearT - dt);
     const want = nearT > LINE_WAIT ? (near > 0 ? near : lineA) : 0;
     lineA += (want - lineA) * (1 - Math.exp(-dt * (want > lineA ? 1.6 : 5)));
-    dangerT = past ? dangerT + dt : dangerT > 0 ? Math.max(0, dangerT - dt * 3) : Math.min(0, dangerT + dt);
+    // (while the settings or shop sheet is up the run is paused for the portal: the losing clock holds still)
+    dangerT = past ? dangerT + (sheetOpen ? 0 : dt) : dangerT > 0 ? Math.max(0, dangerT - dt * 3) : Math.min(0, dangerT + dt);
     warn = dangerT > 0.12;
     if (dangerT > 0) dangerPh += dt * (1.1 + 2.6 * Math.min(1, dangerT / DANGER_HOLD)); else dangerPh = 0;   // heartbeat, quickening
     const c = dangerT > DANGER_GRACE ? Math.max(1, Math.ceil(DANGER_HOLD - dangerT)) : dangerT > 0 && count > 0 ? 3 : 0;   // 3, 2, 1; once up it stays until the pile has really cleared
@@ -2041,7 +2056,7 @@ function frameLogic(dt) {
     if (dangerT >= DANGER_HOLD) lose();
     saveT += dt; if (saveT >= 2) { saveT = 0; if (saveDirty || dangerT > 0) saveRun(); }
   } else if (offer) {
-    offerT += dt;
+    if (!sheetOpen) offerT += dt;
     const left = REVIVE_TIME - Math.max(0, offerT - 0.55);   // a beat to see the board, then the card and its timer
     if (offerT > 0.55 && reviveEl.hidden) { reviveEl.hidden = false; reviveEl.firstElementChild.focus({ preventScroll: true }); }
     const n = Math.max(0, Math.ceil(left));
@@ -2051,8 +2066,8 @@ function frameLogic(dt) {
     ringLeft.style.strokeDashoffset = (264 * (1 - Math.max(0, Math.min(1, left / REVIVE_TIME)))).toFixed(1);
     if (left <= 0) endRun();
   } else {
-    overT += dt;
-    if (cashI < cash.length) {   // the board is still cashing out: the finish screen waits for the last blob
+    if (!sheetOpen) overT += dt;
+    if (cashI < cash.length && !sheetOpen) {   // the board is still cashing out: the finish screen waits for the last blob
       cashT -= dt;
       while (cashT <= 0 && cashI < cash.length) { cashPop(cash[cashI], cashI, cash.length); cashI++; cashT += cashGap; }
       overT = cashI < cash.length ? 0 : -0.1;
@@ -2125,12 +2140,7 @@ function revive() {
     n++;
     if (b.stone) { breakStone(b, true); continue; }   // (the revive's own sound and buzz cover it)
     b.dead = true;
-    if (!REDUCED) for (let i = 0; i < 10; i++) {
-      const sp = sparks[sparkI]; sparkI = (sparkI + 1) % sparks.length;
-      const th = Math.random() * 6.283, v = 120 + Math.random() * 220;
-      sp.t = 0; sp.life = 0.3 + Math.random() * 0.35; sp.s = 2 + Math.random() * 3; sp.c = cidx(b.level);
-      sp.x = b.cx; sp.y = b.cy; sp.vx = Math.cos(th) * v; sp.vy = Math.sin(th) * v;
-    }
+    if (!REDUCED) popRing(b.cx, b.cy, b.r, cidx(b.level));
   }
   if (!REDUCED) kickShake(1); glow.a = Math.max(glow.a, 0.6);
   sfxRevive(); buzz([20, 40, 30]); saveDirty = true; saveT = 1.5;
@@ -2623,7 +2633,7 @@ function faceStep(b, dt) {
 // eye), 'goggles' (flat round frames and a bridge, in the eyes' ink); everything else is the classic pair.
 function drawEyes(style, e, y, gx, gy, bl, joy, wide, g = ctx) {
   const half = e * (1.6 + 0.4 * Math.max(0, Math.min(1, (8 - e) / 4)) + 0.15 * wide), ox = gx * e * 0.45, oy = gy * e * (gy > 0 ? 0.12 : 0.35) + y - e * 0.3 * wide;   // (a downward look or wide eyes never cover the number)
-  const one = style === 'cyclops', k = one ? 1.4 : 1, s0 = one ? 0 : -1, ds = one ? 1 : 2;
+  const one = style === 'cyclops', k = one ? 1.55 : 1, s0 = one ? 0 : -1, s1 = one ? 0 : 1;   // (the cyclops: one eye, centred)
   g.fillStyle = FACE_INK; g.strokeStyle = FACE_INK;
   if (style === 'goggles') {   // the frames stay put while the eyes inside blink and squeeze
     const R = e * 1.38; g.lineWidth = e * 0.36; g.beginPath();
@@ -2632,22 +2642,25 @@ function drawEyes(style, e, y, gx, gy, bl, joy, wide, g = ctx) {
   }
   if (joy) {   // ^ ^
     g.lineWidth = e * 0.62 * (one ? 1.2 : 1); g.lineCap = 'round'; g.beginPath();
-    for (let s = s0; s <= 1; s += ds) { const x = s * half + ox, a = e * 0.85 * k; g.moveTo(x - a, oy + e * 0.45); g.arc(x, oy + e * 0.45, a, Math.PI, 0); }
+    for (let s = s0; s <= s1; s += 2) { const x = s * half + ox, a = e * 0.85 * k; g.moveTo(x - a, oy + e * 0.45); g.arc(x, oy + e * 0.45, a, Math.PI, 0); }
     g.stroke(); return;
   }
-  const ry = e * (1 + 0.2 * wide) * k, rx = e * (0.72 + 0.33 * wide) * (one ? 1.25 : 1);
+  const ry = e * (1 + 0.2 * wide) * k, rx = one ? ry : e * (0.72 + 0.33 * wide);   // (the cyclops eye is round)
   let h = ry * bl;
   if (h < e * 0.22) {   // shut: a short flat line
     g.lineWidth = e * 0.45; g.lineCap = 'round'; g.beginPath();
-    for (let s = s0; s <= 1; s += ds) { const x = s * half + ox; g.moveTo(x - rx, oy); g.lineTo(x + rx, oy); }
+    for (let s = s0; s <= s1; s += 2) { const x = s * half + ox; g.moveTo(x - rx, oy); g.lineTo(x + rx, oy); }
     g.stroke(); return;
   }
   g.beginPath();
   if (style === 'sleepy' && wide < 0.5) {   // the lower half of each eye under a flat lid
     h *= 0.8;
     for (let s = -1; s <= 1; s += 2) { const x = s * half + ox, yy = oy - h * 0.3; g.moveTo(x + rx, yy); g.ellipse(x, yy, rx, h, 0, 0, Math.PI); g.closePath(); }
-  } else for (let s = s0; s <= 1; s += ds) { const x = s * half + ox; g.moveTo(x + rx, oy); g.ellipse(x, oy, rx, h, 0, 0, 6.2832); }
+  } else for (let s = s0; s <= s1; s += 2) { const x = s * half + ox; g.moveTo(x + rx, oy); g.ellipse(x, oy, rx, h, 0, 0, 6.2832); }
   g.fill();
+  if (one && h > ry * 0.6) {   // one flat round catch-light, up and toward the gaze, so the big eye reads as an eye
+    g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.arc(ox + rx * (0.32 + 0.12 * gx), oy - h * 0.34, rx * 0.26, 0, 6.2832); g.fill();
+  }
 }
 // A skin's silhouette parts, in the blob's own colour, drawn just before its body so the body's edge covers their
 // roots: 'cat' two rounded ear points, 'alien' two stalks with a ball each. `up` is the face's up (an angle), `reach(dx,
@@ -2747,6 +2760,8 @@ function draw() {
       screenEl.style.setProperty('--sh', mixHex(F[0], F[1], F[2], tc, 0.04)); screenEl.style.setProperty('--sh-row', mixHex(F[0] - 14, F[1] - 14, F[2] - 15, tc, 0.04));
       screenEl.style.setProperty('--sh-hi', mixHex(F[0] - 20, F[1] - 20, F[2] - 22, tc, 0.04)); screenEl.style.setProperty('--sh-tog', mixHex(F[0] + 21, F[1] + 21, F[2] + 21, tc, 0.07));
       screenEl.style.setProperty('--card', mixHex(F[0] - 17, F[1] - 17, F[2] - 20, tc, 0.04));
+      // the booster circles sit on the screen, not the field: a step lighter than the screen itself, so every theme shows them
+      screenEl.style.setProperty('--bst', mixHex(K[0] + 15, K[1] + 15, K[2] + 17, coolUi(tc), 0.04));
       burstPalette(tc); screenEl.style.setProperty('--fin-r', mixHex(238, 236, 243, tc, 0.5));   // a record's best row: the colour, softened
       { // the ending's two inks are cut from its own background: the same tinted slate, darker for the best and lighter for the score, in the
         // Figma frame's proportions (so the tint is one hue across the screen: mixing each ink toward the colour separately went muddy)
@@ -2762,9 +2777,9 @@ function draw() {
     // the score and the gear: the solid colour that their ink, added to the screen behind them, comes to
     // (readability pass: a stronger ink than the first 0.3, and a lighter pull toward the top blob, so a warm board
     // lifts the score instead of browning it)
-    const a = 0.62 + 0.3 * ga; let bc = 'rgb(', gr = 'rgb(';
+    const a = 0.62 + 0.3 * ga, uT = coolUi(tc), uG = coolUi(gc); let bc = 'rgb(', gr = 'rgb(';   // (warm colours lose their hue here: coolUi)
     for (let k = 0; k < 3; k++) {
-      const X0 = K[k], I0 = k === 2 ? 188 : 166, T = k === 0 ? tc.r : k === 1 ? tc.g : tc.b, G = k === 0 ? gc.r : k === 1 ? gc.g : gc.b;
+      const X0 = K[k], I0 = k === 2 ? 188 : 166, T = k === 0 ? uT.r : k === 1 ? uT.g : uT.b, G = k === 0 ? uG.r : k === 1 ? uG.g : uG.b;
       const t0 = X0 + (T - X0) * 0.06, topC = t0 + (G - t0) * 0.32 * ga, botC = X0 + (G - X0) * 0.06 * ga, bg = topC + (botC - topC) * hudT;
       const i0 = I0 + (T - I0) * 0.15, ink = i0 + (G - i0) * 0.85 * ga;
       bc += Math.min(255, Math.round(bg + ink * a)) + (k < 2 ? ',' : ')'); gr += Math.min(255, Math.round(bg + ink * (a - 0.05))) + (k < 2 ? ',' : ')');
@@ -2796,6 +2811,7 @@ function draw() {
     ctx.save(); ctx.translate(LX + tw / 2 + 28, by - 16); ctx.scale(-1, 1); ctx.fill(LAUREL); ctx.restore();
     ctx.globalAlpha = 1;
   }
+  drawGoalMini();
 
   if (dangerA > 0) {
     ctx.fillStyle = `rgba(255,77,94,${(0.06 * dangerA).toFixed(3)})`; ctx.fillRect(WALL_L, CEIL, WALL_R - WALL_L, H);   // (inside the panel clip)
@@ -2964,6 +2980,7 @@ function showMenu(open) {
   if (open === sheetOpen) return;
   cgGame(!open && !over && !titleOn);   // (the shop opens over the title too: that is still not play)
   sheetOpen = open; gearBtn.setAttribute('aria-expanded', String(open)); sfxUi(open);
+  { const te = document.getElementById('title'); if (te) te.classList.toggle('under', open); }
   clearTimeout(sheetTimer);
   sheetEl.classList.remove('drag'); scrimEl.classList.remove('drag'); backEl.classList.remove('drag');
   sheetEl.style.transform = ''; scrimEl.style.opacity = ''; backEl.style.transform = ''; backEl.style.borderRadius = '';
@@ -3079,9 +3096,9 @@ function boostUI() {
     if (mode === 'empty') el.setAttribute('aria-disabled', 'true'); else el.removeAttribute('aria-disabled');
   }
 }
-function boostPop(i) {
+function boostPop(i, cls = 'pop') {
   const el = boostBtns[i]; if (!el || REDUCED) return;
-  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  el.classList.remove('pop', 'nope'); void el.offsetWidth; el.classList.add(cls);
 }
 // A press spends the run's own charges first (the free one and the new-tier ones), then the stock bought in the shop.
 function spendBoost(i) {
@@ -3111,7 +3128,8 @@ function useBoost(i) {
     }, 'booster');
     return;
   }
-  if (i === 0) {   // Hint: until the next shot
+  if (i === 0) {   // Hint: until the next shot. With no match anywhere on the field it keeps its charge and just shakes its head
+    if (!hintFrom()) { boostPop(0, 'nope'); sfxUi(false); return; }
     spendBoost(0); hintOn = true; sfxUi(true); buzz(8);
   } else if (i === 1) {   // Swap: both shelf shapes slide out, two fresh ones slide in
     if (!swapShelf()) return;
@@ -3155,17 +3173,20 @@ function smashBlob(b) {
 }
 // Hint's target: a pile blob that matches the shape being aimed (or the shelf shape nearest the pointer, or the bigger
 // one), preferring one the shape can reach in a straight line, then the nearest.
+// The shelf shape a Hint helps: one that has a match in the pile (the one nearest the pointer, or the bigger one).
+const pileHas = lv => blobs.some(t => !t.tray && !t.dead && !t.stone && t.level === lv && t.state === 0 && !t.popping);
+function hintFrom() {
+  let from = null, bd = 1e9;
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]; if (!b.tray || b.dead || b.leaving || b.state !== 0 || b.stone || !pileHas(b.level)) continue;
+    const d = ptrIn ? Math.hypot(b.cx - ptrX, b.cy - ptrY) : -b.level;
+    if (d < bd) { bd = d; from = b; }
+  }
+  return from;
+}
 function hintPick() {
   if (!hintOn || over) return null;
-  let from = aiming && sel ? sel : null;
-  if (!from) {
-    let bd = 1e9;
-    for (let i = 0; i < blobs.length; i++) {
-      const b = blobs[i]; if (!b.tray || b.dead || b.leaving || b.state !== 0 || b.stone) continue;
-      const d = ptrIn ? Math.hypot(b.cx - ptrX, b.cy - ptrY) : -b.level;
-      if (d < bd) { bd = d; from = b; }
-    }
-  }
+  const from = aiming && sel ? sel : hintFrom();
   if (!from || from.stone) return null;
   const rs = from.r * from.scale;
   let pick = null, pd = 1e18;
@@ -3615,7 +3636,7 @@ function newTier(level) {
   if (level <= LAD_TOP) ladPop[level] = 0;
   if (!ladOn) { badge.lv = level; badge.t = 0; }
 }
-// The ladder: 2 at the bottom to 2048 at the top (it wears the crown). Tiers seen this run in their colours, the
+// The ladder: 2 at the bottom to 8192 at the top (it wears the crown). Tiers seen this run in their colours, the
 // rest dim and blank; the highest seen sits a little bigger with a notch beside it. The faces look up at the goal.
 function drawLadder(dt) {
   let tp = peak; for (let i = 0; i < blobs.length; i++) { const b = blobs[i]; if (!b.stone && !b.dead && b.level > tp) tp = b.level; }
@@ -3643,13 +3664,26 @@ function drawLadder(dt) {
       const nx = cx - R - 5 * u;
       g.beginPath(); g.moveTo(nx - 6 * u, y - 5 * u); g.lineTo(nx, y); g.lineTo(nx - 6 * u, y + 5 * u); g.closePath(); g.fillStyle = 'rgba(235,233,242,0.55)'; g.fill();
     }
-    if (L === LAD_TOP) {   // the crown
-      const w = R * 0.62, hh = R * 0.56, by = y - R * 0.8;
-      g.beginPath(); g.moveTo(-w + cx, by); g.lineTo(-w + cx, by - hh); g.lineTo(-w * 0.45 + cx, by - hh * 0.45); g.lineTo(cx, by - hh * 1.05);
-      g.lineTo(w * 0.45 + cx, by - hh * 0.45); g.lineTo(w + cx, by - hh); g.lineTo(w + cx, by); g.closePath();
-      g.fillStyle = CROWN_C; g.strokeStyle = CROWN_C; g.lineJoin = 'round'; g.lineWidth = 2 * u; g.fill(); g.stroke();
-    }
+    if (L === LAD_TOP) drawCrown(g, cx, y, R, 2 * u);
   }
+}
+// The goal's small flat crown, on top of a blob of radius R at (cx, y).
+function drawCrown(g, cx, y, R, lw) {
+  const w = R * 0.62, hh = R * 0.56, by = y - R * 0.8;
+  g.beginPath(); g.moveTo(-w + cx, by); g.lineTo(-w + cx, by - hh); g.lineTo(-w * 0.45 + cx, by - hh * 0.45); g.lineTo(cx, by - hh * 1.05);
+  g.lineTo(w * 0.45 + cx, by - hh * 0.45); g.lineTo(w + cx, by - hh); g.lineTo(w + cx, by); g.closePath();
+  g.fillStyle = CROWN_C; g.strokeStyle = CROWN_C; g.lineJoin = 'round'; g.lineWidth = lw; g.fill(); g.stroke();
+}
+// The phone's goal (no ladder there): in the field's bottom corners, either side of the best row, the biggest tier
+// made this run on the left and the crowned 8192 on the right, a dim silhouette until it is made.
+function drawGoalMini() {
+  if (ladOn || MERGE_LAB) return;
+  const y = H - 46, r = 13, top = Math.min(reachTop, LAD_TOP);
+  if (top > 0) drawMini(ctx, WALL_L + 30, y, r, top, blinkOpen(ladBlink[top]), false, 0.3, -0.6, 1, 1);
+  const gx = WALL_R - 30;
+  if (top >= LAD_TOP) drawMini(ctx, gx, y, r, LAD_TOP, blinkOpen(ladBlink[LAD_TOP]), false, -0.3, -0.6, 1, 1);
+  else { ctx.beginPath(); ctx.arc(gx, y, r, 0, 6.2832); ctx.fillStyle = LAD_DIM; ctx.fill(); }
+  drawCrown(ctx, gx, y, r, 1.4);
 }
 // The phone's badge: the new tier's blob pops in under the HUD, holds a beat with its eyes squeezed, then slides up and away.
 function drawBadge(dt) {
@@ -3739,7 +3773,7 @@ function frame(t) {
     const fd = raw > 0 ? Math.min(0.1, raw) : 0;
     if (titleOn) drawTitle(); else { draw(); decoT += fd; drawLadder(fd); drawBadge(fd); drawFly(); }
     coinShow(fd); drawShop(fd);
-    if (titleOn && ytOn && ytDirty) { ytSaveT += fd; if (ytSaveT > 3) ytFlush(); }   // (a purchase on the title goes out too: tick, which flushes in play, is still)
+    if ((titleOn || sheetOpen) && ytOn && ytDirty) { ytSaveT += fd; if (ytSaveT > 3) ytFlush(); }   // (a purchase on the title or in the sheet goes out in real time: tick is still or slowed there)
     perfC.raf++; perfC.tickMs += b - a; perfC.drawMs += performance.now() - b;
   } catch (e) { perfC.err++; if (!frameErr) { frameErr = true; if (window.console) console.error(e); if (ytOn) { try { YT.health.logError(); } catch (e2) {} } } }
   rafDone = performance.now();
