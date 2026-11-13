@@ -65,14 +65,14 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 #status .cell{width:calc(19.2*var(--u))}#status .wifi{width:calc(17.142*var(--u))}#status .batt{width:calc(27.328*var(--u))}
 #hud{position:absolute;left:0;right:0;top:calc(62*var(--u));height:calc(68*var(--u))}
 body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
-#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#505062;letter-spacing:0;
+#brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#8c8ca0;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
 /* phone HUD: a long score steps its size down so it never runs under the boosters (the row also holds the coins) */
 body:not(.wide) #brand[data-n="5"]{font-size:calc(29*var(--u));top:calc(10*var(--u))}
 body:not(.wide) #brand[data-n="6"]{font-size:calc(24*var(--u));top:calc(13*var(--u))}
 body:not(.wide) #brand[data-n="7"],body:not(.wide) #brand[data-n="8"]{font-size:calc(20*var(--u));top:calc(15*var(--u))}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:max(34px,calc(36*var(--u)));height:max(34px,calc(36*var(--u)));padding:0;border:0;border-radius:50%;
-  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#484859);will-change:transform}
+  background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#82829a);will-change:transform}
 #gear svg{width:100%;height:100%}
 #gear:active{transform:scale(.92)}
 #gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
@@ -151,7 +151,7 @@ body.wide #brand{left:auto;right:calc(50% + var(--colw)/2 + 30*var(--u));top:cal
   font-size:min(calc(64*var(--u)),calc((var(--gut,300px) - 40*var(--u))/5))}
 body.wide #gear{pointer-events:auto;left:calc(50% + var(--colw)/2 + 26*var(--u));top:calc(10*var(--u));width:max(34px,calc(44*var(--u)));height:max(34px,calc(44*var(--u)))}
 body.cg.wide #mark{display:block!important;left:auto;right:calc(50% + var(--colw)/2 + 32*var(--u));top:calc(var(--wm,12px) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)) + 16*var(--u));
-  transform:none;text-align:right;font-size:calc(24*var(--u));opacity:.75;mix-blend-mode:normal;color:#505062}
+  transform:none;text-align:right;font-size:calc(24*var(--u));opacity:.75;mix-blend-mode:normal;color:#8c8ca0}
 body.wide #mark{transition:opacity .25s ease}
 body.cg.wide:has(#over:not([hidden])) #mark,body.cg.wide:has(#revive:not([hidden])) #mark{opacity:0}   /* the cards stand alone */
 #c{display:block;width:100%;height:100%;touch-action:none;cursor:none}
@@ -294,6 +294,8 @@ body.titling #hud,body.titling #stage,body.titling #ladder,body.titling #badge,b
 #play:active{scale:.95;transition-duration:.07s;background:var(--sh-row,#272734)}
 /* the title shows no pile, so it wears none of the pile's tint: plain slate (a warm biggest blob turned it brown) */
 body.titling #back{background:linear-gradient(var(--scr-hi,#232330),var(--screen,#1e1e2a) 60%)!important}
+/* and its Shop button and coin pill are cut from the theme's own field, a step darker, not from the tinted sheet rows */
+#title #t-shop,#title #t-coins{background:#2a2a36;background:color-mix(in srgb,var(--field,#353543) 78%,#000)}
 #play:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.tword,#play,#title.out{animation:none}}
 /* coins: one flat coin (a face, a darker rim, a slime-drop mark) and the counter pill: in the HUD (phone: beside the
@@ -316,7 +318,7 @@ body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:cal
   padding:0 calc(13*var(--tu,1px)) 0 calc(4*var(--tu,1px));font-size:calc(18*var(--tu,1px));animation:fade .4s .3s both}
 #t-coins .coin{width:calc(28*var(--tu,1px));height:calc(28*var(--tu,1px))}
 #t-shop{display:flex;align-items:center;justify-content:center;gap:calc(10*var(--tu,1px));width:calc(338*var(--tu,1px));height:calc(64*var(--tu,1px));padding:0;border:0;border-radius:calc(22*var(--tu,1px));
-  background:var(--sh-row,#272734);color:rgba(255,255,255,.62);font:900 calc(22*var(--tu,1px))/1 var(--font-display);cursor:pointer;animation:rise .4s .28s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1)}
+  background:var(--sh-row,#272734);color:rgba(255,255,255,.74);font:900 calc(22*var(--tu,1px))/1 var(--font-display);cursor:pointer;animation:rise .4s .28s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1)}
 #t-shop .coin{width:calc(28*var(--tu,1px));height:calc(28*var(--tu,1px))}
 #t-shop:active{scale:.95;transition-duration:.07s}
 #fly{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:1}
@@ -326,7 +328,7 @@ body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:cal
 .rcoin{display:flex;align-items:center;gap:calc(5*var(--u));font-size:calc(18*var(--u));color:rgba(255,255,255,.62);font-variant-numeric:tabular-nums}
 .rcoin .coin{width:calc(22*var(--u));height:calc(22*var(--u))}
 .seg{display:flex;gap:calc(4*var(--u));padding:calc(4*var(--u));border-radius:calc(22*var(--u));background:var(--sh-row,rgba(30,30,42,.6))}
-.seg button{flex:1 1 0;height:calc(44*var(--u));padding:0;border:0;border-radius:calc(18*var(--u));background:transparent;color:rgba(255,255,255,.42);
+.seg button{flex:1 1 0;height:calc(44*var(--u));padding:0;border:0;border-radius:calc(18*var(--u));background:transparent;color:rgba(255,255,255,.56);
   font:900 calc(17*var(--u))/1 var(--font-display);cursor:pointer;transition:background .15s ease,color .15s ease,scale .22s cubic-bezier(.2,.9,.3,1)}
 .seg button:active{scale:.96;transition-duration:.07s}
 .seg button[aria-selected="true"]{background:var(--sh-tog,#4a4a58);color:#fff}
@@ -341,7 +343,7 @@ body.wide #coins{right:auto;left:calc(50% + var(--colw)/2 + 84*var(--u));top:cal
 .bpv .ic{display:block;width:56%;height:56%}
 .bpv .bn{position:absolute;right:calc(-6*var(--u));bottom:calc(-4*var(--u));box-sizing:border-box;min-width:calc(20*var(--u));height:calc(20*var(--u));padding:0 calc(5*var(--u));border-radius:999px;
   background:#ebe9f2;color:#1e1e2a;font:900 calc(12*var(--u))/calc(20*var(--u)) var(--font-display);text-align:center;font-variant-numeric:tabular-nums}
-.card .nm{max-width:100%;overflow:hidden;font:900 calc(13*var(--u))/1.1 var(--font-display);color:rgba(255,255,255,.55);white-space:nowrap}
+.card .nm{max-width:100%;overflow:hidden;font:900 calc(13*var(--u))/1.1 var(--font-display);color:rgba(255,255,255,.7);white-space:nowrap}
 .chip{display:flex;align-items:center;justify-content:center;gap:calc(4*var(--u));box-sizing:border-box;min-width:calc(66*var(--u));max-width:100%;height:calc(26*var(--u));margin-top:auto;padding:0 calc(9*var(--u));
   border-radius:999px;background:rgba(0,0,0,.26);color:#ffd36b;font:900 calc(13*var(--u))/1 var(--font-display);font-variant-numeric:tabular-nums;white-space:nowrap;transition:background .15s ease,color .15s ease}
 .chip .coin{width:calc(16*var(--u));height:calc(16*var(--u))}
@@ -2492,7 +2494,7 @@ let S = 1, OX = 0, OY = 0, DPR = 1, CW = 0, CH = 0;
 const FONT = '"HorizonTal","Arial Black",Impact,sans-serif';
 let bestN = -1, bestTxt = '', bestW = 0;
 const bySize = (p, q) => q.r - p.r;
-const BEST_ALPHA = 0.55;   // the cut-in best score: part way between the panel and the screen colour
+const BEST_ALPHA = 0.8;   // the cut-in best score: part way between the panel and the screen colour
 const LAUREL = new Path2D('M9.84282 0.637125C9.33704 -0.0339861 8.39825 -0.19944 7.69351 0.25833C5.832 1.46751 4.47753 2.99794 4.13349 4.93497C3.99265 5.72793 4.03434 6.5146 4.22413 7.28863C3.8525 7.16183 3.46556 7.05273 3.06608 6.95973C2.24569 6.76875 1.41772 7.24655 1.17259 8.05243C0.527989 10.1716 0.482406 12.2114 1.47265 13.914C1.71712 14.3345 2.01101 14.7107 2.34764 15.0463C1.94965 15.1219 1.54679 15.222 1.14083 15.3438C0.329672 15.5868 -0.151521 16.4199 0.043148 17.2441C0.552549 19.4007 1.53999 21.1856 3.24923 22.1653C3.84162 22.5048 4.47467 22.7213 5.13785 22.8323C4.84707 23.0603 4.56101 23.313 4.28095 23.591C3.66454 24.2029 3.64892 25.1948 4.24576 25.8259C5.61944 27.2783 7.17175 28.2761 8.91469 28.4607C10.2738 28.6049 11.5518 28.235 12.7263 27.5047C12.5842 27.9459 12.1951 28.4863 11.2276 28.9665C10.4361 29.3594 10.1129 30.3196 10.5058 31.1111C10.8987 31.9026 11.8588 32.2256 12.6503 31.8328C14.6052 30.8624 15.7647 29.347 15.9686 27.5799C16.3499 24.2747 13.3746 21.4954 10.2459 21.2071C10.2829 20.9984 10.2788 20.7792 10.2272 20.5607C9.83629 18.9058 9.16395 17.4698 8.10001 16.4486C8.19257 16.3151 8.26614 16.1654 8.31579 16.0022C8.88786 14.1214 8.98811 12.3032 8.31122 10.7277C10.0216 9.55017 11.2533 8.08057 11.5791 6.24639C11.9233 4.30815 11.177 2.40752 9.84282 0.637125Z');   // 16x32 laurel branch from the Figma frame (Squish 19:114)
 
 // The phone scales as one piece: --u is one design pixel. On a narrow or touch screen the shell drops away.
@@ -2758,11 +2760,13 @@ function draw() {
     if (glow.c !== fxC) tintEl.style.background = `linear-gradient(rgba(${gc.r},${gc.g},${gc.b},.32),rgba(${gc.r},${gc.g},${gc.b},.06) 60%)`;
     const to = ga.toFixed(3); if (to !== tintCss) { tintCss = to; tintEl.style.opacity = to; }
     // the score and the gear: the solid colour that their ink, added to the screen behind them, comes to
-    const a = 0.3 + 0.45 * ga; let bc = 'rgb(', gr = 'rgb(';
+    // (readability pass: a stronger ink than the first 0.3, and a lighter pull toward the top blob, so a warm board
+    // lifts the score instead of browning it)
+    const a = 0.62 + 0.3 * ga; let bc = 'rgb(', gr = 'rgb(';
     for (let k = 0; k < 3; k++) {
       const X0 = K[k], I0 = k === 2 ? 188 : 166, T = k === 0 ? tc.r : k === 1 ? tc.g : tc.b, G = k === 0 ? gc.r : k === 1 ? gc.g : gc.b;
       const t0 = X0 + (T - X0) * 0.06, topC = t0 + (G - t0) * 0.32 * ga, botC = X0 + (G - X0) * 0.06 * ga, bg = topC + (botC - topC) * hudT;
-      const i0 = I0 + (T - I0) * 0.42, ink = i0 + (G - i0) * 0.85 * ga;
+      const i0 = I0 + (T - I0) * 0.15, ink = i0 + (G - i0) * 0.85 * ga;
       bc += Math.min(255, Math.round(bg + ink * a)) + (k < 2 ? ',' : ')'); gr += Math.min(255, Math.round(bg + ink * (a - 0.05))) + (k < 2 ? ',' : ')');
     }
     if (bc !== hudCss) { hudCss = bc; brandEl.style.color = bc; if (PORTAL && markEl) markEl.style.color = bc; }   // (the name beside the field takes the score's colour)
