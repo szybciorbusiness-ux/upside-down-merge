@@ -67,6 +67,10 @@ body.bare #screen{left:0;top:0;width:100%;height:100%;border-radius:0;padding-to
 body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))}
 #brand{position:absolute;left:calc(20*var(--u));top:calc(6*var(--u));margin:0;font:900 calc(36*var(--u))/normal var(--font-brand);color:#505062;letter-spacing:0;
   font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:0 60%;will-change:transform}
+/* phone HUD: a long score steps its size down so it never runs under the boosters (the row also holds the coins) */
+body:not(.wide) #brand[data-n="5"]{font-size:calc(29*var(--u));top:calc(10*var(--u))}
+body:not(.wide) #brand[data-n="6"]{font-size:calc(24*var(--u));top:calc(13*var(--u))}
+body:not(.wide) #brand[data-n="7"],body:not(.wide) #brand[data-n="8"]{font-size:calc(20*var(--u));top:calc(15*var(--u))}
 #gear{position:absolute;left:calc(348*var(--u));top:calc(13*var(--u));width:max(34px,calc(36*var(--u)));height:max(34px,calc(36*var(--u)));padding:0;border:0;border-radius:50%;
   background:transparent;cursor:pointer;display:grid;place-items:center;transition:transform .15s ease;color:var(--gear-c,#484859);will-change:transform}
 #gear svg{width:100%;height:100%}
@@ -74,7 +78,7 @@ body.bare #hud{top:calc(10*var(--u) + var(--safe-area-inset-top, env(safe-area-i
 #gear:focus-visible,#sheet button:focus-visible,#again:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* the boosters: three round flat buttons, a count badge each. Phone: one row in the HUD between the score and the gear;
    wide frame: a column under the gear */
-#boost{position:absolute;left:calc(204*var(--u));top:calc(14*var(--u));display:flex;gap:calc(6*var(--u));transform:translateX(-50%)}
+#boost{position:absolute;left:calc(196*var(--u));top:calc(14*var(--u));display:flex;gap:calc(6*var(--u));transform:translateX(-50%)}
 .bst{position:relative;flex:none;display:grid;place-items:center;width:calc(34*var(--u));height:calc(34*var(--u));padding:0;border:0;border-radius:50%;
   background:var(--sh-row,#272734);color:rgba(235,233,242,.86);cursor:pointer;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease,opacity .2s ease}
 .bst .ic{display:block;width:56%;height:56%}
@@ -2702,7 +2706,7 @@ function draw() {
   if (st !== shakeCss) { shakeCss = st; screenEl.style.transform = st; }
   // the wordmark is the score: it rolls up and bumps with a merge
   const sv = Math.round(shown);
-  if (sv !== scoreN) { scoreN = sv; brandEl.textContent = String(sv); }
+  if (sv !== scoreN) { scoreN = sv; const t = String(sv); brandEl.textContent = t; if (brandEl.dataset && brandEl.dataset.n !== String(t.length)) brandEl.dataset.n = String(t.length); }
   const sb = 1 + scoreS;
   if (sb !== scoreScale) { scoreScale = sb; brandEl.style.transform = sb === 1 ? '' : `scale(${sb.toFixed(3)}) rotate(${(-scoreS * 7).toFixed(2)}deg)`; }
   // while the pile sits past the line the whole screen goes red: a heartbeat vignette over the screen (DOM) and a
@@ -3297,6 +3301,8 @@ function coinStep(dt) {
     }
   }
   for (let i = 0; i < flies.length; i++) { const f = flies[i]; if (f.t >= 9) continue; f.t += dt; if (f.t >= f.end) { f.t = 9; landCoin(f.v, f.k); } }
+  // nothing left in the air or still to burst: nothing is pending (a count that went astray must never hold the ending back)
+  if (coinPend > 0 && cashI >= cash.length && !coinQ.length && !flies.some(f => f.t < 9)) { coinPend = 0; chimeDue = false; }
 }
 function landCoin(v, k) {
   coinPend = Math.max(0, coinPend - v);
