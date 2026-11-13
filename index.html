@@ -263,9 +263,11 @@ body.titling #hud,body.titling #stage,body.titling #ladder,body.titling #badge,b
 .tword{margin:0;font:800 calc(78*var(--tu,1px))/.9 var(--font-display);text-transform:uppercase;text-align:center;color:#ebe9f2;letter-spacing:0;animation:rise .5s .05s cubic-bezier(.2,.9,.3,1.2) both}
 #t-cv{display:block;width:calc(360*var(--tu,1px));height:calc(190*var(--tu,1px));touch-action:none}
 #play{display:grid;place-items:center;width:calc(338*var(--tu,1px));height:calc(85*var(--tu,1px));margin-top:calc(6*var(--tu,1px));padding:0;border:0;border-radius:calc(22*var(--tu,1px));
-  background:var(--sh,#353543);color:#fff;cursor:pointer;animation:rise .4s .2s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
+  background:#353543;color:#fff;cursor:pointer;animation:rise .4s .2s cubic-bezier(.2,.9,.3,1.2) both;transition:scale .22s cubic-bezier(.2,.9,.3,1),background .15s ease}
 #play svg{width:calc(28*var(--tu,1px));height:calc(28*var(--tu,1px))}
-#play:active{scale:.95;transition-duration:.07s;background:var(--sh-row,rgba(30,30,42,.75))}
+#play:active{scale:.95;transition-duration:.07s;background:#272734}
+/* the title shows no pile, so it wears none of the pile's tint: plain slate (a warm biggest blob turned it brown) */
+body.titling #back{background:linear-gradient(#232330,#1e1e2a 60%)!important}
 #play:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.tword,#play,#title.out{animation:none}}
 </style>
