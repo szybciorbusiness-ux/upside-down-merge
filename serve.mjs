@@ -50,7 +50,8 @@ createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': types[extname(rel)] || 'application/octet-stream', 'cache-control': 'no-store' });
       return res.end(data);
     }
-    const html = await readFile(join(dir, 'index.html'), 'utf8');
+    const PAGE = { '/classic': 'classic.html', '/juicy': 'juicy.html' }[path.replace(/\/$/, '')];   // other versions of the game: /classic (the original), /juicy
+    const html = await readFile(join(dir, PAGE || 'index.html'), 'utf8');
     const portal = PORTAL[path.replace(/\/$/, '')];
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     if (portal) return res.end(head.replace('</head>', portal + '</head>') + html.replace(/\s*<img id="bezel"[^>]*>/, '') + '</body></html>');
